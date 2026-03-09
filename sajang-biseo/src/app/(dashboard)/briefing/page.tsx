@@ -4,12 +4,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3, Archive, ChevronLeft, ChevronRight,
-  Download, Image as ImageIcon,
+  Copy, CopyCheck, Share2,
 } from "lucide-react";
 import { useBriefingData } from "@/hooks/useBriefingData";
 import { BriefingCarousel } from "@/components/briefing/BriefingCarousel";
 import { ArchiveList } from "@/components/briefing/ArchiveList";
 import { parseDate, formatDateShort } from "@/lib/utils/date";
+import { formatCurrency } from "@/lib/utils/format";
+import type { BriefingData } from "@/lib/briefing/types";
 
 type Tab = "briefing" | "archive";
 
@@ -17,6 +19,42 @@ const TAB_CONFIG: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
   { key: "briefing", label: "브리핑", icon: BarChart3 },
   { key: "archive", label: "아카이브", icon: Archive },
 ];
+
+function generateBriefingText(data: BriefingData): string {
+  const lines: string[] = [];
+  const start = formatDateShort(parseDate(data.weekStart));
+  const end = formatDateShort(parseDate(data.weekEnd));
+  lines.push(`[주간 경영 브리핑] ${start} ~ ${end}`);
+  lines.push("");
+  lines.push(`총매출: ${formatCurrency(data.sales.totalSales)}`);
+  lines.push(`실수령: ${formatCurrency(data.sales.netSales)} (수수료율 ${data.sales.feeRate.toFixed(1)}%)`);
+  lines.push(`일 평균: ${formatCurrency(data.sales.dailyAvg)}`);
+
+  if (data.sales.prevWeekTotal > 0) {
+    const sign = data.sales.changeRate >= 0 ? "+" : "";
+    lines.push(`전주 대비: ${sign}${data.sales.changeRate.toFixed(1)}% (${sign}${formatCurrency(data.sales.changeAmount)})`);
+  }
+
+  lines.push("");
+  lines.push(`최고 매출: ${data.sales.bestDay.day} ${formatCurrency(data.sales.bestDay.amount)}`);
+  lines.push(`최저 매출: ${data.sales.worstDay.day} ${formatCurrency(data.sales.worstDay.amount)}`);
+
+  if (data.fees.totalFees > 0) {
+    lines.push("");
+    lines.push(`총 수수료: ${formatCurrency(data.fees.totalFees)} (${data.fees.feeRate.toFixed(1)}%)`);
+  }
+
+  if (data.expenses.totalExpense > 0) {
+    lines.push(`총 비용: ${formatCurrency(data.expenses.totalExpense)} (매출비 ${data.expenses.costRate.toFixed(1)}%)`);
+  }
+
+  if (data.coaching.insight) {
+    lines.push("");
+    lines.push(`AI 코칭: ${data.coaching.insight}`);
+  }
+
+  return lines.join("\n");
+}
 
 export default function BriefingPage() {
   const {
@@ -26,6 +64,7 @@ export default function BriefingPage() {
   } = useBriefingData();
 
   const [tab, setTab] = useState<Tab>("briefing");
+  const [copied, setCopied] = useState(false);
 
   const weekLabel = briefing
     ? `${formatDateShort(parseDate(briefing.weekStart))} ~ ${formatDateShort(parseDate(briefing.weekEnd))}`
@@ -99,15 +138,39 @@ export default function BriefingPage() {
                   onGenerateCoaching={generateCoaching}
                 />
 
-                {/* 액션 버튼 */}
+                {/* 공유 버튼 */}
                 <div className="flex gap-2">
-                  <button className="flex-1 py-2.5 rounded-xl bg-[var(--bg-tertiary)] text-body-small text-[var(--text-secondary)] flex items-center justify-center gap-1.5 press-effect">
-                    <ImageIcon size={14} />
-                    이미지 저장
+                  <button
+                    onClick={async () => {
+                      if (!briefing) return;
+                      try {
+                        await navigator.clipboard.writeText(generateBriefingText(briefing));
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      } catch { /* fallback */ }
+                    }}
+                    className={`flex-1 py-2.5 rounded-xl text-body-small flex items-center justify-center gap-1.5 press-effect transition-all ${
+                      copied
+                        ? "bg-success/10 text-success"
+                        : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500"
+                    }`}
+                  >
+                    {copied ? <><CopyCheck size={14} />복사됨!</> : <><Copy size={14} />텍스트 복사</>}
                   </button>
-                  <button className="flex-1 py-2.5 rounded-xl bg-[var(--bg-tertiary)] text-body-small text-[var(--text-secondary)] flex items-center justify-center gap-1.5 press-effect">
-                    <Download size={14} />
-                    PDF 다운로드
+                  <button
+                    onClick={async () => {
+                      if (!briefing || !navigator.share) return;
+                      try {
+                        await navigator.share({
+                          title: "주간 경영 브리핑",
+                          text: generateBriefingText(briefing),
+                        });
+                      } catch { /* cancelled */ }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-[var(--bg-tertiary)] text-body-small text-[var(--text-secondary)] hover:text-primary-500 flex items-center justify-center gap-1.5 press-effect"
+                  >
+                    <Share2 size={14} />
+                    공유하기
                   </button>
                 </div>
               </>
