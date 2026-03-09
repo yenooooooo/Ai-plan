@@ -21,7 +21,7 @@ export default async function DashboardLayout({
     .from("sb_user_profiles")
     .select("id")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile) {
     redirect("/onboarding");
