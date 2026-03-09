@@ -73,7 +73,7 @@ export function useClosingData() {
         .select("*, sb_daily_closing_channels(*)")
         .eq("store_id", storeId)
         .eq("date", date)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         setTotalSales(existing.total_sales);
@@ -104,7 +104,7 @@ export function useClosingData() {
         .lt("date", date)
         .order("date", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (prev) {
         setCardRatio(prev.card_ratio);
@@ -234,7 +234,7 @@ export function useClosingData() {
       .lt("date", selectedDate)
       .order("date", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!prev) return;
     setTotalSales(prev.total_sales);

@@ -60,7 +60,7 @@ export function useHomeData() {
           .select("total_sales, memo")
           .eq("store_id", storeId!)
           .eq("date", today)
-          .single();
+          .maybeSingle();
 
         // 어제 마감 데이터
         const { data: yesterdayClosing } = await supabase
@@ -68,7 +68,7 @@ export function useHomeData() {
           .select("total_sales")
           .eq("store_id", storeId!)
           .eq("date", yesterday)
-          .single();
+          .maybeSingle();
 
         // 이번 달 매출 합계
         const monthStart = today.slice(0, 7) + "-01";

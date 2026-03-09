@@ -43,7 +43,7 @@ export function useSettingsData() {
       .from("sb_stores")
       .select("store_name, business_type, address, phone")
       .eq("id", storeId)
-      .single();
+      .maybeSingle();
     if (store) {
       setStoreName(store.store_name);
       setBusinessType(store.business_type);
@@ -74,7 +74,7 @@ export function useSettingsData() {
       .from("sb_store_fee_settings")
       .select("credit_card_rate")
       .eq("store_id", storeId)
-      .single();
+      .maybeSingle();
     if (feeSettings) {
       const idx = CARD_FEE_TIERS.findIndex((t) => t.rate === feeSettings.credit_card_rate);
       setCardTierIndex(idx >= 0 ? idx : 1);

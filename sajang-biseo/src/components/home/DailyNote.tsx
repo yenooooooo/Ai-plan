@@ -38,7 +38,7 @@ export function DailyNote({ initialMemo }: DailyNoteProps) {
         .select("id")
         .eq("store_id", storeId)
         .eq("date", today)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         await supabase

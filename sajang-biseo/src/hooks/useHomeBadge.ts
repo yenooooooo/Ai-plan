@@ -27,7 +27,7 @@ export function useHomeBadge() {
         .select("id")
         .eq("store_id", storeId!)
         .eq("date", today)
-        .single();
+        .maybeSingle();
 
       if (!todayClosing) pending++;
 
@@ -37,7 +37,7 @@ export function useHomeBadge() {
         .select("id")
         .eq("store_id", storeId!)
         .eq("date", yesterday)
-        .single();
+        .maybeSingle();
 
       if (!yesterdayClosing) pending++;
 

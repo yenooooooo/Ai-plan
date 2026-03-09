@@ -31,7 +31,7 @@ export function useReviewData() {
         .eq("store_id", storeId).is("deleted_at", null)
         .order("created_at", { ascending: false }),
       supabase.from("sb_store_tone_settings").select("*")
-        .eq("store_id", storeId).limit(1).single(),
+        .eq("store_id", storeId).limit(1).maybeSingle(),
     ]);
 
     if (reviewsRes.error) {

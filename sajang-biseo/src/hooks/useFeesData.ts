@@ -61,7 +61,7 @@ export function useFeesData() {
     try {
     const [settingsRes, channelsConfigRes, closingsRes, closingChannelsRes] = await Promise.all([
       supabase.from("sb_store_fee_settings").select("*")
-        .eq("store_id", storeId).single(),
+        .eq("store_id", storeId).maybeSingle(),
       supabase.from("sb_fee_channels").select("*")
         .eq("store_id", storeId).eq("is_active", true).is("deleted_at", null)
         .order("sort_order"),

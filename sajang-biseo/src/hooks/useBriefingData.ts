@@ -69,7 +69,7 @@ export function useBriefingData() {
         supabase.from("sb_order_items").select("*")
           .eq("store_id", storeId).eq("is_active", true).is("deleted_at", null),
         supabase.from("sb_weekly_briefings").select("*")
-          .eq("store_id", storeId).eq("week_start", start).single(),
+          .eq("store_id", storeId).eq("week_start", start).maybeSingle(),
       ]);
 
     // 쿼리 에러 체크
