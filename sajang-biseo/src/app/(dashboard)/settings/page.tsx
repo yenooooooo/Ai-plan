@@ -3,6 +3,7 @@
 import { useSettingsData } from "@/hooks/useSettingsData";
 import { StoreInfoSection } from "@/components/settings/StoreInfoSection";
 import { FeeDefaultsSection } from "@/components/settings/FeeDefaultsSection";
+import { MonthlyGoalSection } from "@/components/settings/MonthlyGoalSection";
 import { PresetsSection } from "@/components/settings/PresetsSection";
 import { AccountSection } from "@/components/settings/AccountSection";
 
@@ -64,6 +65,8 @@ export default function SettingsPage() {
         onRemoveChannel={removeDeliveryChannel}
         onSave={saveFeeSettings}
       />
+
+      <MonthlyGoalSection />
 
       <PresetsSection />
 

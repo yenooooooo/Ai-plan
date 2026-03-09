@@ -5,9 +5,10 @@ import { motion } from "framer-motion";
 import {
   CheckCircle2, Circle, ChevronRight, Flame,
   BarChart3, Package, Receipt, MessageSquare,
-  TrendingUp, ArrowUpRight, ArrowDownRight,
+  TrendingUp, ArrowUpRight, ArrowDownRight, Target,
 } from "lucide-react";
 import { useHomeData } from "@/hooks/useHomeData";
+import { useStoreSettings } from "@/stores/useStoreSettings";
 import { formatCurrency } from "@/lib/utils/format";
 
 const QUICK_MENU = [
@@ -19,6 +20,7 @@ const QUICK_MENU = [
 
 export default function HomePage() {
   const { loading, storeName, greeting, summary, todos } = useHomeData();
+  const { monthlyGoal } = useStoreSettings();
 
   const salesChange = summary.todaySales !== null && summary.yesterdaySales !== null && summary.yesterdaySales > 0
     ? Math.round(((summary.todaySales - summary.yesterdaySales) / summary.yesterdaySales) * 100)
@@ -140,6 +142,56 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 월 목표 진행률 */}
+      {monthlyGoal > 0 && (
+        <section className="glass-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target size={16} className="text-primary-500" />
+              <h2 className="text-body-small font-semibold text-[var(--text-primary)]">월 목표</h2>
+            </div>
+            <span className="text-caption text-[var(--text-tertiary)]">
+              {formatCurrency(monthlyGoal)}
+            </span>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-end justify-between">
+              <span className="text-heading-md font-display text-[var(--text-primary)]">
+                {Math.min(100, Math.round((summary.monthlySales / monthlyGoal) * 100))}%
+              </span>
+              <span className="text-caption text-[var(--text-tertiary)]">
+                {formatCurrency(summary.monthlySales)} / {formatCurrency(monthlyGoal)}
+              </span>
+            </div>
+            <div className="h-2.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, (summary.monthlySales / monthlyGoal) * 100)}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className={`h-full rounded-full ${
+                  summary.monthlySales >= monthlyGoal ? "bg-success" : "bg-primary-500"
+                }`}
+              />
+            </div>
+            {summary.monthlyDays > 0 && (() => {
+              const today = new Date();
+              const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+              const daysLeft = lastDay - today.getDate();
+              const dailyNeeded = daysLeft > 0
+                ? Math.round((monthlyGoal - summary.monthlySales) / daysLeft)
+                : 0;
+              return dailyNeeded > 0 ? (
+                <p className="text-[10px] text-[var(--text-tertiary)]">
+                  남은 {daysLeft}일, 하루 {formatCurrency(dailyNeeded)}씩 필요
+                </p>
+              ) : summary.monthlySales >= monthlyGoal ? (
+                <p className="text-[10px] text-success font-medium">목표 달성!</p>
+              ) : null;
+            })()}
+          </div>
+        </section>
+      )}
 
       {/* 빠른 메뉴 */}
       <section className="glass-card p-4 space-y-3">
