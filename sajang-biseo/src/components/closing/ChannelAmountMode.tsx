@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { X } from "lucide-react";
 import { ChannelRatio } from "./ChannelSlider";
 
 const DELIVERY_CHANNEL_SET = new Set(["배민", "쿠팡이츠", "요기요", "땡겨요", "네이버주문"]);
@@ -9,9 +10,10 @@ interface Props {
   channels: ChannelRatio[];
   totalSales: number;
   onChange: (channels: ChannelRatio[]) => void;
+  onRemove?: (index: number) => void;
 }
 
-export function ChannelAmountMode({ channels, totalSales, onChange }: Props) {
+export function ChannelAmountMode({ channels, totalSales, onChange, onRemove }: Props) {
   const [amounts, setAmounts] = useState<string[]>(() =>
     channels.map((ch) => Math.round((totalSales * ch.ratio) / 100).toString())
   );
@@ -58,9 +60,21 @@ export function ChannelAmountMode({ channels, totalSales, onChange }: Props) {
         return (
           <div key={ch.channel} className="space-y-1.5">
             <div className="flex items-center gap-3">
-              <span className="text-body-small font-medium text-[var(--text-primary)] min-w-[4rem]">
-                {ch.channel}
-              </span>
+              <div className="flex items-center gap-1 min-w-[4rem]">
+                {onRemove && channels.length > 1 && (
+                  <button
+                    onClick={() => onRemove(idx)}
+                    className="w-5 h-5 flex items-center justify-center rounded-full
+                      text-[var(--text-tertiary)] hover:text-danger hover:bg-danger/10
+                      transition-colors shrink-0"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+                <span className="text-body-small font-medium text-[var(--text-primary)]">
+                  {ch.channel}
+                </span>
+              </div>
               <div className="flex items-center gap-1 flex-1">
                 <span className="text-caption text-[var(--text-tertiary)]">₩</span>
                 <input

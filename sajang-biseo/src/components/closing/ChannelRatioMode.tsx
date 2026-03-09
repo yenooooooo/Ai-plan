@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { X } from "lucide-react";
 import { ChannelRatio } from "./ChannelSlider";
 
 const DELIVERY_CHANNEL_SET = new Set(["배민", "쿠팡이츠", "요기요", "땡겨요", "네이버주문"]);
@@ -9,9 +10,10 @@ interface Props {
   channels: ChannelRatio[];
   totalSales: number;
   onChange: (channels: ChannelRatio[]) => void;
+  onRemove?: (index: number) => void;
 }
 
-export function ChannelRatioMode({ channels, totalSales, onChange }: Props) {
+export function ChannelRatioMode({ channels, totalSales, onChange, onRemove }: Props) {
   const [editingAmount, setEditingAmount] = useState<{ index: number; value: string } | null>(null);
 
   const handleRatioChange = useCallback(
@@ -90,9 +92,21 @@ export function ChannelRatioMode({ channels, totalSales, onChange }: Props) {
         return (
           <div key={ch.channel} className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-body-small font-medium text-[var(--text-primary)] min-w-[3rem]">
-                {ch.channel}
-              </span>
+              <div className="flex items-center gap-1 min-w-[3rem]">
+                {onRemove && channels.length > 1 && (
+                  <button
+                    onClick={() => onRemove(idx)}
+                    className="w-5 h-5 flex items-center justify-center rounded-full
+                      text-[var(--text-tertiary)] hover:text-danger hover:bg-danger/10
+                      transition-colors shrink-0"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+                <span className="text-body-small font-medium text-[var(--text-primary)]">
+                  {ch.channel}
+                </span>
+              </div>
               <div className="flex items-center gap-2 flex-1 justify-end">
                 <div className="flex items-center gap-1">
                   <span className="text-caption text-[var(--text-tertiary)]">₩</span>
