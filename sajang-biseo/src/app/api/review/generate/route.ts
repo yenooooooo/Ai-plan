@@ -84,9 +84,59 @@ export async function POST(req: NextRequest) {
   }
 }
 
+function getBlockStructure(rating: number): { types: string; example: string } {
+  if (rating >= 4) {
+    return {
+      types: `greeting(인사), empathy(감사 표현), mention(리뷰 내용 구체적 언급), menu_detail(메뉴/서비스 자랑), response(상세 감사), invitation(재방문 유도), closing(따뜻한 마무리)`,
+      example: `[
+          {"type": "greeting", "text": "..."},
+          {"type": "empathy", "text": "..."},
+          {"type": "mention", "text": "..."},
+          {"type": "menu_detail", "text": "..."},
+          {"type": "response", "text": "..."},
+          {"type": "invitation", "text": "..."},
+          {"type": "closing", "text": "..."}
+        ]`,
+    };
+  }
+  if (rating <= 2) {
+    return {
+      types: `greeting(인사), empathy(공감 표현), mention(고객 불편 구체적 언급), response(해명 및 개선 약속), invitation(재방문 유도), closing(마무리)`,
+      example: `[
+          {"type": "greeting", "text": "..."},
+          {"type": "empathy", "text": "..."},
+          {"type": "mention", "text": "..."},
+          {"type": "response", "text": "..."},
+          {"type": "invitation", "text": "..."},
+          {"type": "closing", "text": "..."}
+        ]`,
+    };
+  }
+  return {
+    types: `greeting(인사), empathy(감사/공감), mention(리뷰 내용 언급), menu_detail(메뉴 소개), response(감사 및 개선점 인정), invitation(재방문 유도), closing(마무리)`,
+    example: `[
+          {"type": "greeting", "text": "..."},
+          {"type": "empathy", "text": "..."},
+          {"type": "mention", "text": "..."},
+          {"type": "menu_detail", "text": "..."},
+          {"type": "response", "text": "..."},
+          {"type": "invitation", "text": "..."},
+          {"type": "closing", "text": "..."}
+        ]`,
+  };
+}
+
 function buildFullPrompt(body: GenerateRequest): string {
   const { reviewContent, rating, platform, toneSettings: ts, versionsCount = 3 } = body;
-  return `당신은 한국 음식점 사장님의 리뷰 답글 작성 도우미입니다.
+  const blockInfo = getBlockStructure(rating);
+  const ratingContext = rating >= 4
+    ? "긍정 리뷰입니다. 진심 어린 감사와 함께 메뉴/서비스를 자연스럽게 홍보하세요."
+    : rating <= 2
+    ? "부정 리뷰입니다. 고객의 불편에 진심으로 공감하고, 구체적 개선 약속을 포함하세요. 절대 변명하지 마세요."
+    : "보통 리뷰입니다. 감사를 표하면서 아쉬운 점은 인정하고, 더 나은 경험을 약속하세요.";
+
+  return `당신은 한국 음식점/카페 사장님의 리뷰 답글 전문 작성자입니다.
+실제 사장님이 직접 쓴 것처럼 자연스럽고 진정성 있는 답글을 작성합니다.
 
 매장 정보:
 - 매장명: ${ts.storeNameDisplay || "우리 매장"}
@@ -95,29 +145,32 @@ function buildFullPrompt(body: GenerateRequest): string {
 - 자주 쓰는 표현: ${ts.frequentPhrases?.join(", ") || "없음"}
 - 이모지 사용: ${ts.useEmoji ? "사용" : "미사용"}
 - 톤: ${ts.toneName}
-${ts.sampleReplies?.length ? `- 기존 답글 예시:\n${ts.sampleReplies.map((s, i) => `  ${i + 1}. "${s}"`).join("\n")}` : ""}
+${ts.sampleReplies?.length ? `- 기존 답글 스타일 참고:\n${ts.sampleReplies.map((s, i) => `  ${i + 1}. "${s}"`).join("\n")}` : ""}
 
 리뷰:
 - 플랫폼: ${platform}
 - 별점: ${rating}점/5점
 - 내용: "${reviewContent}"
 
-규칙:
-1. 과도한 사과나 비굴한 톤 지양
-2. 매장 특성(메뉴명, 특징)을 자연스럽게 녹이기
-3. 답글은 4개 블록으로 구성: greeting(인사), mention(리뷰 언급), response(감사 또는 해명), closing(마무리)
-4. ${versionsCount}개 버전 생성
+전략: ${ratingContext}
+
+작성 규칙:
+1. 각 블록은 반드시 2~4문장으로 작성 (한 줄짜리 답변 금지)
+2. 전체 답글이 최소 10줄 이상 되어야 함
+3. 리뷰에서 언급된 구체적인 내용(메뉴명, 상황 등)을 반드시 답글에 포함
+4. 매장의 대표 메뉴나 특징을 자연스럽게 1~2회 언급
+5. 과도한 사과나 비굴한 톤 지양, 당당하면서도 겸손하게
+6. 기계적/템플릿 느낌 지양, 이 리뷰에만 해당되는 맞춤 답변으로 작성
+7. 각 버전은 서로 다른 표현과 구성으로 차별화
+8. ${versionsCount}개 버전 생성
+
+블록 구성: ${blockInfo.types}
 
 반드시 아래 JSON 형식으로만 응답:
 {
   "versions": [
     {
-      "blocks": [
-        {"type": "greeting", "text": "인사 텍스트"},
-        {"type": "mention", "text": "리뷰 내용 언급 텍스트"},
-        {"type": "response", "text": "감사 또는 해명 텍스트"},
-        {"type": "closing", "text": "마무리 텍스트"}
-      ]
+      "blocks": ${blockInfo.example}
     }
   ]
 }
@@ -128,18 +181,26 @@ JSON만 응답하세요.`;
 function buildBlockPrompt(body: GenerateRequest): string {
   const { reviewContent, rating, toneSettings: ts, regenerateBlock: rb } = body;
   const adj = rb?.toneAdjustment;
-  const adjText = adj === "polite" ? "더 정중한 톤으로" :
-    adj === "short" ? "더 짧게" :
-    adj === "apology" ? "사과하는 톤을 추가하여" :
-    adj === "humor" ? "유머를 추가하여" : "";
+  const adjMap: Record<string, string> = {
+    polite: "더 정중하고 격식 있는 톤으로",
+    short: "핵심만 간결하게 (2문장 이내)",
+    longer: "더 상세하고 풍성하게 (4~5문장)",
+    apology: "진심 어린 사과 톤을 자연스럽게 추가하여",
+    humor: "센스 있는 유머를 자연스럽게 섞어서",
+    warm: "따뜻하고 정감 있는 톤으로",
+  };
+  const adjText = adj ? adjMap[adj] ?? "" : "";
 
   return `한국 음식점 리뷰 답글의 "${rb?.type}" 블록만 다시 작성해주세요.
 
 매장: ${ts.storeNameDisplay || "우리 매장"}
+대표 메뉴: ${ts.signatureMenus?.join(", ") || "없음"}
 톤: ${ts.toneName}, 이모지: ${ts.useEmoji ? "사용" : "미사용"}
 리뷰: "${reviewContent}" (${rating}점)
 다른 블록 내용: ${rb?.context}
-${adjText ? `요청: ${adjText}` : ""}
+${adjText ? `톤 조절 요청: ${adjText}` : ""}
+
+규칙: 최소 2~3문장, 리뷰 내용에 맞춤 작성, 기계적 표현 지양
 
 반드시 JSON으로만 응답: {"text": "새로운 블록 텍스트"}`;
 }

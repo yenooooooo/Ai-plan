@@ -211,10 +211,12 @@ export function useReviewData() {
     await loadData();
   }, [storeId, supabase, loadData]);
 
+  const clearVersions = useCallback(() => setVersions([]), []);
+
   return {
     reviews, toneSettings, loading, error,
     versions, generating, regeneratingBlockId,
     saveToneSettings, addReview, generateReply,
-    editBlock, regenerateBlock, saveReply,
+    editBlock, regenerateBlock, saveReply, clearVersions,
   };
 }

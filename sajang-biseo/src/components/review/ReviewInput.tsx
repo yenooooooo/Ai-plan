@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Star } from "lucide-react";
+import { Sparkles, Star, RotateCcw } from "lucide-react";
 import { PLATFORMS, type Platform } from "@/lib/review/blocks";
 
 interface ReviewInputProps {
   onGenerate: (data: { content: string; rating: number; platform: Platform }) => void;
   loading: boolean;
+  hasResult: boolean;
+  onReset: () => void;
 }
 
-export function ReviewInput({ onGenerate, loading }: ReviewInputProps) {
+export function ReviewInput({ onGenerate, loading, hasResult, onReset }: ReviewInputProps) {
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(5);
   const [platform, setPlatform] = useState<Platform>("배민");
@@ -20,9 +22,27 @@ export function ReviewInput({ onGenerate, loading }: ReviewInputProps) {
     onGenerate({ content: content.trim(), rating, platform });
   }
 
+  function handleReset() {
+    setContent("");
+    setRating(5);
+    onReset();
+  }
+
   return (
     <div className="glass-card p-5 space-y-4">
-      <h3 className="text-heading-md text-[var(--text-primary)]">리뷰 답글 생성</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-heading-md text-[var(--text-primary)]">리뷰 답글 생성</h3>
+        {hasResult && (
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-caption font-medium
+              text-[var(--text-tertiary)] hover:text-primary-500 hover:bg-primary-500/5 transition-colors"
+          >
+            <RotateCcw size={13} />
+            새 리뷰
+          </button>
+        )}
+      </div>
 
       {/* 플랫폼 */}
       <div>
@@ -71,22 +91,24 @@ export function ReviewInput({ onGenerate, loading }: ReviewInputProps) {
         />
       </div>
 
-      {/* 생성 버튼 */}
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={handleSubmit}
-        disabled={!content.trim() || loading}
-        className="w-full py-3.5 rounded-2xl bg-primary-500 text-white font-semibold text-body-small flex items-center justify-center gap-2 press-effect disabled:opacity-50"
-      >
-        {loading ? (
-          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-        ) : (
-          <>
-            <Sparkles size={18} />
-            답글 생성
-          </>
-        )}
-      </motion.button>
+      {/* 생성 / 재작성 버튼 */}
+      <div className="flex gap-2">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleSubmit}
+          disabled={!content.trim() || loading}
+          className="flex-1 py-3.5 rounded-2xl bg-primary-500 text-white font-semibold text-body-small flex items-center justify-center gap-2 press-effect disabled:opacity-50"
+        >
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <>
+              <Sparkles size={18} />
+              {hasResult ? "재작성" : "답글 생성"}
+            </>
+          )}
+        </motion.button>
+      </div>
     </div>
   );
 }

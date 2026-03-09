@@ -30,7 +30,7 @@ export default function ReviewPage() {
     reviews, toneSettings, loading,
     versions, generating, regeneratingBlockId,
     saveToneSettings, generateReply,
-    editBlock, regenerateBlock, saveReply,
+    editBlock, regenerateBlock, saveReply, clearVersions,
   } = useReviewData();
 
   const [tab, setTab] = useState<Tab>("generate");
@@ -134,7 +134,12 @@ export default function ReviewPage() {
             ) : (
               <>
                 {/* 리뷰 입력 */}
-                <ReviewInput onGenerate={handleGenerate} loading={generating} />
+                <ReviewInput
+                  onGenerate={handleGenerate}
+                  loading={generating}
+                  hasResult={versions.length > 0}
+                  onReset={() => { setCurrentReviewData(null); setSelectedReview(null); clearVersions(); }}
+                />
 
                 {/* 생성 결과 (블록 에디터) */}
                 {versions.length > 0 && (
