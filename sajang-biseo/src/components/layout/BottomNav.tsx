@@ -20,7 +20,7 @@ const ICON_MAP = {
 } as const;
 
 const TABS = [
-  { key: "home", label: "홈", icon: "Home" as const, href: "/closing" },
+  { key: "home", label: "홈", icon: "Home" as const, href: "/home" },
   { key: "closing", label: "마감", icon: "BarChart3" as const, href: "/closing" },
   { key: "order", label: "발주", icon: "Package" as const, href: "/order" },
   { key: "receipt", label: "장부", icon: "Receipt" as const, href: "/receipt" },
@@ -31,7 +31,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   function isActive(href: string) {
-    if (href === "/closing" && pathname === "/") return true;
+    if (href === "/home" && pathname === "/") return true;
     return pathname.startsWith(href);
   }
 

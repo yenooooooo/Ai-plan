@@ -9,7 +9,7 @@ export function Header() {
     <header className="sticky top-0 z-40 w-full bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--border-subtle)]">
       <div className="flex items-center justify-between h-14 px-4 max-w-screen-xl mx-auto">
         {/* 좌: 로고 */}
-        <Link href="/closing" className="flex items-center gap-2">
+        <Link href="/home" className="flex items-center gap-2">
           <span className="text-xl">🍳</span>
           <span className="font-body font-bold text-[var(--text-primary)] text-[15px] hidden sm:block">
             사장님비서

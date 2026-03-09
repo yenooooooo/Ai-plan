@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  Home,
   BarChart3,
   Package,
   Receipt,
@@ -16,6 +17,7 @@ import {
 import { signOut } from "@/app/(auth)/actions";
 
 const NAV_ITEMS = [
+  { label: "홈", icon: Home, href: "/home" },
   { label: "마감", icon: BarChart3, href: "/closing" },
   { label: "발주", icon: Package, href: "/order" },
   { label: "장부", icon: Receipt, href: "/receipt" },
