@@ -87,7 +87,7 @@ export default function FeesPage() {
         </div>
       ) : (
         <AnimatePresence mode="wait">
-          {tab === "report" && monthlyReport && (
+          {tab === "report" && (
             <motion.div
               key="report"
               initial={{ opacity: 0, x: -20 }}
@@ -95,7 +95,15 @@ export default function FeesPage() {
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.2 }}
             >
-              <MonthlyFeeReport report={monthlyReport} />
+              {monthlyReport ? (
+                <MonthlyFeeReport report={monthlyReport} />
+              ) : (
+                <div className="glass-card p-8 text-center space-y-2">
+                  <BarChart3 size={32} className="mx-auto text-[var(--text-tertiary)]" />
+                  <p className="text-body-small font-medium text-[var(--text-secondary)]">수수료 데이터가 없습니다</p>
+                  <p className="text-caption text-[var(--text-tertiary)]">마감 입력을 하면 수수료가 자동 분석됩니다</p>
+                </div>
+              )}
             </motion.div>
           )}
 

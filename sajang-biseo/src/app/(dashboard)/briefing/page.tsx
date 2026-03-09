@@ -175,10 +175,13 @@ export default function BriefingPage() {
                 </div>
               </>
             ) : (
-              <div className="glass-card p-8 text-center">
-                <BarChart3 size={32} className="mx-auto text-[var(--text-tertiary)] mb-2" />
-                <p className="text-body-small text-[var(--text-tertiary)]">
+              <div className="glass-card p-8 text-center space-y-2">
+                <BarChart3 size={32} className="mx-auto text-[var(--text-tertiary)]" />
+                <p className="text-body-small font-medium text-[var(--text-secondary)]">
                   해당 주의 마감 데이터가 없습니다
+                </p>
+                <p className="text-caption text-[var(--text-tertiary)]">
+                  마감 입력에서 매출을 기록하면 주간 브리핑이 자동 생성됩니다
                 </p>
               </div>
             )}

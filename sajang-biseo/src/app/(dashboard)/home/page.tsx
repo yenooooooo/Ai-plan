@@ -89,60 +89,78 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 매출 요약 카드 */}
-      <section className="glass-card p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-body-small font-semibold text-[var(--text-primary)]">매출 현황</h2>
-          <Link href="/closing" className="text-caption text-primary-500 font-medium press-effect">
-            자세히
+      {/* 매출 요약 카드 또는 신규 유저 가이드 */}
+      {summary.monthlySales === 0 && summary.todaySales === null ? (
+        <section className="glass-card p-5 space-y-4">
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto">
+              <BarChart3 size={24} className="text-primary-500" />
+            </div>
+            <h2 className="text-body-small font-semibold text-[var(--text-primary)]">
+              첫 매출을 기록해보세요!
+            </h2>
+            <p className="text-caption text-[var(--text-tertiary)]">
+              오늘 마감 매출을 입력하면 매출 분석, 수수료 계산,<br />
+              주간 브리핑이 자동으로 시작됩니다
+            </p>
+          </div>
+          <Link
+            href="/closing"
+            className="w-full h-11 rounded-xl bg-primary-500 text-white text-body-small font-semibold
+              flex items-center justify-center gap-2 press-effect hover:bg-primary-600 transition-colors"
+          >
+            <BarChart3 size={16} />
+            오늘 마감 입력하기
           </Link>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          {/* 오늘 매출 */}
-          <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-1">
-            <p className="text-[10px] text-[var(--text-tertiary)]">오늘 매출</p>
-            <p className="text-body-small font-display font-bold text-[var(--text-primary)]">
-              {summary.todaySales !== null ? formatCurrency(summary.todaySales) : "미입력"}
-            </p>
-            {salesChange !== null && (
-              <div className={`flex items-center gap-0.5 ${salesChange >= 0 ? "text-success" : "text-danger"}`}>
-                {salesChange >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                <span className="text-[10px] font-medium">전일 대비 {Math.abs(salesChange)}%</span>
-              </div>
-            )}
+        </section>
+      ) : (
+        <section className="glass-card p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-body-small font-semibold text-[var(--text-primary)]">매출 현황</h2>
+            <Link href="/closing" className="text-caption text-primary-500 font-medium press-effect">
+              자세히
+            </Link>
           </div>
 
-          {/* 이번 달 누적 */}
-          <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-1">
-            <p className="text-[10px] text-[var(--text-tertiary)]">이번 달 누적</p>
-            <p className="text-body-small font-display font-bold text-[var(--text-primary)]">
-              {formatCurrency(summary.monthlySales)}
-            </p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">{summary.monthlyDays}일 기록</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-1">
+              <p className="text-[10px] text-[var(--text-tertiary)]">오늘 매출</p>
+              <p className="text-body-small font-display font-bold text-[var(--text-primary)]">
+                {summary.todaySales !== null ? formatCurrency(summary.todaySales) : "미입력"}
+              </p>
+              {salesChange !== null && (
+                <div className={`flex items-center gap-0.5 ${salesChange >= 0 ? "text-success" : "text-danger"}`}>
+                  {salesChange >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                  <span className="text-[10px] font-medium">전일 대비 {Math.abs(salesChange)}%</span>
+                </div>
+              )}
+            </div>
+            <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-1">
+              <p className="text-[10px] text-[var(--text-tertiary)]">이번 달 누적</p>
+              <p className="text-body-small font-display font-bold text-[var(--text-primary)]">
+                {formatCurrency(summary.monthlySales)}
+              </p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">{summary.monthlyDays}일 기록</p>
+            </div>
+            <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-1">
+              <p className="text-[10px] text-[var(--text-tertiary)]">일 평균</p>
+              <p className="text-body-small font-display font-bold text-[var(--text-primary)]">
+                {summary.monthlyDays > 0
+                  ? formatCurrency(Math.round(summary.monthlySales / summary.monthlyDays))
+                  : "-"}
+              </p>
+            </div>
+            <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-1">
+              <p className="text-[10px] text-[var(--text-tertiary)]">이번 달 경비</p>
+              <p className="text-body-small font-display font-bold text-[var(--fee-deducted)]">
+                {summary.recentExpenseTotal > 0
+                  ? formatCurrency(summary.recentExpenseTotal)
+                  : "-"}
+              </p>
+            </div>
           </div>
-
-          {/* 일 평균 */}
-          <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-1">
-            <p className="text-[10px] text-[var(--text-tertiary)]">일 평균</p>
-            <p className="text-body-small font-display font-bold text-[var(--text-primary)]">
-              {summary.monthlyDays > 0
-                ? formatCurrency(Math.round(summary.monthlySales / summary.monthlyDays))
-                : "-"}
-            </p>
-          </div>
-
-          {/* 이번 달 지출 */}
-          <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-1">
-            <p className="text-[10px] text-[var(--text-tertiary)]">이번 달 경비</p>
-            <p className="text-body-small font-display font-bold text-[var(--fee-deducted)]">
-              {summary.recentExpenseTotal > 0
-                ? formatCurrency(summary.recentExpenseTotal)
-                : "-"}
-            </p>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 오늘 한 줄 메모 */}
       <DailyNote initialMemo={summary.todayMemo} />
