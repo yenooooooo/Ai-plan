@@ -5,6 +5,7 @@ import { calculateFees, type ChannelSales, type CardFeeConfig } from "@/lib/fees
 import { toDateString, parseDate, addDays, formatDateShort } from "@/lib/utils/date";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useFeeToggle } from "@/stores/useFeeToggle";
+import { useToast } from "@/stores/useToast";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { usePresetsStore, DEFAULT_PRESETS, type Preset } from "@/stores/usePresetsStore";
@@ -17,6 +18,7 @@ export { DEFAULT_PRESETS };
 export function useClosingData() {
   const { mode } = useFeeToggle();
   const { storeId } = useStoreSettings();
+  const toast = useToast((s) => s.show);
 
   const [selectedDate, setSelectedDate] = useState(toDateString(new Date()));
   const [totalSales, setTotalSales] = useState(0);
@@ -216,8 +218,10 @@ export function useClosingData() {
       }
 
       setSaved(true);
+      toast("마감이 저장되었습니다", "success");
     } catch (err) {
       console.error("마감 저장 실패:", err);
+      toast("마감 저장에 실패했습니다. 다시 시도해주세요.", "error");
     } finally {
       setSaving(false);
     }

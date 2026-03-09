@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ScrollToTop } from "@/components/shared/ScrollToTop";
+import { ToastContainer } from "@/components/shared/ToastContainer";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
@@ -27,6 +28,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* 스크롤 투 탑 */}
       <ScrollToTop />
+
+      {/* 토스트 알림 */}
+      <ToastContainer />
     </div>
   );
 }

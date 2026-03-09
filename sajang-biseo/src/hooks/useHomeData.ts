@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { useToast } from "@/stores/useToast";
 import { toDateString } from "@/lib/utils/date";
 
 export interface HomeTodo {
@@ -27,6 +28,7 @@ export interface HomeSummary {
 
 export function useHomeData() {
   const { storeId, storeName } = useStoreSettings();
+  const toast = useToast((s) => s.show);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<HomeSummary>({
     todaySales: null,
@@ -127,6 +129,7 @@ export function useHomeData() {
         });
       } catch (err) {
         console.error("홈 데이터 로드 실패:", err);
+        toast("데이터를 불러오지 못했습니다", "error");
       } finally {
         setLoading(false);
       }

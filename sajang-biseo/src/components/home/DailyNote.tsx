@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Pencil, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { useToast } from "@/stores/useToast";
 import { toDateString } from "@/lib/utils/date";
 
 interface DailyNoteProps {
@@ -12,6 +13,7 @@ interface DailyNoteProps {
 
 export function DailyNote({ initialMemo }: DailyNoteProps) {
   const { storeId } = useStoreSettings();
+  const toast = useToast((s) => s.show);
   const [editing, setEditing] = useState(false);
   const [note, setNote] = useState(initialMemo ?? "");
   const [savedNote, setSavedNote] = useState(initialMemo ?? "");
@@ -65,6 +67,7 @@ export function DailyNote({ initialMemo }: DailyNoteProps) {
       setSavedNote(note);
     } catch (err) {
       console.error("메모 저장 실패:", err);
+      toast("메모 저장에 실패했습니다", "error");
     } finally {
       setSaving(false);
       setEditing(false);
