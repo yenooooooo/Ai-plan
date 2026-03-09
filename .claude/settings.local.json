@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@14:*)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest:*)",
+      "Bash(mkdir:*)",
+      "Bash(curl:*)",
+      "Bash(rm:*)",
+      "Bash(npx next:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(while read f)",
+      "Bash(do wc -l \"$f\")",
+      "Bash(done)",
+      "Bash(sort -k2 -rn)",
+      "Bash(netstat:*)",
+      "Bash(timeout 10 cat:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(sed:*)",
+      "Bash(do sed:*)"
+    ]
+  }
+}

@@ -1,0 +1,179 @@
+"use client";
+
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useStoreSettings } from "@/stores/useStoreSettings";
+import { DEFAULT_CATEGORIES } from "@/lib/receipt/categories";
+import type { Receipt, ReceiptCategory } from "@/lib/supabase/types";
+import type { ReceiptFilter } from "@/components/receipt/FilterBar";
+
+export function useReceiptData() {
+  const supabase = useMemo(() => createClient(), []);
+  const { storeId } = useStoreSettings();
+
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [categories, setCategories] = useState<ReceiptCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const now = new Date();
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const today = now.toISOString().split("T")[0];
+
+  const [filter, setFilter] = useState<ReceiptFilter>({
+    dateFrom: monthStart,
+    dateTo: today,
+    categoryIds: [],
+    paymentMethods: [],
+    amountMin: "",
+    amountMax: "",
+    weekdays: [],
+  });
+
+  // 카테고리 로드 + 초기화
+  const loadCategories = useCallback(async () => {
+    if (!storeId) return;
+
+    const { data } = await supabase
+      .from("sb_receipt_categories")
+      .select("*")
+      .or(`store_id.is.null,store_id.eq.${storeId}`)
+      .is("deleted_at", null)
+      .order("sort_order");
+
+    if (data && data.length > 0) {
+      setCategories(data);
+    } else {
+      // 시스템 카테고리 초기 생성
+      const inserts = DEFAULT_CATEGORIES.map((c, i) => ({
+        store_id: null as string | null,
+        code: c.code,
+        label: c.label,
+        icon: c.icon,
+        tax_item: c.taxItem,
+        is_system: true,
+        sort_order: i,
+      }));
+
+      const { data: created, error: catErr } = await supabase
+        .from("sb_receipt_categories")
+        .insert(inserts)
+        .select();
+
+      if (catErr) { console.error("카테고리 생성 실패:", catErr); return; }
+      if (created) setCategories(created);
+    }
+  }, [storeId, supabase]);
+
+  // 영수증 로드 (필터 적용)
+  const loadReceipts = useCallback(async () => {
+    if (!storeId) return;
+    setLoading(true);
+
+    let query = supabase
+      .from("sb_receipts")
+      .select("*")
+      .eq("store_id", storeId)
+      .is("deleted_at", null)
+      .gte("date", filter.dateFrom)
+      .lte("date", filter.dateTo)
+      .order("date", { ascending: false });
+
+    if (filter.categoryIds.length > 0) {
+      query = query.in("category_id", filter.categoryIds);
+    }
+    if (filter.paymentMethods.length > 0) {
+      query = query.in("payment_method", filter.paymentMethods as ("카드" | "현금" | "이체")[]);
+    }
+    if (filter.amountMin) {
+      query = query.gte("total_amount", parseInt(filter.amountMin));
+    }
+    if (filter.amountMax) {
+      query = query.lte("total_amount", parseInt(filter.amountMax));
+    }
+
+    const { data, error: queryError } = await query;
+    if (queryError) setError("영수증 데이터를 불러오지 못했습니다");
+    let filtered = data ?? [];
+
+    // 요일 필터 (클라이언트 사이드)
+    if (filter.weekdays.length > 0 && filter.weekdays.length < 7) {
+      filtered = filtered.filter((r) => {
+        const d = new Date(r.date);
+        return filter.weekdays.includes(d.getDay());
+      });
+    }
+
+    setReceipts(filtered);
+    setLoading(false);
+  }, [storeId, filter, supabase]);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  useEffect(() => {
+    loadReceipts();
+  }, [loadReceipts]);
+
+  // 영수증 저장
+  const saveReceipt = useCallback(
+    async (data: {
+      date: string;
+      merchantName: string;
+      totalAmount: number;
+      vatAmount: number | null;
+      paymentMethod: "카드" | "현금" | "이체";
+      cardLastFour: string | null;
+      categoryId: string | null;
+      memo: string;
+      confidence: number;
+      imageUrl: string;
+    }) => {
+      if (!storeId) return;
+
+      const { error: insertErr } = await supabase.from("sb_receipts").insert({
+        store_id: storeId,
+        date: data.date,
+        merchant_name: data.merchantName,
+        total_amount: data.totalAmount,
+        vat_amount: data.vatAmount,
+        payment_method: data.paymentMethod,
+        card_last_four: data.cardLastFour,
+        category_id: data.categoryId,
+        memo: data.memo || null,
+        image_url: data.imageUrl,
+        ocr_confidence: data.confidence,
+      });
+      if (insertErr) { console.error("영수증 저장 실패:", insertErr); return; }
+
+      await loadReceipts();
+    },
+    [storeId, supabase, loadReceipts]
+  );
+
+  // 영수증 삭제 (soft delete)
+  const deleteReceipt = useCallback(
+    async (id: string) => {
+      const { error: deleteErr } = await supabase
+        .from("sb_receipts")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", id);
+      if (deleteErr) { console.error("영수증 삭제 실패:", deleteErr); return; }
+      await loadReceipts();
+    },
+    [supabase, loadReceipts]
+  );
+
+  return {
+    receipts,
+    categories,
+    loading,
+    error,
+    filter,
+    setFilter,
+    saveReceipt,
+    deleteReceipt,
+    reload: loadReceipts,
+  };
+}

@@ -1,0 +1,325 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Plus Jakarta Sans (숫자/금액 전용) ── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ── Pretendard (한국어 본문) ── */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css');
+
+/* ====================================
+   UI_DESIGN_SYSTEM.md 기반 CSS 변수
+   ==================================== */
+
+@layer base {
+  :root {
+    /* ── 폰트 변수 ── */
+    --font-display: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Pretendard Variable', 'Pretendard', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* ── 이징 함수 ── */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ── 스페이싱 ── */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+
+    /* ── shadcn/ui 기본 변수 (라이트모드 - secondary) ── */
+    --radius: 0.75rem;
+  }
+
+  /* ==============================
+     다크모드 (기본 테마)
+     ============================== */
+  .dark {
+    /* ── 배경 ── */
+    --bg-primary: #0C0C0A;
+    --bg-secondary: #1A1A16;
+    --bg-tertiary: #252520;
+    --bg-elevated: #2E2E28;
+
+    /* ── 텍스트 ── */
+    --text-primary: #F5F5F0;
+    --text-secondary: #A8A89F;
+    --text-tertiary: #737369;
+    --text-accent: #FB923C;
+
+    /* ── 보더 ── */
+    --border-default: #2E2E28;
+    --border-subtle: #1F1F1A;
+    --border-accent: #F97316;
+
+    /* ── 카드 ── */
+    --card-gradient: linear-gradient(135deg, #1A1A16 0%, #1F1F1A 100%);
+    --card-glow: 0 0 40px rgba(249, 115, 22, 0.06);
+
+    /* ── shadcn/ui 변수 매핑 (다크) ── */
+    --background: #0C0C0A;
+    --foreground: #F5F5F0;
+    --card: #1A1A16;
+    --card-foreground: #F5F5F0;
+    --popover: #2E2E28;
+    --popover-foreground: #F5F5F0;
+    --primary: #F97316;
+    --primary-foreground: #FFFFFF;
+    --secondary: #162758;
+    --secondary-foreground: #F5F5F0;
+    --muted: #252520;
+    --muted-foreground: #A8A89F;
+    --accent: #2E2E28;
+    --accent-foreground: #F5F5F0;
+    --destructive: #DC2626;
+    --border: #2E2E28;
+    --input: #252520;
+    --ring: #F97316;
+
+    /* ── 수수료 전용 ── */
+    --fee-deducted: #EF4444;
+    --net-income: #10B981;
+    --gross-sales: #F97316;
+  }
+
+  /* ==============================
+     라이트모드
+     ============================== */
+  .light {
+    /* ── 배경 ── */
+    --bg-primary: #FAFAF8;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F5F5F0;
+    --bg-elevated: #FFFFFF;
+
+    /* ── 텍스트 ── */
+    --text-primary: #171712;
+    --text-secondary: #545449;
+    --text-tertiary: #A8A89F;
+    --text-accent: #EA580C;
+
+    /* ── 보더 ── */
+    --border-default: #E8E8E3;
+    --border-subtle: #F5F5F0;
+    --border-accent: #F97316;
+
+    /* ── 카드 ── */
+    --card-gradient: linear-gradient(135deg, #FFFFFF 0%, #FAFAF8 100%);
+    --card-glow: 0 4px 24px rgba(0, 0, 0, 0.04);
+
+    /* ── shadcn/ui 변수 매핑 (라이트) ── */
+    --background: #FAFAF8;
+    --foreground: #171712;
+    --card: #FFFFFF;
+    --card-foreground: #171712;
+    --popover: #FFFFFF;
+    --popover-foreground: #171712;
+    --primary: #F97316;
+    --primary-foreground: #FFFFFF;
+    --secondary: #3B5CC0;
+    --secondary-foreground: #FFFFFF;
+    --muted: #F5F5F0;
+    --muted-foreground: #545449;
+    --accent: #F5F5F0;
+    --accent-foreground: #171712;
+    --destructive: #DC2626;
+    --border: #E8E8E3;
+    --input: #F5F5F0;
+    --ring: #F97316;
+
+    /* ── 수수료 전용 ── */
+    --fee-deducted: #EF4444;
+    --net-income: #10B981;
+    --gross-sales: #F97316;
+  }
+
+  /* ── 기본 스타일 ── */
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: var(--font-body);
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* ====================================
+   커스텀 유틸리티 클래스
+   ==================================== */
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* ── 폰트 유틸리티 ── */
+  .font-display {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  /* ── Glass Morphism ── */
+  .glass-card {
+    background: rgba(26, 26, 22, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow:
+      0 0 40px rgba(249, 115, 22, 0.06),
+      0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  .light .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.04),
+      0 8px 32px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ── 버튼 프레스 피드백 ── */
+  .press-effect {
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .press-effect:active {
+    transform: scale(0.97);
+  }
+
+  /* ── 숫자 키패드 프레스 ── */
+  .keypad-press:active {
+    transform: scale(0.92);
+    transition: transform 0.1s ease;
+  }
+
+  /* ── 스켈레톤 shimmer ── */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+  }
+
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.04) 50%,
+      transparent 100%
+    );
+    animation: shimmer 2s infinite;
+  }
+
+  .light .skeleton::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.6) 50%,
+      transparent 100%
+    );
+  }
+
+  /* ── 금액 표시 ── */
+  .amount-hero {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .amount-card {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .amount-inline {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── 원화 기호 ── */
+  .won-symbol {
+    font-size: 0.7em;
+    font-weight: 600;
+    opacity: 0.7;
+    margin-right: 2px;
+  }
+
+  /* ── 입력 필드 공통 ── */
+  .input-field {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+
+  .input-field:focus {
+    border-color: rgba(249, 115, 22, 0.4);
+  }
+
+  /* ── safe area (모바일 노치/하단 바) ── */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── 스크롤바 숨기기 (모바일) ── */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ====================================
+   폰트 페이스 폴백 (CDN 로드 실패 시)
+   ==================================== */
+
+@layer base {
+  @font-face {
+    font-family: 'Plus Jakarta Sans';
+    font-style: normal;
+    font-display: swap;
+    src: local('Plus Jakarta Sans');
+  }
+}
