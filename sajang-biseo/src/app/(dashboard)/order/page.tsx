@@ -20,6 +20,11 @@ import { ItemEditModal } from "@/components/order/ItemEditModal";
 import { UsageStepper } from "@/components/order/UsageStepper";
 import { RecommendationCard } from "@/components/order/RecommendationCard";
 import { OrderSheet } from "@/components/order/OrderSheet";
+import { StockFlowCard } from "@/components/order/StockFlowCard";
+import { PriceHistoryCard } from "@/components/order/PriceHistoryCard";
+import { OrderOnboarding } from "@/components/order/OrderOnboarding";
+import { OrderHistory } from "@/components/order/OrderHistory";
+import { ShelfLifeAlert } from "@/components/order/ShelfLifeAlert";
 import { UsageChart } from "@/components/order/UsageChart";
 import { CostRatioCard } from "@/components/order/CostRatioCard";
 import { WasteTracker } from "@/components/order/WasteTracker";
@@ -77,9 +82,11 @@ export default function OrderPage() {
     editModal, setEditModal,
     confirmedItems, confirmedList, recLoading,
     needOrderRecs, sufficientRecs, orderDateLabel, recommendations,
+    orderMap, orderSaving, orderSaved,
     handleUsageChange, handleWasteChange, applyPreset, saveUsage,
     generateRecs, initializeFromTemplate,
     handleConfirm, handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
+    applyConfirmedToOrders, saveOrders,
     items,
   } = useOrderData();
 
@@ -98,6 +105,15 @@ export default function OrderPage() {
     if (tab === "recommend") { generateRecs(); }
   }, [tab, generateRecs]);
 
+  // 확정 품목 변경 시 발주맵에 반영
+  useEffect(() => {
+    if (confirmedItems.size > 0) { applyConfirmedToOrders(); }
+  }, [confirmedItems, applyConfirmedToOrders]);
+
+  // 온보딩 상태 판별
+  const hasItems = activeItems.length > 0;
+  const showOnboarding = !loading && (!hasItems || !hasUsageData);
+
   return (
     <div className="animate-fade-in pb-8">
       {/* 헤더 */}
@@ -107,6 +123,16 @@ export default function OrderPage() {
           AI가 내일 필요한 식자재를 추천해드려요
         </p>
       </div>
+
+      {/* 온보딩 가이드 */}
+      {showOnboarding && (
+        <OrderOnboarding
+          hasItems={hasItems}
+          hasUsage={hasUsageData || usageSaved}
+          hasOrders={orderSaved}
+          onGoToTab={(t) => setTab(t as Tab)}
+        />
+      )}
 
       {/* 탭 */}
       <div className="flex bg-[var(--bg-tertiary)] rounded-2xl p-1 mb-5">
@@ -277,9 +303,41 @@ export default function OrderPage() {
                     </div>
                   </div>
                 )}
+
+                {/* 발주서 + 저장 */}
                 {confirmedItems.size > 0 && (
-                  <OrderSheet confirmedItems={confirmedList} itemsMap={itemsMap} orderDate={formatDateShort(addDays(new Date(), 1))} />
+                  <>
+                    <OrderSheet confirmedItems={confirmedList} itemsMap={itemsMap} orderDate={formatDateShort(addDays(new Date(), 1))} />
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={saveOrders}
+                      disabled={orderSaving}
+                      className={`w-full py-3.5 rounded-2xl font-semibold text-body-small flex items-center justify-center gap-2 press-effect ${
+                        orderSaved ? "bg-success/10 text-success" : "bg-primary-500 text-white"
+                      } disabled:opacity-50`}
+                    >
+                      {orderSaving ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : orderSaved ? (
+                        <><CheckCircle2 size={18} />발주 저장 완료</>
+                      ) : (
+                        <><Save size={18} />발주 저장</>
+                      )}
+                    </motion.button>
+                  </>
                 )}
+
+                {/* 재고 흐름 시각화 */}
+                <StockFlowCard
+                  items={activeItems}
+                  stockMap={stockMap}
+                  usageMap={usageMap}
+                  wasteMap={wasteMap}
+                  orderMap={orderMap}
+                />
+
+                {/* 발주 이력 */}
+                <OrderHistory items={items} />
               </>
             )}
           </motion.div>
@@ -310,6 +368,10 @@ export default function OrderPage() {
                 <UsageChart data={analytics.usageChartData} itemName={selectedItem?.item_name ?? "식자재"} unit={selectedItem?.unit ?? ""} />
                 <CostRatioCard totalCost={analytics.totalCost} grossSales={analytics.grossSales} netSales={analytics.netSales} monthLabel={analytics.monthLabel} />
                 <WasteTracker totalWasteCost={analytics.totalWasteCost} topWasteItems={analytics.topWasteItems} monthLabel={analytics.monthLabel} />
+                {/* 유통기한 알림 */}
+                <ShelfLifeAlert items={items} stockMap={stockMap} usageMap={usageMap} />
+                {/* 가격 변동 리포트 */}
+                <PriceHistoryCard items={items} />
               </>
             )}
           </motion.div>

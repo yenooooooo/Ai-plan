@@ -10,9 +10,9 @@ import {
   type RecommendationInput,
   type RecommendationResult,
 } from "@/lib/order/recommend";
-import type { OrderItem as DBOrderItem, OrderItemGroup } from "@/lib/supabase/types";
+import type { OrderItem as DBOrderItem, OrderItemGroup, DailyOrder } from "@/lib/supabase/types";
 
-export type { DBOrderItem, OrderItemGroup };
+export type { DBOrderItem, OrderItemGroup, DailyOrder };
 
 export function useOrderData() {
   const supabase = useMemo(() => createClient(), []);
@@ -41,6 +41,11 @@ export function useOrderData() {
   const [recommendations, setRecommendations] = useState<RecommendationResult[]>([]);
   const [confirmedItems, setConfirmedItems] = useState<Map<string, number>>(new Map());
   const [recLoading, setRecLoading] = useState(false);
+
+  // 발주 입력 (오늘 발주 → 내일 재고 반영)
+  const [orderMap, setOrderMap] = useState<Record<string, number>>({});
+  const [orderSaving, setOrderSaving] = useState(false);
+  const [orderSaved, setOrderSaved] = useState(false);
 
   // ── 데이터 로드 ──
   const loadData = useCallback(async () => {
@@ -287,6 +292,88 @@ export function useOrderData() {
     });
   };
 
+  // ── 발주 입력 핸들러 ──
+  const handleOrderChange = (itemId: string, value: number) => {
+    setOrderMap((prev) => ({ ...prev, [itemId]: value }));
+    setOrderSaved(false);
+  };
+
+  // 확정된 발주를 orderMap에 반영
+  const applyConfirmedToOrders = useCallback(() => {
+    const map: Record<string, number> = {};
+    Array.from(confirmedItems.entries()).forEach(([itemId, qty]) => {
+      map[itemId] = qty;
+    });
+    setOrderMap(map);
+    setOrderSaved(false);
+  }, [confirmedItems]);
+
+  // 발주 저장 (DB + 가격 이력 기록)
+  const saveOrders = useCallback(async () => {
+    if (!storeId) return;
+    setOrderSaving(true);
+
+    const orderDate = toDateString(addDays(new Date(), 1)); // 내일 날짜
+
+    // 기존 발주 삭제 후 재입력
+    await supabase.from("sb_daily_orders").delete()
+      .eq("store_id", storeId).eq("date", orderDate);
+
+    const inserts = Object.entries(orderMap)
+      .filter(([, qty]) => qty > 0)
+      .map(([itemId, qty]) => {
+        const item = items.find((i) => i.id === itemId);
+        return {
+          store_id: storeId,
+          item_id: itemId,
+          date: orderDate,
+          order_qty: qty,
+          unit_price_at_order: item?.unit_price ?? null,
+          supplier_name: item?.supplier_name ?? null,
+        };
+      });
+
+    if (inserts.length > 0) {
+      const { error: orderErr } = await supabase.from("sb_daily_orders").insert(inserts);
+      if (orderErr) { console.error("발주 저장 실패:", orderErr); setOrderSaving(false); return; }
+
+      // 가격 이력 기록 (단가가 있는 품목만)
+      const priceInserts = inserts
+        .filter((ins) => ins.unit_price_at_order != null)
+        .map((ins) => ({
+          store_id: storeId,
+          item_id: ins.item_id,
+          date: orderDate,
+          unit_price: ins.unit_price_at_order!,
+        }));
+
+      if (priceInserts.length > 0) {
+        // upsert로 같은 날 같은 품목이면 업데이트
+        await supabase.from("sb_item_price_history")
+          .upsert(priceInserts, { onConflict: "store_id,item_id,date" });
+      }
+    }
+
+    setOrderSaving(false);
+    setOrderSaved(true);
+  }, [storeId, orderMap, items, supabase]);
+
+  // 발주 이력 로드 (특정 날짜)
+  const loadOrdersForDate = useCallback(async (date: string) => {
+    if (!storeId) return;
+    const { data } = await supabase.from("sb_daily_orders").select("*")
+      .eq("store_id", storeId).eq("date", date);
+    if (data && data.length > 0) {
+      const map: Record<string, number> = {};
+      for (const row of data) { map[row.item_id] = row.order_qty; }
+      setOrderMap(map);
+      setOrderSaved(true);
+    } else {
+      setOrderMap({});
+      setOrderSaved(false);
+    }
+  }, [storeId, supabase]);
+
   // ── 품목 관리 핸들러 ──
   const handleAddGroup = async (name: string): Promise<boolean> => {
     if (!storeId || !name.trim()) return false;
@@ -387,8 +474,10 @@ export function useOrderData() {
     recommendations, confirmedItems, confirmedList, recLoading,
     needOrderRecs, sufficientRecs, orderDateLabel,
     hasUsageData,
+    orderMap, orderSaving, orderSaved,
     handleUsageChange, handleWasteChange, applyPreset, saveUsage,
     generateRecs, initializeFromTemplate,
     handleConfirm, handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
+    handleOrderChange, applyConfirmedToOrders, saveOrders, loadOrdersForDate,
   };
 }

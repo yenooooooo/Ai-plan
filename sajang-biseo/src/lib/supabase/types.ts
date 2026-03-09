@@ -620,6 +620,61 @@ export interface Database {
         Relationships: [];
       };
 
+      sb_daily_orders: {
+        Row: {
+          id: string;
+          store_id: string;
+          item_id: string;
+          date: string;
+          order_qty: number;
+          unit_price_at_order: number | null;
+          supplier_name: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          item_id: string;
+          date: string;
+          order_qty?: number;
+          unit_price_at_order?: number | null;
+          supplier_name?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          order_qty?: number;
+          unit_price_at_order?: number | null;
+          supplier_name?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      sb_item_price_history: {
+        Row: {
+          id: string;
+          store_id: string;
+          item_id: string;
+          date: string;
+          unit_price: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          item_id: string;
+          date: string;
+          unit_price: number;
+          created_at?: string;
+        };
+        Update: {
+          unit_price?: number;
+        };
+        Relationships: [];
+      };
+
       sb_weekly_briefings: {
         Row: {
           id: string;
@@ -709,3 +764,5 @@ export type Review = Tables<"sb_reviews">;
 export type ReviewReply = Tables<"sb_review_replies">;
 export type StoreToneSettings = Tables<"sb_store_tone_settings">;
 export type WeeklyBriefing = Tables<"sb_weekly_briefings">;
+export type DailyOrder = Tables<"sb_daily_orders">;
+export type ItemPriceHistory = Tables<"sb_item_price_history">;
