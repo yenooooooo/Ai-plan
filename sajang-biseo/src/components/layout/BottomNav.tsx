@@ -10,6 +10,7 @@ import {
   Receipt,
   MessageSquare,
 } from "lucide-react";
+import { useHomeBadge } from "@/hooks/useHomeBadge";
 
 const ICON_MAP = {
   Home,
@@ -29,6 +30,7 @@ const TABS = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const homeBadge = useHomeBadge();
 
   function isActive(href: string) {
     if (href === "/home" && pathname === "/") return true;
@@ -55,14 +57,21 @@ export function BottomNav() {
                   transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 />
               )}
-              <Icon
-                size={22}
-                className={`transition-colors duration-200 ${
-                  active
-                    ? "text-primary-500"
-                    : "text-[var(--text-tertiary)]"
-                }`}
-              />
+              <div className="relative">
+                <Icon
+                  size={22}
+                  className={`transition-colors duration-200 ${
+                    active
+                      ? "text-primary-500"
+                      : "text-[var(--text-tertiary)]"
+                  }`}
+                />
+                {tab.key === "home" && homeBadge > 0 && (
+                  <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-danger text-white text-[10px] font-bold flex items-center justify-center">
+                    {homeBadge}
+                  </span>
+                )}
+              </div>
               <span
                 className={`text-[11px] font-medium transition-colors duration-200 ${
                   active
