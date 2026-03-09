@@ -65,23 +65,10 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody;
 
     if (!ANTHROPIC_API_KEY) {
-      // 더미 응답
-      return NextResponse.json({
-        success: true,
-        data: {
-          insight: "전체적으로 매출이 안정적이나, 비용 관리에 주의가 필요합니다. 채널별 수수료를 점검해보세요.",
-          actions: [
-            { title: "비용 최적화", description: "식재료 발주 단위를 조정하여 폐기를 줄여보세요." },
-            { title: "리뷰 관리", description: "미답글 리뷰에 빠르게 응대하여 고객 만족도를 높이세요." },
-            { title: "채널 전략", description: "수수료가 낮은 홀/포장 비중을 늘리는 방안을 검토하세요." },
-          ],
-          goals: [
-            "폐기율 2% 이하 유지",
-            "리뷰 답글 100% 달성",
-            "일평균 매출 5% 상승",
-          ],
-        },
-      });
+      return NextResponse.json(
+        { success: false, error: "API 키가 설정되지 않았습니다" },
+        { status: 503 }
+      );
     }
 
     const prompt = buildPrompt(body);

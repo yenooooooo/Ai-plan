@@ -36,11 +36,10 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      // API 키 없으면 더미 결과 반환 (개발용)
-      return NextResponse.json({
-        success: true,
-        data: getDummyResult(),
-      });
+      return NextResponse.json(
+        { success: false, error: "API 키가 설정되지 않았습니다" },
+        { status: 503 }
+      );
     }
 
     // Claude Vision API 호출
@@ -119,18 +118,4 @@ JSON만 응답하세요. 설명 금지.`,
       { status: 500 }
     );
   }
-}
-
-function getDummyResult(): OcrResult {
-  return {
-    date: new Date().toISOString().split("T")[0],
-    merchantName: "인식 결과 없음",
-    totalAmount: 0,
-    vatAmount: null,
-    paymentMethod: "카드",
-    cardLastFour: null,
-    items: null,
-    categoryCode: "F99",
-    confidence: 0.5,
-  };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Save, Check,
@@ -18,29 +18,9 @@ import { SalesChart } from "@/components/closing/SalesChart";
 import { WeekdayHeatmap } from "@/components/closing/WeekdayHeatmap";
 import { MonthlyGoal } from "@/components/closing/MonthlyGoal";
 import { formatCurrency } from "@/lib/utils/format";
-import { addDays } from "@/lib/utils/date";
 import { useClosingData } from "@/hooks/useClosingData";
 
 type Tab = "input" | "analytics";
-
-function generateDummyChartData() {
-  const data = [];
-  const today = new Date();
-  for (let i = 13; i >= 0; i--) {
-    const d = addDays(today, -i);
-    data.push({
-      label: `${d.getMonth() + 1}/${d.getDate()}`,
-      sales: Math.round(1_500_000 + Math.random() * 1_500_000),
-      date: d.toISOString().split("T")[0],
-    });
-  }
-  return data;
-}
-
-function generateWeekdayData() {
-  const days = ["월", "화", "수", "목", "금", "토", "일"];
-  return days.map((day) => ({ day, avg: Math.round(1_400_000 + Math.random() * 700_000) }));
-}
 
 export default function ClosingPage() {
   const {
@@ -60,9 +40,9 @@ export default function ClosingPage() {
   const [tab, setTab] = useState<Tab>("input");
   const [chartMode, setChartMode] = useState<"daily" | "weekly" | "monthly">("daily");
   const [monthlyGoal, setMonthlyGoal] = useState(40_000_000);
-  const chartData = useMemo(generateDummyChartData, []);
-  const weekdayData = useMemo(generateWeekdayData, []);
-  const monthlyCurrent = useMemo(() => chartData.reduce((sum, d) => sum + d.sales, 0), [chartData]);
+  const chartData: { label: string; sales: number; date: string }[] = [];
+  const weekdayData: { day: string; avg: number }[] = [];
+  const monthlyCurrent = chartData.reduce((sum, d) => sum + d.sales, 0);
 
   const now = new Date();
   const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -187,8 +167,24 @@ export default function ClosingPage() {
           </motion.div>
         ) : (
           <motion.div key="analytics" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-5">
-            <SalesChart data={chartData} mode={chartMode} onModeChange={setChartMode} />
-            <WeekdayHeatmap data={weekdayData} />
+            {chartData.length > 0 ? (
+              <SalesChart data={chartData} mode={chartMode} onModeChange={setChartMode} />
+            ) : (
+              <div className="glass-card p-8 text-center">
+                <BarChart3 size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />
+                <p className="text-body-small text-[var(--text-secondary)] font-medium">매출 추이</p>
+                <p className="text-caption text-[var(--text-tertiary)] mt-1">마감 데이터가 쌓이면 매출 그래프가 표시됩니다</p>
+              </div>
+            )}
+            {weekdayData.length > 0 ? (
+              <WeekdayHeatmap data={weekdayData} />
+            ) : (
+              <div className="glass-card p-8 text-center">
+                <CalendarDays size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />
+                <p className="text-body-small text-[var(--text-secondary)] font-medium">요일별 매출</p>
+                <p className="text-caption text-[var(--text-tertiary)] mt-1">일주일 이상의 데이터가 필요합니다</p>
+              </div>
+            )}
             <MonthlyGoal currentSales={monthlyCurrent} goal={monthlyGoal} onGoalChange={setMonthlyGoal} daysRemaining={daysRemaining} monthLabel={monthLabel} />
           </motion.div>
         )}

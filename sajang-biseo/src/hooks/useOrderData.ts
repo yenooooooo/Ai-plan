@@ -334,7 +334,6 @@ export function useOrderData() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!confirm("이 품목을 삭제하시겠습니까?")) return;
     const { error: softDelErr } = await supabase
       .from("sb_order_items")
       .update({ deleted_at: new Date().toISOString() })

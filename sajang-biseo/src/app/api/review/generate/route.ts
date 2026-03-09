@@ -40,7 +40,10 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json({ success: true, data: getDummyReply(body) });
+      return NextResponse.json(
+        { success: false, error: "API 키가 설정되지 않았습니다" },
+        { status: 503 }
+      );
     }
 
     const prompt = body.regenerateBlock
@@ -70,7 +73,7 @@ export async function POST(req: NextRequest) {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
-      return NextResponse.json({ success: true, data: getDummyReply(body) });
+      return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
@@ -141,38 +144,3 @@ ${adjText ? `요청: ${adjText}` : ""}
 반드시 JSON으로만 응답: {"text": "새로운 블록 텍스트"}`;
 }
 
-function getDummyReply(body: GenerateRequest) {
-  const name = body.toneSettings.storeNameDisplay || "저희 매장";
-  const emoji = body.toneSettings.useEmoji;
-  if (body.regenerateBlock) {
-    return { text: `재생성된 ${body.regenerateBlock.type} 블록입니다.` };
-  }
-  return {
-    versions: [
-      {
-        blocks: [
-          { type: "greeting", text: `안녕하세요${emoji ? "~" : ","} ${name}입니다${emoji ? " 😊" : "."}` },
-          { type: "mention", text: "소중한 리뷰 남겨주셔서 감사합니다!" },
-          { type: "response", text: "말씀해주신 부분 꼼꼼히 확인해서 개선하겠습니다." },
-          { type: "closing", text: `다음에 또 방문해주세요${emoji ? "! 😊" : "."}` },
-        ],
-      },
-      {
-        blocks: [
-          { type: "greeting", text: `안녕하세요${emoji ? " ㅎㅎ" : "."} ${name}입니다.` },
-          { type: "mention", text: "리뷰 꼼꼼히 읽었습니다." },
-          { type: "response", text: "더 나은 서비스로 보답하겠습니다." },
-          { type: "closing", text: `감사합니다${emoji ? "~ 💕" : "."}` },
-        ],
-      },
-      {
-        blocks: [
-          { type: "greeting", text: `${name}입니다${emoji ? "!" : "."}` },
-          { type: "mention", text: "후기 정말 감사드려요." },
-          { type: "response", text: "앞으로 더 노력하는 모습 보여드리겠습니다." },
-          { type: "closing", text: `또 놀러오세요${emoji ? " 😆" : "!"}` },
-        ],
-      },
-    ],
-  };
-}

@@ -69,7 +69,7 @@ export function OcrResultCard({
       vatAmount: vat ? parseInt(vat.replace(/,/g, "")) : null,
       paymentMethod: payment,
       cardLastFour: cardLast.trim() || null,
-      categoryId: catId,
+      categoryId: catId?.startsWith("default-") ? null : catId,
       memo: memo.trim(),
       confidence: data.confidence,
     });
