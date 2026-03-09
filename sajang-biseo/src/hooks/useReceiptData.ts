@@ -44,24 +44,22 @@ export function useReceiptData() {
     if (data && data.length > 0) {
       setCategories(data);
     } else {
-      // 시스템 카테고리 초기 생성
-      const inserts = DEFAULT_CATEGORIES.map((c, i) => ({
-        store_id: null as string | null,
-        code: c.code,
-        label: c.label,
-        icon: c.icon,
-        tax_item: c.taxItem,
-        is_system: true,
-        sort_order: i,
-      }));
-
-      const { data: created, error: catErr } = await supabase
-        .from("sb_receipt_categories")
-        .insert(inserts)
-        .select();
-
-      if (catErr) { console.error("카테고리 생성 실패:", catErr); return; }
-      if (created) setCategories(created);
+      // DB에 시스템 카테고리 없으면 메모리 기본값 사용 (RLS 우회)
+      setCategories(
+        DEFAULT_CATEGORIES.map((c, i) => ({
+          id: `default-${i}`,
+          store_id: null,
+          code: c.code,
+          label: c.label,
+          icon: c.icon,
+          tax_item: c.taxItem,
+          is_system: true,
+          sort_order: i,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null,
+        }))
+      );
     }
   }, [storeId, supabase]);
 
