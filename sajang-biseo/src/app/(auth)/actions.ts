@@ -47,14 +47,14 @@ export async function signIn(formData: FormData) {
       .from("sb_user_profiles")
       .select("id")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     if (!profile) {
       redirect("/onboarding");
     }
   }
 
-  redirect(redirectTo || "/closing");
+  redirect(redirectTo || "/home");
 }
 
 export async function signOut() {

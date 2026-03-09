@@ -92,7 +92,7 @@ export default function OnboardingPage() {
     setStoreName(storeName);
     setBusinessType(businessType);
     completeOnboarding();
-    router.push("/closing");
+    router.push("/home");
   }
 
   return (

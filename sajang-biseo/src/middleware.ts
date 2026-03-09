@@ -36,6 +36,7 @@ export async function middleware(request: NextRequest) {
 
   // 인증이 필요한 경로 (대시보드)
   const isProtectedRoute =
+    pathname.startsWith("/home") ||
     pathname.startsWith("/closing") ||
     pathname.startsWith("/order") ||
     pathname.startsWith("/receipt") ||
@@ -43,8 +44,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/briefing") ||
     pathname.startsWith("/fees") ||
     pathname.startsWith("/settings") ||
-    pathname.startsWith("/onboarding") ||
-    pathname === "/dashboard";
+    pathname.startsWith("/onboarding");
 
   // 인증 페이지
   const isAuthRoute =
@@ -61,7 +61,7 @@ export async function middleware(request: NextRequest) {
   // 로그인 상태 + 인증 페이지 → 대시보드로
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/closing";
+    url.pathname = "/home";
     return NextResponse.redirect(url);
   }
 
