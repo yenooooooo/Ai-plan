@@ -49,7 +49,7 @@ export default function ClosingPage() {
     memo, setMemo, saving, saved,
     presets, activePreset, setActivePreset,
     feeResult, animatedAmount,
-    dateObj, dateLabel, isToday,
+    dateLabel, isToday,
     moveDate, applyPreset, handleSave,
     setFeeRateMap, setDeliveryFeePerOrder, setCardCreditRate,
     customFees, setCustomFees,

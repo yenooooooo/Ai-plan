@@ -48,7 +48,7 @@ export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | 
       setNetSales(salesRes.data.reduce((s, r) => s + r.net_sales, 0));
     }
     setLoading(false);
-  }, [storeId, monthStart, monthEnd]);
+  }, [storeId, monthStart, monthEnd, supabase]);
 
   useEffect(() => { load(); }, [load]);
 

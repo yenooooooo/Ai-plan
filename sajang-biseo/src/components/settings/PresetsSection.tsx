@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BookmarkPlus, Trash2, ChevronDown, ChevronUp, Plus } from "lucide-react";
-import { usePresetsStore, DEFAULT_PRESETS, type Preset } from "@/stores/usePresetsStore";
+import { usePresetsStore, type Preset } from "@/stores/usePresetsStore";
 
 function PresetCard({ preset, index, canDelete }: { preset: Preset; index: number; canDelete: boolean }) {
   const { updatePreset, removePreset } = usePresetsStore();
