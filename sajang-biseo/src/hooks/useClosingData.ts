@@ -223,6 +223,78 @@ export function useClosingData() {
     }
   }
 
+  // ── 전날 복사 ──
+  async function copyFromPreviousDay() {
+    if (!storeId) return;
+    const supabase = createClient();
+    const { data: prev } = await supabase
+      .from("sb_daily_closing")
+      .select("total_sales, card_ratio, memo, tags, daily_expenses, sb_daily_closing_channels(channel_name, ratio, delivery_count)")
+      .eq("store_id", storeId)
+      .lt("date", selectedDate)
+      .order("date", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!prev) return;
+    setTotalSales(prev.total_sales);
+    setCardRatio(prev.card_ratio);
+    setMemo(prev.memo ?? "");
+    setTags((prev.tags as string[]) ?? []);
+    setTodayExpenses((prev.daily_expenses as { name: string; amount: number }[]) ?? []);
+    setSaved(false);
+
+    const prevChannels = (prev as Record<string, unknown>).sb_daily_closing_channels as Array<{
+      channel_name: string; ratio: number; delivery_count: number | null;
+    }> | null;
+    if (prevChannels && prevChannels.length > 0) {
+      setChannels(prevChannels.map((ch) => ({
+        channel: ch.channel_name, ratio: ch.ratio, deliveryCount: ch.delivery_count ?? undefined,
+      })));
+      setActivePreset(null);
+    }
+  }
+
+  // ── 리포트 텍스트 생성 ──
+  function generateReportText(): string {
+    const dateObj = parseDate(selectedDate);
+    const dayName = ["일", "월", "화", "수", "목", "금", "토"][dateObj.getDay()];
+    const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}(${dayName})`;
+
+    const lines: string[] = [];
+    lines.push(`[마감 리포트] ${dateStr}`);
+    lines.push("");
+    lines.push(`총매출: ${totalSales.toLocaleString("ko-KR")}원`);
+    if (feeResult.totalFees > 0) {
+      lines.push(`수수료: -${feeResult.totalFees.toLocaleString("ko-KR")}원 (${feeResult.feeRatePercent.toFixed(1)}%)`);
+      lines.push(`실수령: ${feeResult.netSales.toLocaleString("ko-KR")}원`);
+    }
+    const totalExp = todayExpenses.reduce((s, e) => s + e.amount, 0);
+    const customTotal = customFees.reduce((s, f) => s + f.amount, 0);
+    if (totalExp > 0) {
+      lines.push(`경비: -${totalExp.toLocaleString("ko-KR")}원`);
+    }
+    const profit = feeResult.netSales - totalExp - customTotal;
+    lines.push(`순이익: ${profit.toLocaleString("ko-KR")}원`);
+    lines.push("");
+
+    // 채널 비율
+    const activeChannels = channels.filter((ch) => ch.ratio > 0);
+    if (activeChannels.length > 0) {
+      lines.push(`채널: ${activeChannels.map((ch) => `${ch.channel} ${ch.ratio}%`).join(" / ")}`);
+    }
+    lines.push(`결제: 카드 ${cardRatio}% / 현금 ${100 - cardRatio}%`);
+
+    if (tags.length > 0) {
+      lines.push(`태그: ${tags.join(", ")}`);
+    }
+    if (memo) {
+      lines.push(`메모: ${memo}`);
+    }
+
+    return lines.join("\n");
+  }
+
   const dateObj = parseDate(selectedDate);
   const dateLabel = formatDateShort(dateObj);
   const isToday = selectedDate === toDateString(new Date());
@@ -241,5 +313,6 @@ export function useClosingData() {
     customFees, setCustomFees,
     todayExpenses, setTodayExpenses,
     tags, setTags,
+    copyFromPreviousDay, generateReportText,
   };
 }

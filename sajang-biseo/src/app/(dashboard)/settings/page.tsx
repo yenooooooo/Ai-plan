@@ -17,6 +17,7 @@ export default function SettingsPage() {
     deliveryFeePerOrder, setDeliveryFeePerOrder,
     cardTierIndex, setCardTierIndex,
     feeSaving, feeSaved, saveFeeSettings,
+    addDeliveryChannel, removeDeliveryChannel,
     email, logout,
   } = useSettingsData();
 
@@ -59,6 +60,8 @@ export default function SettingsPage() {
         onChannelActiveToggle={handleChannelActiveToggle}
         onDeliveryFeeChange={setDeliveryFeePerOrder}
         onCardTierChange={setCardTierIndex}
+        onAddChannel={addDeliveryChannel}
+        onRemoveChannel={removeDeliveryChannel}
         onSave={saveFeeSettings}
       />
 

@@ -3,6 +3,7 @@
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ScrollToTop } from "@/components/shared/ScrollToTop";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
@@ -23,6 +24,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* 모바일: 하단 네비 */}
         <BottomNav />
       </div>
+
+      {/* 스크롤 투 탑 */}
+      <ScrollToTop />
     </div>
   );
 }

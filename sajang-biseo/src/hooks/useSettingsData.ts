@@ -144,6 +144,48 @@ export function useSettingsData() {
     }
   };
 
+  // 채널 추가
+  const addDeliveryChannel = async (channelName: string) => {
+    if (!channelName.trim()) return;
+    if (!storeId) {
+      // storeId 없으면 로컬만
+      setDeliveryChannels((prev) => [
+        ...prev,
+        { id: `local-${Date.now()}`, channel_name: channelName.trim(), rate: 0, is_active: true },
+      ]);
+      return;
+    }
+    const supabase = createClient();
+    const { data, error } = await supabase.from("sb_fee_channels").insert({
+      store_id: storeId,
+      channel_name: channelName.trim(),
+      fee_type: "percentage" as const,
+      rate: 0,
+      category: "delivery" as const,
+      is_active: true,
+      sort_order: deliveryChannels.length,
+    }).select("id, channel_name, rate, is_active").single();
+    if (error) { console.error("채널 추가 실패:", error); return; }
+    if (data) {
+      setDeliveryChannels((prev) => [...prev, { id: data.id, channel_name: data.channel_name, rate: data.rate ?? 0, is_active: data.is_active }]);
+    }
+  };
+
+  // 채널 삭제 (soft delete)
+  const removeDeliveryChannel = async (channelId: string) => {
+    if (channelId.startsWith("local-")) {
+      setDeliveryChannels((prev) => prev.filter((ch) => ch.id !== channelId));
+      return;
+    }
+    if (!storeId) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("sb_fee_channels")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", channelId);
+    if (error) { console.error("채널 삭제 실패:", error); return; }
+    setDeliveryChannels((prev) => prev.filter((ch) => ch.id !== channelId));
+  };
+
   const logout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -158,6 +200,7 @@ export function useSettingsData() {
     deliveryFeePerOrder, setDeliveryFeePerOrder,
     cardTierIndex, setCardTierIndex,
     feeSaving, feeSaved, saveFeeSettings,
+    addDeliveryChannel, removeDeliveryChannel,
     email, logout,
   };
 }

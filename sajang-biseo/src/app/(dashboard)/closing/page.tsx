@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Save, Check,
-  BarChart3, Keyboard, BookmarkPlus, BookmarkCheck,
+  BarChart3, Keyboard, BookmarkPlus, BookmarkCheck, Copy, CopyCheck,
 } from "lucide-react";
 import { NumericKeypad } from "@/components/shared/NumericKeypad";
 import { ChannelSlider } from "@/components/closing/ChannelSlider";
@@ -19,6 +19,7 @@ import { WeekdayHeatmap } from "@/components/closing/WeekdayHeatmap";
 import { MonthlyGoal } from "@/components/closing/MonthlyGoal";
 import { formatCurrency } from "@/lib/utils/format";
 import { useClosingData } from "@/hooks/useClosingData";
+import { useClosingAnalytics } from "@/hooks/useClosingAnalytics";
 
 type Tab = "input" | "analytics";
 
@@ -35,19 +36,23 @@ export default function ClosingPage() {
     customFees, setCustomFees,
     todayExpenses, setTodayExpenses,
     tags, setTags,
+    copyFromPreviousDay, generateReportText,
   } = useClosingData();
+
+  const analytics = useClosingAnalytics();
 
   const [tab, setTab] = useState<Tab>("input");
   const [chartMode, setChartMode] = useState<"daily" | "weekly" | "monthly">("daily");
   const [monthlyGoal, setMonthlyGoal] = useState(40_000_000);
-  const chartData: { label: string; sales: number; date: string }[] = [];
-  const weekdayData: { day: string; avg: number }[] = [];
-  const monthlyCurrent = chartData.reduce((sum, d) => sum + d.sales, 0);
+  const [reportCopied, setReportCopied] = useState(false);
 
-  const now = new Date();
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysRemaining = lastDayOfMonth - now.getDate();
-  const monthLabel = `${now.getMonth() + 1}월`;
+  async function handleCopyReport() {
+    try {
+      await navigator.clipboard.writeText(generateReportText());
+      setReportCopied(true);
+      setTimeout(() => setReportCopied(false), 2000);
+    } catch { /* fallback */ }
+  }
 
   return (
     <div className="animate-fade-in space-y-5 max-w-lg mx-auto">
@@ -94,14 +99,25 @@ export default function ClosingPage() {
               )}
             </div>
 
-            {/* 프리셋 */}
-            <div className="flex gap-2">
+            {/* 프리셋 + 전날복사 */}
+            <div className="flex gap-2 flex-wrap">
               {presets.map((preset) => (
                 <button key={preset.name} onClick={() => applyPreset(preset)} className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[13px] font-medium transition-all duration-200 press-effect ${activePreset === preset.name ? "bg-primary-500/10 text-primary-500 border border-primary-500/30" : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent hover:text-[var(--text-secondary)]"}`}>
                   {activePreset === preset.name ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
                   {preset.name}
                 </button>
               ))}
+              {!saved && totalSales === 0 && (
+                <button
+                  onClick={copyFromPreviousDay}
+                  className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-[13px] font-medium
+                    bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent
+                    hover:text-primary-500 hover:border-primary-500/30 transition-all press-effect"
+                >
+                  <Copy size={13} />
+                  전날 복사
+                </button>
+              )}
             </div>
 
             <NumericKeypad value={totalSales} onChange={setTotalSales} />
@@ -155,37 +171,58 @@ export default function ClosingPage() {
             </motion.button>
 
             {saved && (
-              <DailyReportCard
-                totalSales={totalSales}
-                feeResult={feeResult}
-                prevDaySales={null}
-                weekdayAvg={null}
-                date={selectedDate}
-                channelRatios={channels}
-              />
+              <>
+                <DailyReportCard
+                  totalSales={totalSales}
+                  feeResult={feeResult}
+                  prevDaySales={analytics.prevDaySales}
+                  weekdayAvg={analytics.weekdayAvg}
+                  date={selectedDate}
+                  channelRatios={channels}
+                />
+                {/* 리포트 공유 버튼 */}
+                <button
+                  onClick={handleCopyReport}
+                  className={`w-full py-3 rounded-2xl text-body-small font-medium flex items-center justify-center gap-2 press-effect transition-all ${
+                    reportCopied
+                      ? "bg-success/10 text-success"
+                      : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500"
+                  }`}
+                >
+                  {reportCopied ? <><CopyCheck size={16} />복사됨!</> : <><Copy size={16} />리포트 복사 (카카오톡/문자)</>}
+                </button>
+              </>
             )}
           </motion.div>
         ) : (
           <motion.div key="analytics" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-5">
-            {chartData.length > 0 ? (
-              <SalesChart data={chartData} mode={chartMode} onModeChange={setChartMode} />
-            ) : (
-              <div className="glass-card p-8 text-center">
-                <BarChart3 size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />
-                <p className="text-body-small text-[var(--text-secondary)] font-medium">매출 추이</p>
-                <p className="text-caption text-[var(--text-tertiary)] mt-1">마감 데이터가 쌓이면 매출 그래프가 표시됩니다</p>
+            {analytics.loading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-8 h-8 border-2 border-primary-500/20 border-t-primary-500 rounded-full animate-spin" />
               </div>
-            )}
-            {weekdayData.length > 0 ? (
-              <WeekdayHeatmap data={weekdayData} />
             ) : (
-              <div className="glass-card p-8 text-center">
-                <CalendarDays size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />
-                <p className="text-body-small text-[var(--text-secondary)] font-medium">요일별 매출</p>
-                <p className="text-caption text-[var(--text-tertiary)] mt-1">일주일 이상의 데이터가 필요합니다</p>
-              </div>
+              <>
+                {analytics.chartData.length > 0 ? (
+                  <SalesChart data={analytics.chartData} mode={chartMode} onModeChange={setChartMode} />
+                ) : (
+                  <div className="glass-card p-8 text-center">
+                    <BarChart3 size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />
+                    <p className="text-body-small text-[var(--text-secondary)] font-medium">매출 추이</p>
+                    <p className="text-caption text-[var(--text-tertiary)] mt-1">마감 데이터가 쌓이면 매출 그래프가 표시됩니다</p>
+                  </div>
+                )}
+                {analytics.weekdayData.length > 0 && analytics.weekdayData.some((d) => d.avg > 0) ? (
+                  <WeekdayHeatmap data={analytics.weekdayData} />
+                ) : (
+                  <div className="glass-card p-8 text-center">
+                    <CalendarDays size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />
+                    <p className="text-body-small text-[var(--text-secondary)] font-medium">요일별 매출</p>
+                    <p className="text-caption text-[var(--text-tertiary)] mt-1">일주일 이상의 데이터가 필요합니다</p>
+                  </div>
+                )}
+                <MonthlyGoal currentSales={analytics.monthlyCurrent} goal={monthlyGoal} onGoalChange={setMonthlyGoal} daysRemaining={analytics.daysRemaining} monthLabel={analytics.monthLabel} />
+              </>
             )}
-            <MonthlyGoal currentSales={monthlyCurrent} goal={monthlyGoal} onGoalChange={setMonthlyGoal} daysRemaining={daysRemaining} monthLabel={monthLabel} />
           </motion.div>
         )}
       </AnimatePresence>
