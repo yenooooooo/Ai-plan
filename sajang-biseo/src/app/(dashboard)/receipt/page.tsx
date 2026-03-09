@@ -125,7 +125,7 @@ export default function ReceiptPage() {
   }
 
   return (
-    <div className="animate-fade-in pb-8">
+    <div className="animate-fade-in pb-20">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-5">
         <div>

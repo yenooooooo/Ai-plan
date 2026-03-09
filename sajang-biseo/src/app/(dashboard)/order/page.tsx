@@ -135,7 +135,7 @@ export default function OrderPage() {
       )}
 
       {/* 탭 */}
-      <div className="flex bg-[var(--bg-tertiary)] rounded-2xl p-1 mb-5">
+      <div className="flex bg-[var(--bg-tertiary)] rounded-2xl p-1 mb-5 overflow-x-auto">
         {TAB_CONFIG.map(({ key, label, icon: Icon }) => (
           <button
             key={key}

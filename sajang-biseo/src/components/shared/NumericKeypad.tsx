@@ -55,7 +55,7 @@ export function NumericKeypad({ value, onChange, maxValue = 99_999_999 }: Numeri
             key={label}
             onClick={() => handleQuickAmount(amt)}
             className="
-              flex-1 h-9 rounded-lg
+              flex-1 h-11 rounded-lg
               bg-primary-500/10 text-primary-500
               text-[13px] font-medium font-display
               press-effect transition-colors duration-150
