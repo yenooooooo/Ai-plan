@@ -22,6 +22,7 @@ export interface HomeSummary {
   pendingReviews: number;
   pendingOrders: boolean;
   recentExpenseTotal: number;
+  todayMemo: string | null;
 }
 
 export function useHomeData() {
@@ -36,6 +37,7 @@ export function useHomeData() {
     pendingReviews: 0,
     pendingOrders: false,
     recentExpenseTotal: 0,
+    todayMemo: null,
   });
 
   const today = useMemo(() => toDateString(new Date()), []);
@@ -55,7 +57,7 @@ export function useHomeData() {
         // 오늘 마감 데이터
         const { data: todayClosing } = await supabase
           .from("sb_daily_closing")
-          .select("total_sales")
+          .select("total_sales, memo")
           .eq("store_id", storeId!)
           .eq("date", today)
           .single();
@@ -121,6 +123,7 @@ export function useHomeData() {
           pendingReviews: 0,
           pendingOrders: false,
           recentExpenseTotal: expenseTotal,
+          todayMemo: todayClosing?.memo ?? null,
         });
       } catch (err) {
         console.error("홈 데이터 로드 실패:", err);

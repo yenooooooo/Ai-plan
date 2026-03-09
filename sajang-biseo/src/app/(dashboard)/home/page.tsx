@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useHomeData } from "@/hooks/useHomeData";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { DailyNote } from "@/components/home/DailyNote";
 import { formatCurrency } from "@/lib/utils/format";
 
 const QUICK_MENU = [
@@ -142,6 +143,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 오늘 한 줄 메모 */}
+      <DailyNote initialMemo={summary.todayMemo} />
 
       {/* 월 목표 진행률 */}
       {monthlyGoal > 0 && (
