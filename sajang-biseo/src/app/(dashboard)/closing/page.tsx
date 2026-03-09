@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Save, Check,
   BarChart3, Keyboard, BookmarkPlus, BookmarkCheck, Copy, CopyCheck,
+  LayoutGrid, CreditCard, Receipt, Tag, Wallet,
 } from "lucide-react";
 import { NumericKeypad } from "@/components/shared/NumericKeypad";
 import { ChannelSlider } from "@/components/closing/ChannelSlider";
@@ -14,6 +15,8 @@ import { TodayExpenses } from "@/components/closing/TodayExpenses";
 import { ProfitSummary } from "@/components/closing/ProfitSummary";
 import { TagMemo } from "@/components/closing/TagMemo";
 import { DailyReportCard } from "@/components/closing/DailyReportCard";
+import { AccordionSection } from "@/components/closing/AccordionSection";
+import { StickyProfitBar } from "@/components/closing/StickyProfitBar";
 import { SalesChart } from "@/components/closing/SalesChart";
 import { WeekdayHeatmap } from "@/components/closing/WeekdayHeatmap";
 import { MonthlyGoal } from "@/components/closing/MonthlyGoal";
@@ -46,6 +49,19 @@ export default function ClosingPage() {
   const [monthlyGoal, setMonthlyGoal] = useState(40_000_000);
   const [reportCopied, setReportCopied] = useState(false);
 
+  // 아코디언 상태
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    channel: true,
+    payment: false,
+    fee: false,
+    expense: false,
+    tag: false,
+  });
+
+  function toggleSection(key: string) {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
   async function handleCopyReport() {
     try {
       await navigator.clipboard.writeText(generateReportText());
@@ -53,6 +69,18 @@ export default function ClosingPage() {
       setTimeout(() => setReportCopied(false), 2000);
     } catch { /* fallback */ }
   }
+
+  // 아코디언 요약 텍스트
+  const channelSummary = channels.filter((c) => c.ratio > 0).map((c) => `${c.channel} ${c.ratio}%`).join(" / ");
+  const paymentSummary = `카드 ${cardRatio}% / 현금 ${100 - cardRatio}%`;
+  const feeSummary = feeResult.totalFees > 0 ? `수수료 ${formatCurrency(feeResult.totalFees)}` : "";
+  const expenseSummary = todayExpenses.length > 0
+    ? `${todayExpenses.length}건 ${formatCurrency(todayExpenses.reduce((s, e) => s + e.amount, 0))}`
+    : "없음";
+  const tagSummary = tags.length > 0 ? tags.join(", ") : memo ? "메모 있음" : "";
+
+  const totalFeesAll = feeResult.totalFees + customFees.reduce((s, f) => s + f.amount, 0);
+  const totalExp = todayExpenses.reduce((s, e) => s + e.amount, 0);
 
   return (
     <div className="animate-fade-in space-y-5 max-w-lg mx-auto">
@@ -70,7 +98,7 @@ export default function ClosingPage() {
 
       <AnimatePresence mode="wait">
         {tab === "input" ? (
-          <motion.div key="input" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-5">
+          <motion.div key="input" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-3 pb-20">
             {/* 날짜 선택 */}
             <div className="flex items-center justify-center gap-4">
               <button onClick={() => moveDate(-1)} className="p-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
@@ -86,7 +114,7 @@ export default function ClosingPage() {
             </div>
 
             {/* 금액 표시 */}
-            <div className="text-center py-4">
+            <div className="text-center py-3">
               <p className="text-caption text-[var(--text-tertiary)] mb-1">{mode === "net" ? "실 수령액 (예상)" : "총매출"}</p>
               <p className="amount-hero text-[var(--text-primary)]">
                 <span className="won-symbol">₩</span>
@@ -120,48 +148,91 @@ export default function ClosingPage() {
               )}
             </div>
 
+            {/* 키패드 (항상 노출) */}
             <NumericKeypad value={totalSales} onChange={setTotalSales} />
 
+            {/* ── 아코디언 섹션들 ── */}
+
             {/* 채널 분배 */}
-            <div className="glass-card p-5">
+            <AccordionSection
+              title="채널 분배"
+              summary={channelSummary}
+              icon={<LayoutGrid size={15} className="text-primary-500" />}
+              open={openSections.channel}
+              onToggle={() => toggleSection("channel")}
+            >
               <ChannelSlider channels={channels} totalSales={totalSales} onChange={(updated) => { setChannels(updated); setActivePreset(null); }} />
-            </div>
+            </AccordionSection>
 
-            {/* 결제수단 비율 */}
-            <div className="glass-card p-5">
-              <PaymentRatio cardRatio={cardRatio} onChange={(v) => { setCardRatio(v); setActivePreset(null); }} />
-            </div>
+            {/* 결제수단 */}
+            <AccordionSection
+              title="결제수단"
+              summary={paymentSummary}
+              icon={<CreditCard size={15} className="text-primary-500" />}
+              open={openSections.payment}
+              onToggle={() => toggleSection("payment")}
+            >
+              <PaymentRatio cardRatio={cardRatio} totalSales={totalSales} onChange={(v) => { setCardRatio(v); setActivePreset(null); }} />
+            </AccordionSection>
 
+            {/* 수수료 */}
             {totalSales > 0 && (
-              <FeeBreakdownView
-                result={feeResult}
-                onPlatformRateChange={(channel, rate) =>
-                  setFeeRateMap((prev) => ({ ...prev, [channel]: rate }))
-                }
-                onDeliveryFeeChange={setDeliveryFeePerOrder}
-                onCardRateChange={setCardCreditRate}
-                customFees={customFees}
-                onCustomFeeAdd={(fee) => setCustomFees((prev) => [...prev, fee])}
-                onCustomFeeRemove={(idx) => setCustomFees((prev) => prev.filter((_, i) => i !== idx))}
-              />
+              <AccordionSection
+                title="수수료"
+                summary={feeSummary}
+                icon={<Receipt size={15} className="text-primary-500" />}
+                open={openSections.fee}
+                onToggle={() => toggleSection("fee")}
+              >
+                <FeeBreakdownView
+                  result={feeResult}
+                  onPlatformRateChange={(channel, rate) =>
+                    setFeeRateMap((prev) => ({ ...prev, [channel]: rate }))
+                  }
+                  onDeliveryFeeChange={setDeliveryFeePerOrder}
+                  onCardRateChange={setCardCreditRate}
+                  customFees={customFees}
+                  onCustomFeeAdd={(fee) => setCustomFees((prev) => [...prev, fee])}
+                  onCustomFeeRemove={(idx) => setCustomFees((prev) => prev.filter((_, i) => i !== idx))}
+                />
+              </AccordionSection>
             )}
 
-            <TodayExpenses expenses={todayExpenses} onChange={setTodayExpenses} />
+            {/* 지출 */}
+            <AccordionSection
+              title="오늘 지출"
+              summary={expenseSummary}
+              icon={<Wallet size={15} className="text-primary-500" />}
+              open={openSections.expense}
+              onToggle={() => toggleSection("expense")}
+            >
+              <TodayExpenses expenses={todayExpenses} onChange={setTodayExpenses} />
+            </AccordionSection>
 
+            {/* 태그/메모 */}
+            <AccordionSection
+              title="태그 / 메모"
+              summary={tagSummary}
+              icon={<Tag size={15} className="text-primary-500" />}
+              open={openSections.tag}
+              onToggle={() => toggleSection("tag")}
+            >
+              <TagMemo
+                tags={tags}
+                memo={memo}
+                onTagsChange={setTags}
+                onMemoChange={setMemo}
+              />
+            </AccordionSection>
+
+            {/* 순이익 상세 (펼쳐서 볼 수 있음) */}
             {totalSales > 0 && (
               <ProfitSummary
                 totalSales={totalSales}
-                totalFees={feeResult.totalFees + customFees.reduce((s, f) => s + f.amount, 0)}
-                totalExpenses={todayExpenses.reduce((s, e) => s + e.amount, 0)}
+                totalFees={totalFeesAll}
+                totalExpenses={totalExp}
               />
             )}
-
-            <TagMemo
-              tags={tags}
-              memo={memo}
-              onTagsChange={setTags}
-              onMemoChange={setMemo}
-            />
 
             {/* 저장 버튼 */}
             <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={totalSales === 0 || saving || saved} className={`w-full h-14 rounded-[14px] font-body font-semibold text-[1rem] flex items-center justify-center gap-2 transition-all duration-300 ease-smooth ${saved ? "bg-success text-white" : "bg-primary-500 text-white hover:bg-primary-600 hover:shadow-lg"} disabled:opacity-50 disabled:cursor-not-allowed`}>
@@ -180,7 +251,6 @@ export default function ClosingPage() {
                   date={selectedDate}
                   channelRatios={channels}
                 />
-                {/* 리포트 공유 버튼 */}
                 <button
                   onClick={handleCopyReport}
                   className={`w-full py-3 rounded-2xl text-body-small font-medium flex items-center justify-center gap-2 press-effect transition-all ${
@@ -226,6 +296,15 @@ export default function ClosingPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Sticky 순이익 바 (매출 입력 시) */}
+      {tab === "input" && !saved && (
+        <StickyProfitBar
+          totalSales={totalSales}
+          totalFees={totalFeesAll}
+          totalExpenses={totalExp}
+        />
+      )}
     </div>
   );
 }
