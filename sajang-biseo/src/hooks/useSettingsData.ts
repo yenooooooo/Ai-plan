@@ -87,14 +87,16 @@ export function useSettingsData() {
   useEffect(() => { load(); }, [load]);
 
   const saveStoreInfo = async () => {
-    if (!storeId || !storeName.trim()) return;
+    if (!storeName.trim()) return;
     setStoreInfoSaving(true);
     try {
-      const supabase = createClient();
-      await supabase
-        .from("sb_stores")
-        .update({ store_name: storeName, business_type: businessType, address: address || null, phone: phone || null })
-        .eq("id", storeId);
+      if (storeId) {
+        const supabase = createClient();
+        await supabase
+          .from("sb_stores")
+          .update({ store_name: storeName, business_type: businessType, address: address || null, phone: phone || null })
+          .eq("id", storeId);
+      }
       setGlobalStoreName(storeName);
       setGlobalBusinessType(businessType);
       setStoreInfoSaved(true);
@@ -105,33 +107,34 @@ export function useSettingsData() {
   };
 
   const saveFeeSettings = async () => {
-    if (!storeId) return;
     setFeeSaving(true);
     try {
-      const supabase = createClient();
-      const tier = CARD_FEE_TIERS[cardTierIndex];
+      if (storeId) {
+        const supabase = createClient();
+        const tier = CARD_FEE_TIERS[cardTierIndex];
 
-      await supabase
-        .from("sb_store_fee_settings")
-        .upsert(
-          { store_id: storeId, credit_card_rate: tier.rate, check_card_rate: tier.checkRate, annual_revenue_tier: tier.label },
-          { onConflict: "store_id" }
+        await supabase
+          .from("sb_store_fee_settings")
+          .upsert(
+            { store_id: storeId, credit_card_rate: tier.rate, check_card_rate: tier.checkRate, annual_revenue_tier: tier.label },
+            { onConflict: "store_id" }
+          );
+
+        await Promise.all(
+          deliveryChannels.map((ch) =>
+            supabase
+              .from("sb_fee_channels")
+              .update({ rate: ch.rate, is_active: ch.is_active })
+              .eq("id", ch.id)
+          )
         );
 
-      await Promise.all(
-        deliveryChannels.map((ch) =>
-          supabase
+        if (deliveryAgencyId) {
+          await supabase
             .from("sb_fee_channels")
-            .update({ rate: ch.rate, is_active: ch.is_active })
-            .eq("id", ch.id)
-        )
-      );
-
-      if (deliveryAgencyId) {
-        await supabase
-          .from("sb_fee_channels")
-          .update({ fixed_amount: deliveryFeePerOrder })
-          .eq("id", deliveryAgencyId);
+            .update({ fixed_amount: deliveryFeePerOrder })
+            .eq("id", deliveryAgencyId);
+        }
       }
 
       setFeeSaved(true);

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { BookmarkPlus, Trash2, ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { BookmarkPlus, Trash2, ChevronDown, ChevronUp, Plus, Check, Save } from "lucide-react";
 import { usePresetsStore, type Preset } from "@/stores/usePresetsStore";
 
 function PresetCard({ preset, index, canDelete }: { preset: Preset; index: number; canDelete: boolean }) {
@@ -12,8 +12,8 @@ function PresetCard({ preset, index, canDelete }: { preset: Preset; index: numbe
   const [ratios, setRatios] = useState<Record<string, number>>(
     Object.fromEntries(preset.channels.map((c) => [c.channel, c.ratio]))
   );
+  const [saved, setSaved] = useState(false);
 
-  // preset prop이 외부에서 변경될 때(기본값 복원 등) 로컬 state 동기화
   useEffect(() => {
     setName(preset.name);
     setCardRatio(preset.cardRatio);
@@ -22,11 +22,12 @@ function PresetCard({ preset, index, canDelete }: { preset: Preset; index: numbe
 
   const total = Object.values(ratios).reduce((s, v) => s + v, 0);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     const channels = preset.channels.map((c) => ({ ...c, ratio: ratios[c.channel] ?? c.ratio }));
     updatePreset(index, { name, channels, cardRatio });
-    setOpen(false);
-  };
+    setSaved(true);
+    setTimeout(() => { setSaved(false); setOpen(false); }, 1200);
+  }, [preset, ratios, name, cardRatio, index, updatePreset]);
 
   return (
     <div className="border border-[var(--border-default)] rounded-xl overflow-hidden">
@@ -105,11 +106,12 @@ function PresetCard({ preset, index, canDelete }: { preset: Preset; index: numbe
 
           <button
             onClick={handleSave}
-            disabled={total !== 100 || !name.trim()}
-            className="w-full h-9 rounded-xl bg-primary-500 text-white text-body-small font-medium
-              hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            disabled={total !== 100 || !name.trim() || saved}
+            className={`w-full h-9 rounded-xl text-white text-body-small font-medium flex items-center justify-center gap-1.5
+              transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
+              ${saved ? "bg-[var(--success)]" : "bg-primary-500 hover:bg-primary-600"}`}
           >
-            저장
+            {saved ? <><Check size={14} />저장됨</> : <><Save size={14} />저장</>}
           </button>
         </div>
       )}
