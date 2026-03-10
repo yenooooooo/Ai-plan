@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient as createClient } from "@/lib/supabase/server";
+import { checkUsageLimit, incrementUsage } from "@/lib/usage";
 
 interface OcrResult {
   date: string | null;
@@ -25,6 +26,12 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ success: false, error: "인증이 필요합니다" }, { status: 401 });
+    }
+
+    // 사용량 제한 체크
+    const limitError = await checkUsageLimit(user.id, "receipt_ocr");
+    if (limitError) {
+      return NextResponse.json({ success: false, error: limitError, limitReached: true }, { status: 429 });
     }
 
     const formData = await req.formData();
@@ -132,6 +139,9 @@ JSON만 응답하세요. 설명 금지.`,
         error: "영수증 인식 결과를 파싱할 수 없습니다",
       });
     }
+
+    // 성공 시 사용량 증가
+    await incrementUsage(user.id, "receipt_ocr");
 
     return NextResponse.json({ success: true, data: parsed });
   } catch (error) {

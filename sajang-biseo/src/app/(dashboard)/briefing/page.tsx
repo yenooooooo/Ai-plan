@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3, Archive, ChevronLeft, ChevronRight,
   Copy, CopyCheck, Share2, Image as ImageIcon,
+  FileDown, Mail, Loader2,
 } from "lucide-react";
 import { useBriefingData } from "@/hooks/useBriefingData";
+import { usePlan } from "@/hooks/usePlan";
 import { BriefingCarousel } from "@/components/briefing/BriefingCarousel";
 import { ArchiveList } from "@/components/briefing/ArchiveList";
 import { useToast } from "@/stores/useToast";
@@ -59,15 +61,42 @@ function generateBriefingText(data: BriefingData): string {
 
 export default function BriefingPage() {
   const {
-    briefing, loading, generating, archives, prevCoaching,
+    briefing, briefingDbId, loading, generating, archives, prevCoaching,
     weekOffset, generateCoaching,
     goToPrevWeek, goToNextWeek, goToWeek,
   } = useBriefingData();
 
   const toast = useToast((s) => s.show);
+  const { limits } = usePlan();
   const [tab, setTab] = useState<Tab>("briefing");
   const [copied, setCopied] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  const saveAsPdf = useCallback(async () => {
+    if (!carouselRef.current) return;
+    try {
+      const { saveAsPdf: exportPdf } = await import("@/lib/export/pdf");
+      await exportPdf(carouselRef.current, `briefing-${briefing?.weekStart ?? "week"}`);
+      toast("PDF가 저장되었습니다.", "success");
+    } catch { toast("PDF 저장에 실패했습니다.", "error"); }
+  }, [briefing?.weekStart, toast]);
+
+  const sendEmail = useCallback(async () => {
+    if (!briefingDbId) return;
+    setEmailSending(true);
+    try {
+      const res = await fetch("/api/briefing/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ briefingId: briefingDbId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error, "error"); return; }
+      toast("이메일이 발송되었습니다.", "success");
+    } catch { toast("이메일 발송 실패", "error"); }
+    finally { setEmailSending(false); }
+  }, [briefingDbId, toast]);
 
   const saveAsImage = useCallback(async () => {
     if (!carouselRef.current) return;
@@ -201,8 +230,23 @@ export default function BriefingPage() {
                     className="flex-1 py-2.5 rounded-xl bg-[var(--bg-tertiary)] text-body-small text-[var(--text-secondary)] hover:text-primary-500 flex items-center justify-center gap-1.5 press-effect"
                   >
                     <ImageIcon size={14} />
-                    이미지 저장
+                    이미지
                   </button>
+                </div>
+                <div className="flex gap-2">
+                  {limits.pdfExport && (
+                    <button onClick={saveAsPdf}
+                      className="flex-1 py-2.5 rounded-xl bg-[var(--bg-tertiary)] text-body-small text-[var(--text-secondary)] hover:text-primary-500 flex items-center justify-center gap-1.5 press-effect">
+                      <FileDown size={14} /> PDF 저장
+                    </button>
+                  )}
+                  {limits.emailBriefing && (
+                    <button onClick={sendEmail} disabled={emailSending}
+                      className="flex-1 py-2.5 rounded-xl bg-[var(--bg-tertiary)] text-body-small text-[var(--text-secondary)] hover:text-primary-500 flex items-center justify-center gap-1.5 press-effect disabled:opacity-50">
+                      {emailSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+                      {emailSending ? "발송 중..." : "이메일 발송"}
+                    </button>
+                  )}
                 </div>
               </>
             ) : (

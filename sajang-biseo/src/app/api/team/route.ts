@@ -1,0 +1,98 @@
+/** 팀원 관리 API (Pro+ 전용) */
+
+import { NextRequest, NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getUserPlan } from "@/lib/usage";
+import { getPlanLimits } from "@/lib/plan";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const storeId = searchParams.get("storeId");
+    if (!storeId) return NextResponse.json({ error: "매장 ID 필요" }, { status: 400 });
+
+    const sb = createAdminClient();
+    const { data, error } = await sb.from("sb_team_members")
+      .select("*").eq("store_id", storeId).order("created_at");
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ members: data ?? [] });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
+
+    const plan = await getUserPlan(user.id);
+    const limits = getPlanLimits(plan);
+    if (limits.teamMembers <= 0) {
+      return NextResponse.json(
+        { error: "직원 계정은 Pro+ 플랜부터 사용 가능합니다.", limitReached: true },
+        { status: 429 }
+      );
+    }
+
+    const body = await req.json();
+    const { storeId, email, role } = body;
+    if (!storeId || !email) return NextResponse.json({ error: "매장 ID, 이메일 필요" }, { status: 400 });
+
+    const sb = createAdminClient();
+    // 현재 팀원 수 확인
+    const { count } = await sb.from("sb_team_members")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId);
+
+    if ((count ?? 0) >= limits.teamMembers) {
+      return NextResponse.json(
+        { error: `매장당 최대 ${limits.teamMembers}명까지 초대 가능합니다.` },
+        { status: 429 }
+      );
+    }
+
+    const { data, error } = await sb.from("sb_team_members").insert({
+      store_id: storeId,
+      email,
+      role: role ?? "viewer",
+      invited_by: user.id,
+    }).select().single();
+
+    if (error) {
+      if (error.code === "23505") return NextResponse.json({ error: "이미 초대된 이메일입니다." }, { status: 409 });
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ member: data });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "ID 필요" }, { status: 400 });
+
+    const sb = createAdminClient();
+    const { error } = await sb.from("sb_team_members").delete().eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}

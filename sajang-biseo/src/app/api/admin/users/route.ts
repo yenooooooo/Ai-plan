@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
     const [storesData, profilesData, closingsData] = await Promise.all([
       sb.from("sb_stores").select("id, user_id, store_name").in("user_id", safeIds),
-      sb.from("sb_user_profiles").select("id, onboarding_complete, created_at").in("id", safeIds),
+      sb.from("sb_user_profiles").select("id, onboarding_complete, plan, created_at").in("id", safeIds),
       sb.from("sb_daily_closing").select("store_id"),
     ]);
 
@@ -48,6 +48,7 @@ export async function GET(request: Request) {
         createdAt: u.created_at,
         lastSignIn: u.last_sign_in_at,
         onboardingComplete: profile?.onboarding_complete ?? false,
+        plan: (profile as { plan?: string } | undefined)?.plan ?? "free",
         stores: userStores.map((s) => ({
           id: s.id,
           name: s.store_name,
@@ -60,5 +61,26 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error("Admin users error:", err);
     return NextResponse.json({ error: "서버 오류", detail: String(err) }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const admin = await verifyAdmin();
+    if (!admin) return NextResponse.json({ error: "권한 없음" }, { status: 403 });
+
+    const body = await request.json();
+    const { userId, plan } = body;
+    if (!userId || !plan) return NextResponse.json({ error: "userId, plan 필요" }, { status: 400 });
+
+    const sb = createAdminClient();
+    const { error } = await sb.from("sb_user_profiles")
+      .update({ plan, updated_at: new Date().toISOString() })
+      .eq("id", userId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Admin plan update error:", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

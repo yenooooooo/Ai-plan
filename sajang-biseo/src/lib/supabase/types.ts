@@ -24,6 +24,7 @@ export interface Database {
           phone: string | null;
           agreed_terms: boolean;
           onboarding_complete: boolean;
+          plan: "free" | "pro" | "pro_plus";
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
@@ -34,6 +35,7 @@ export interface Database {
           phone?: string | null;
           agreed_terms?: boolean;
           onboarding_complete?: boolean;
+          plan?: "free" | "pro" | "pro_plus";
           created_at?: string;
           updated_at?: string;
           deleted_at?: string | null;
@@ -44,6 +46,7 @@ export interface Database {
           phone?: string | null;
           agreed_terms?: boolean;
           onboarding_complete?: boolean;
+          plan?: "free" | "pro" | "pro_plus";
           updated_at?: string;
           deleted_at?: string | null;
         };
@@ -725,6 +728,57 @@ export interface Database {
         Relationships: [];
       };
 
+      sb_usage_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          feature: string;
+          month: string;
+          count: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          feature: string;
+          month: string;
+          count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      sb_team_members: {
+        Row: {
+          id: string;
+          store_id: string;
+          email: string;
+          role: "viewer" | "editor";
+          invited_by: string;
+          accepted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id: string;
+          email: string;
+          role?: "viewer" | "editor";
+          invited_by: string;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          email?: string;
+          role?: "viewer" | "editor";
+          accepted_at?: string | null;
+        };
+        Relationships: [];
+      };
+
       sb_notices: {
         Row: {
           id: string;
@@ -811,3 +865,5 @@ export type WeeklyBriefing = Tables<"sb_weekly_briefings">;
 export type DailyOrder = Tables<"sb_daily_orders">;
 export type ItemPriceHistory = Tables<"sb_item_price_history">;
 export type Notice = Tables<"sb_notices">;
+export type UsageLog = Tables<"sb_usage_logs">;
+export type TeamMember = Tables<"sb_team_members">;

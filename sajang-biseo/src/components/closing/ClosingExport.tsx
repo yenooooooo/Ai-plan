@@ -2,7 +2,8 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImageIcon, Share2, Download, X } from "lucide-react";
+import { ImageIcon, Share2, Download, X, FileDown } from "lucide-react";
+import { usePlan } from "@/hooks/usePlan";
 import html2canvas from "html2canvas";
 import { formatCurrency } from "@/lib/utils/format";
 import { parseDate } from "@/lib/utils/date";
@@ -24,6 +25,7 @@ export function ClosingExport({
   totalSales, feeResult, todayExpenses, customFees,
   channels, cardRatio, date, tags, memo,
 }: ClosingExportProps) {
+  const { limits } = usePlan();
   const [showPreview, setShowPreview] = useState(false);
   const [generating, setGenerating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -134,12 +136,22 @@ export function ClosingExport({
               <div className="flex gap-2 p-4 border-t border-neutral-100">
                 <button onClick={handleShare} disabled={generating}
                   className="flex-1 py-3 rounded-xl bg-blue-500 text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50">
-                  <Share2 size={16} />공유하기
+                  <Share2 size={16} />공유
                 </button>
                 <button onClick={handleDownload} disabled={generating}
                   className="py-3 px-4 rounded-xl bg-neutral-100 text-neutral-700 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50">
-                  <Download size={16} />저장
+                  <Download size={16} />이미지
                 </button>
+                {limits.pdfExport && (
+                  <button disabled={generating} onClick={async () => {
+                    if (!previewRef.current) return;
+                    const { saveAsPdf } = await import("@/lib/export/pdf");
+                    await saveAsPdf(previewRef.current, `마감리포트_${date}`);
+                  }}
+                    className="py-3 px-4 rounded-xl bg-neutral-100 text-neutral-700 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50">
+                    <FileDown size={16} />PDF
+                  </button>
+                )}
               </div>
             </motion.div>
           </motion.div>

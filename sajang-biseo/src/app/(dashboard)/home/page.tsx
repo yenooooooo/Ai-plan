@@ -12,6 +12,9 @@ import { useHomeData } from "@/hooks/useHomeData";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { DailyNote } from "@/components/home/DailyNote";
 import { NoticeBanner } from "@/components/home/NoticeBanner";
+import { MultiStoreCompare } from "@/components/home/MultiStoreCompare";
+import { SalesForecast } from "@/components/home/SalesForecast";
+import { PlanGate } from "@/components/shared/PlanGate";
 import { formatCurrency } from "@/lib/utils/format";
 
 const QUICK_MENU = [
@@ -303,6 +306,16 @@ export default function HomePage() {
           </div>
         )}
       </Link>
+
+      {/* Pro+ 전용: 매출 예측 */}
+      <PlanGate requiredPlan="pro_plus" featureName="AI 매출 예측">
+        <SalesForecast />
+      </PlanGate>
+
+      {/* Pro+ 전용: 다매장 비교 */}
+      <PlanGate requiredPlan="pro_plus" featureName="다매장 통합 대시보드">
+        <MultiStoreCompare />
+      </PlanGate>
     </div>
   );
 }

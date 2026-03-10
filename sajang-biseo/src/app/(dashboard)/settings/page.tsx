@@ -12,6 +12,7 @@ import { PresetsSection } from "@/components/settings/PresetsSection";
 import { ThemeSection } from "@/components/settings/ThemeSection";
 import { AccountSection } from "@/components/settings/AccountSection";
 import { AppInfoSection } from "@/components/settings/AppInfoSection";
+import { TeamSection } from "@/components/settings/TeamSection";
 
 export default function SettingsPage() {
   const {
@@ -120,6 +121,8 @@ export default function SettingsPage() {
 
       {/* #8 다크모드 토글 */}
       <ThemeSection />
+
+      <TeamSection />
 
       <AccountSection email={email} onLogout={logout} />
 

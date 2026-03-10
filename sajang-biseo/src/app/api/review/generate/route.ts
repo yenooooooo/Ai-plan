@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient as createClient } from "@/lib/supabase/server";
+import { checkUsageLimit, incrementUsage } from "@/lib/usage";
 
 interface GenerateRequest {
   reviewContent: string;
@@ -34,6 +35,12 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ success: false, error: "인증이 필요합니다" }, { status: 401 });
+    }
+
+    // 사용량 제한 체크
+    const limitError = await checkUsageLimit(user.id, "review_generate");
+    if (limitError) {
+      return NextResponse.json({ success: false, error: limitError, limitReached: true }, { status: 429 });
     }
 
     const body: GenerateRequest = await req.json();
@@ -90,6 +97,9 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ success: false, error: "답글 JSON 파싱 실패" }, { status: 500 });
     }
+
+    // 성공 시 사용량 증가
+    await incrementUsage(user.id, "review_generate");
 
     return NextResponse.json({ success: true, data: parsed });
   } catch (error) {

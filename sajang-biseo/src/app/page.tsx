@@ -260,7 +260,10 @@ export default function LandingPage() {
                       추천
                     </div>
                   )}
-                  <h3 className="text-heading-md text-[var(--text-primary)] mb-1">{plan.name}</h3>
+                  <h3 className="text-heading-md text-[var(--text-primary)] mb-0.5">{plan.name}</h3>
+                  {(plan as { desc?: string }).desc && (
+                    <p className="text-[11px] text-primary-500 font-medium mb-1">{(plan as { desc?: string }).desc}</p>
+                  )}
                   <div className="flex items-end gap-1 mb-4">
                     <span className="text-[28px] font-display font-bold text-[var(--text-primary)]">
                       {plan.price}

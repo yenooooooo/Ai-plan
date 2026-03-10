@@ -6,7 +6,8 @@ import { formatCurrency } from "@/lib/utils/format";
 
 interface UserInfo {
   id: string; email: string; createdAt: string; lastSignIn: string | null;
-  onboardingComplete: boolean; stores: { id: string; name: string; closingCount: number }[];
+  onboardingComplete: boolean; plan: string;
+  stores: { id: string; name: string; closingCount: number }[];
 }
 interface StoreDetail {
   store: { store_name: string; business_type: string; address: string | null; phone: string | null } | null;
@@ -84,6 +85,19 @@ export function AdminUsers() {
                   {u.lastSignIn && ` · 마지막 접속: ${new Date(u.lastSignIn).toLocaleDateString("ko")}`}
                 </p>
               </div>
+              <select value={u.plan || "free"} onChange={async (e) => {
+                await fetch("/api/admin/users", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ userId: u.id, plan: e.target.value }),
+                });
+                handleSearch();
+              }}
+                className="h-7 px-2 rounded-lg bg-[var(--bg-tertiary)] text-[11px] text-[var(--text-primary)] border border-[var(--border-default)]">
+                <option value="free">무료</option>
+                <option value="pro">Pro</option>
+                <option value="pro_plus">Pro+</option>
+              </select>
             </div>
             {u.stores.map((s) => (
               <div key={s.id}>

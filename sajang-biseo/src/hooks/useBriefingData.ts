@@ -21,6 +21,7 @@ export function useBriefingData() {
   const toast = useToast((s) => s.show);
 
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
+  const [briefingDbId, setBriefingDbId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [archives, setArchives] = useState<WeeklyBriefing[]>([]);
@@ -111,6 +112,7 @@ export function useBriefingData() {
     };
 
     setBriefing({ weekStart: start, weekEnd: end, sales, fees, expenses, ingredients, reputation, coaching });
+    setBriefingDbId(savedRes.data?.id ?? null);
 
     // 전주 코칭 로드
     const { data: prevSaved } = await supabase
@@ -196,7 +198,7 @@ export function useBriefingData() {
   }, []);
 
   return {
-    briefing, loading, generating, archives, error, prevCoaching,
+    briefing, briefingDbId, loading, generating, archives, error, prevCoaching,
     weekOffset, generateCoaching,
     goToPrevWeek, goToNextWeek, goToWeek,
   };
