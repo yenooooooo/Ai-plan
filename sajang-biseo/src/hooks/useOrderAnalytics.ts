@@ -27,27 +27,35 @@ export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | 
     if (!storeId) return;
     setLoading(true);
 
-    const [usageRes, salesRes] = await Promise.all([
-      supabase
-        .from("sb_daily_usage")
-        .select("item_id, date, used_qty, waste_qty")
-        .eq("store_id", storeId)
-        .gte("date", monthStart)
-        .lte("date", monthEnd),
-      supabase
-        .from("sb_daily_closing")
-        .select("total_sales, net_sales")
-        .eq("store_id", storeId)
-        .gte("date", monthStart)
-        .lte("date", monthEnd),
-    ]);
+    try {
+      const [usageRes, salesRes] = await Promise.all([
+        supabase
+          .from("sb_daily_usage")
+          .select("item_id, date, used_qty, waste_qty")
+          .eq("store_id", storeId)
+          .gte("date", monthStart)
+          .lte("date", monthEnd),
+        supabase
+          .from("sb_daily_closing")
+          .select("total_sales, net_sales")
+          .eq("store_id", storeId)
+          .gte("date", monthStart)
+          .lte("date", monthEnd),
+      ]);
 
-    if (usageRes.data) setUsageRows(usageRes.data);
-    if (salesRes.data) {
-      setGrossSales(salesRes.data.reduce((s, r) => s + r.total_sales, 0));
-      setNetSales(salesRes.data.reduce((s, r) => s + r.net_sales, 0));
+      if (usageRes.error) throw usageRes.error;
+      if (salesRes.error) throw salesRes.error;
+
+      if (usageRes.data) setUsageRows(usageRes.data);
+      if (salesRes.data) {
+        setGrossSales(salesRes.data.reduce((s, r) => s + r.total_sales, 0));
+        setNetSales(salesRes.data.reduce((s, r) => s + (r.net_sales ?? 0), 0));
+      }
+    } catch (err) {
+      console.error("분석 데이터 로드 실패:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [storeId, monthStart, monthEnd, supabase]);
 
   useEffect(() => { load(); }, [load]);
@@ -70,12 +78,13 @@ export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | 
     });
   }, [usageRows, activeItemId]);
 
-  // 이번 달 식자재비 합계 (사용량 × 단가)
+  // 이번 달 식자재비 합계 (사용량 × 단가, null 단가는 0으로 처리)
   const totalCost = useMemo(() => {
     return Math.round(
       usageRows.reduce((sum, row) => {
         const item = itemsMap.get(row.item_id);
-        return sum + row.used_qty * (item?.unit_price ?? 0);
+        const price = item?.unit_price ?? 0;
+        return sum + row.used_qty * price;
       }, 0)
     );
   }, [usageRows, itemsMap]);

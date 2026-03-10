@@ -49,7 +49,7 @@ export function OrderSheet({ confirmedItems, itemsMap, orderDate }: OrderSheetPr
     const cost = (item.unit_price ?? 0) * ci.qty;
 
     if (item.supplier_name) {
-      let group = supplierGroups.find((g) => g.supplierName === item.supplier_name);
+      let group = supplierGroups.find((g) => g.supplierName.toLowerCase() === item.supplier_name!.toLowerCase());
       if (!group) {
         group = {
           supplierName: item.supplier_name!,
@@ -94,13 +94,22 @@ export function OrderSheet({ confirmedItems, itemsMap, orderDate }: OrderSheetPr
   }
 
   async function handleCopy() {
+    const text = generateText();
     try {
-      await navigator.clipboard.writeText(generateText());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
     } catch {
-      // fallback
+      // fallback: textarea 방식
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   if (confirmedItems.length === 0) return null;

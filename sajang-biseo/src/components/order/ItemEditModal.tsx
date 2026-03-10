@@ -30,9 +30,11 @@ export function ItemEditModal({ item, groupId, onSave, onClose }: ItemEditModalP
   const [shelfLife, setShelfLife] = useState(item?.shelf_life_days?.toString() ?? "");
   const [supplierName, setSupplierName] = useState(item?.supplier_name ?? "");
   const [supplierContact, setSupplierContact] = useState(item?.supplier_contact ?? "");
+  const [submitting, setSubmitting] = useState(false);
 
   function handleSave() {
-    if (!name.trim()) return;
+    if (!name.trim() || submitting) return;
+    setSubmitting(true);
     onSave({
       item_name: name.trim(),
       unit,
@@ -162,10 +164,10 @@ export function ItemEditModal({ item, groupId, onSave, onClose }: ItemEditModalP
         {/* 저장 버튼 */}
         <button
           onClick={handleSave}
-          disabled={!name.trim()}
+          disabled={!name.trim() || submitting}
           className="w-full mt-6 py-3.5 rounded-2xl bg-primary-500 text-white font-semibold text-body-small press-effect disabled:opacity-40 disabled:pointer-events-none"
         >
-          {item ? "수정 완료" : "추가하기"}
+          {submitting ? "저장 중..." : item ? "수정 완료" : "추가하기"}
         </button>
       </motion.div>
     </motion.div>

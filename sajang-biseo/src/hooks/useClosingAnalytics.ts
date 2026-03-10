@@ -17,6 +17,26 @@ interface WeekdayDataPoint {
   avg: number;
 }
 
+interface DailyRecord {
+  date: string;
+  total_sales: number;
+  total_fees: number;
+  daily_expenses: { name: string; amount: number }[] | null;
+  custom_fees: { name: string; amount: number }[] | null;
+}
+
+export interface CalendarDataPoint {
+  date: string;
+  sales: number;
+}
+
+export interface ProfitTrendDataPoint {
+  date: string;
+  sales: number;
+  fees: number;
+  expenses: number;
+}
+
 export function useClosingAnalytics() {
   const supabase = useMemo(() => createClient(), []);
   const { storeId } = useStoreSettings();
@@ -30,7 +50,7 @@ export function useClosingAnalytics() {
   const [prevDaySales, setPrevDaySales] = useState<number | null>(null);
   const [weekdayAvg, setWeekdayAvg] = useState<number | null>(null);
 
-  const [allData, setAllData] = useState<{ date: string; total_sales: number }[]>([]);
+  const [allData, setAllData] = useState<DailyRecord[]>([]);
 
   const loadAnalytics = useCallback(async () => {
     if (!storeId) { setLoading(false); return; }
@@ -42,7 +62,7 @@ export function useClosingAnalytics() {
 
     const { data, error } = await supabase
       .from("sb_daily_closing")
-      .select("date, total_sales")
+      .select("date, total_sales, total_fees, daily_expenses, custom_fees")
       .eq("store_id", storeId)
       .is("deleted_at", null)
       .gte("date", ninetyDaysAgo)
@@ -59,7 +79,7 @@ export function useClosingAnalytics() {
       return;
     }
 
-    setAllData(data);
+    setAllData(data as unknown as DailyRecord[]);
 
     // 차트 데이터 (최근 14일)
     const recent14 = data.slice(-14);
@@ -163,22 +183,94 @@ export function useClosingAnalytics() {
   }, [allData]);
 
   // 월간 매출 합계 (allData 기반)
-  const now = new Date();
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const { monthStart, lastDayOfMonth, nowMonth, nowDate, nowYear } = useMemo(() => {
+    const n = new Date();
+    return {
+      monthStart: `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`,
+      lastDayOfMonth: new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate(),
+      nowMonth: n.getMonth(),
+      nowDate: n.getDate(),
+      nowYear: n.getFullYear(),
+    };
+  }, []);
+
   const monthlyCurrent = useMemo(
     () => allData.filter((d) => d.date >= monthStart).reduce((s, d) => s + d.total_sales, 0),
     [allData, monthStart]
   );
 
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysRemaining = lastDayOfMonth - now.getDate();
-  const monthLabel = `${now.getMonth() + 1}월`;
+  const daysRemaining = lastDayOfMonth - nowDate;
+  const monthLabel = `${nowMonth + 1}월`;
+
+  // 이번 주 / 지난 주 매출
+  const { thisWeekSales, lastWeekSales } = useMemo(() => {
+    const todayDate = new Date();
+    const day = todayDate.getDay();
+    const mondayOffset = day === 0 ? 6 : day - 1;
+    const thisMonday = new Date(todayDate);
+    thisMonday.setDate(todayDate.getDate() - mondayOffset);
+    const lastMonday = new Date(thisMonday);
+    lastMonday.setDate(thisMonday.getDate() - 7);
+
+    const thisStart = toDateString(thisMonday);
+    const lastStart = toDateString(lastMonday);
+    const lastEnd = toDateString(new Date(thisMonday.getTime() - 86_400_000));
+
+    let thisWeek = 0, lastWeek = 0;
+    let hasLastWeek = false;
+    for (const d of allData) {
+      if (d.date >= thisStart) thisWeek += d.total_sales;
+      else if (d.date >= lastStart && d.date <= lastEnd) {
+        lastWeek += d.total_sales;
+        hasLastWeek = true;
+      }
+    }
+    return { thisWeekSales: thisWeek, lastWeekSales: hasLastWeek ? lastWeek : null };
+  }, [allData]);
+
+  // 지난 달 동일 시점 매출
+  const lastMonthSamePeriodSales = useMemo(() => {
+    if (nowMonth === 0) return null; // 1월이면 지난해 12월 — 데이터 범위 밖
+    const lastMonthStart = `${nowYear}-${String(nowMonth).padStart(2, "0")}-01`;
+    const lastMonthLastDay = new Date(nowYear, nowMonth, 0).getDate();
+    const sameDay = Math.min(nowDate, lastMonthLastDay);
+    const lastMonthSameDay = `${nowYear}-${String(nowMonth).padStart(2, "0")}-${String(sameDay).padStart(2, "0")}`;
+    let total = 0;
+    let hasData = false;
+    for (const d of allData) {
+      if (d.date >= lastMonthStart && d.date <= lastMonthSameDay) {
+        total += d.total_sales;
+        hasData = true;
+      }
+    }
+    return hasData ? total : null;
+  }, [allData, nowYear, nowMonth, nowDate]);
+
+  // 달력 데이터
+  const calendarData: CalendarDataPoint[] = useMemo(() => {
+    return allData
+      .filter((d) => d.date >= monthStart)
+      .map((d) => ({ date: d.date, sales: d.total_sales }));
+  }, [allData, monthStart]);
+
+  // 수익 트렌드 데이터
+  const profitTrendData: ProfitTrendDataPoint[] = useMemo(() => {
+    return allData.map((d) => {
+      const expArr = (d.daily_expenses as { name: string; amount: number }[] | null) ?? [];
+      const customArr = (d.custom_fees as { name: string; amount: number }[] | null) ?? [];
+      const totalExp = expArr.reduce((s, e) => s + e.amount, 0) + customArr.reduce((s, f) => s + f.amount, 0);
+      return { date: d.date, sales: d.total_sales, fees: d.total_fees ?? 0, expenses: totalExp };
+    });
+  }, [allData]);
 
   return {
     chartData, weeklyChartData, monthlyChartData,
     weekdayData, loading,
     prevDaySales, weekdayAvg,
     monthlyCurrent, daysRemaining, monthLabel,
+    thisWeekSales, lastWeekSales,
+    lastMonthSamePeriodSales,
+    calendarData, profitTrendData,
     reload: loadAnalytics,
   };
 }

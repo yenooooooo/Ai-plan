@@ -17,14 +17,15 @@ import { TagMemo } from "@/components/closing/TagMemo";
 import { DailyReportCard } from "@/components/closing/DailyReportCard";
 import { AccordionSection } from "@/components/closing/AccordionSection";
 import { StickyProfitBar } from "@/components/closing/StickyProfitBar";
-import { SalesChart } from "@/components/closing/SalesChart";
-import { WeekdayHeatmap } from "@/components/closing/WeekdayHeatmap";
-import { MonthlyGoal } from "@/components/closing/MonthlyGoal";
+import { ClosingExport } from "@/components/closing/ClosingExport";
+import { RecurringExpenses } from "@/components/closing/RecurringExpenses";
+import { ClosingAnalyticsTab } from "@/components/closing/ClosingAnalyticsTab";
 import { formatCurrency } from "@/lib/utils/format";
 import { formatDateShort, parseDate } from "@/lib/utils/date";
 import { useClosingData } from "@/hooks/useClosingData";
 import { useClosingAnalytics } from "@/hooks/useClosingAnalytics";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { useRecurringExpenses } from "@/stores/useRecurringExpenses";
 
 type Tab = "input" | "analytics";
 
@@ -46,9 +47,9 @@ export default function ClosingPage() {
 
   const analytics = useClosingAnalytics();
   const { monthlyGoal, setMonthlyGoal } = useStoreSettings();
+  const { expenses: recurringExpenses, setExpenses: setRecurringExpenses } = useRecurringExpenses();
 
   const [tab, setTab] = useState<Tab>("input");
-  const [chartMode, setChartMode] = useState<"daily" | "weekly" | "monthly">("daily");
   const [reportCopied, setReportCopied] = useState(false);
 
   // 아코디언 상태
@@ -213,6 +214,14 @@ export default function ClosingPage() {
               <TodayExpenses expenses={todayExpenses} onChange={setTodayExpenses} />
             </AccordionSection>
 
+            {/* 고정 경비 */}
+            <RecurringExpenses
+              recurring={recurringExpenses}
+              onRecurringChange={setRecurringExpenses}
+              onApplyToday={(items) => setTodayExpenses((prev) => [...prev, ...items.map((e) => ({ name: e.name, amount: e.amount }))])}
+              dayOfMonth={new Date().getDate()}
+            />
+
             {/* 태그/메모 */}
             <AccordionSection
               title="태그 / 메모"
@@ -265,46 +274,28 @@ export default function ClosingPage() {
                 >
                   {reportCopied ? <><CopyCheck size={16} />복사됨!</> : <><Copy size={16} />리포트 복사 (카카오톡/문자)</>}
                 </button>
+                <ClosingExport
+                  totalSales={totalSales}
+                  feeResult={feeResult}
+                  todayExpenses={todayExpenses}
+                  customFees={customFees}
+                  channels={channels.map((c) => ({ channel: c.channel, ratio: c.ratio }))}
+                  cardRatio={cardRatio}
+                  date={selectedDate}
+                  tags={tags}
+                  memo={memo}
+                />
               </>
             )}
           </motion.div>
         ) : (
           <motion.div key="analytics" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-5">
-            {analytics.loading ? (
-              <div className="flex justify-center py-12">
-                <div className="w-8 h-8 border-2 border-primary-500/20 border-t-primary-500 rounded-full animate-spin" />
-              </div>
-            ) : (
-              <>
-                {analytics.chartData.length > 0 ? (
-                  <SalesChart
-                    data={
-                      chartMode === "weekly" ? analytics.weeklyChartData
-                      : chartMode === "monthly" ? analytics.monthlyChartData
-                      : analytics.chartData
-                    }
-                    mode={chartMode}
-                    onModeChange={setChartMode}
-                  />
-                ) : (
-                  <div className="glass-card p-8 text-center">
-                    <BarChart3 size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />
-                    <p className="text-body-small text-[var(--text-secondary)] font-medium">매출 추이</p>
-                    <p className="text-caption text-[var(--text-tertiary)] mt-1">마감 데이터가 쌓이면 매출 그래프가 표시됩니다</p>
-                  </div>
-                )}
-                {analytics.weekdayData.length > 0 && analytics.weekdayData.some((d) => d.avg > 0) ? (
-                  <WeekdayHeatmap data={analytics.weekdayData} />
-                ) : (
-                  <div className="glass-card p-8 text-center">
-                    <CalendarDays size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />
-                    <p className="text-body-small text-[var(--text-secondary)] font-medium">요일별 매출</p>
-                    <p className="text-caption text-[var(--text-tertiary)] mt-1">일주일 이상의 데이터가 필요합니다</p>
-                  </div>
-                )}
-                <MonthlyGoal currentSales={analytics.monthlyCurrent} goal={monthlyGoal} onGoalChange={setMonthlyGoal} daysRemaining={analytics.daysRemaining} monthLabel={analytics.monthLabel} />
-              </>
-            )}
+            <ClosingAnalyticsTab
+              analytics={analytics}
+              todaySales={totalSales}
+              monthlyGoal={monthlyGoal}
+              onGoalChange={setMonthlyGoal}
+            />
           </motion.div>
         )}
       </AnimatePresence>

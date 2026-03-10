@@ -35,16 +35,19 @@ export function OrderHistory({ items }: OrderHistoryProps) {
     if (!storeId) { setLoading(false); return; }
     setLoading(true);
 
+    try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const fromDate = thirtyDaysAgo.toISOString().split("T")[0];
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("sb_daily_orders")
       .select("*")
       .eq("store_id", storeId)
       .gte("date", fromDate)
       .order("date", { ascending: false });
+
+    if (error) throw error;
 
     if (!data || data.length === 0) {
       setRecords([]);
@@ -79,7 +82,11 @@ export function OrderHistory({ items }: OrderHistoryProps) {
     }
 
     setRecords(Array.from(byDate.values()));
-    setLoading(false);
+    } catch (err) {
+      console.error("발주 이력 로드 실패:", err);
+    } finally {
+      setLoading(false);
+    }
   }, [storeId, supabase, itemMap]);
 
   useEffect(() => { loadHistory(); }, [loadHistory]);

@@ -42,15 +42,17 @@ export function UsageStepper({
     (direction: 1 | -1) => {
       timeoutRef.current = setTimeout(() => {
         intervalRef.current = setInterval(() => {
-          onChange(itemId, Math.max(0, value + step * direction));
+          onChange(itemId, Math.min(9999, Math.max(0, value + step * direction)));
         }, 100);
       }, 400);
     },
     [itemId, value, step, onChange]
   );
 
+  const MAX_VALUE = 9999;
+
   const handlePress = (direction: 1 | -1) => {
-    const newVal = Math.max(0, +(value + step * direction).toFixed(1));
+    const newVal = Math.min(MAX_VALUE, Math.max(0, +(value + step * direction).toFixed(1)));
     onChange(itemId, newVal);
   };
 
@@ -63,7 +65,7 @@ export function UsageStepper({
   const commitEdit = () => {
     const parsed = parseFloat(editValue);
     if (!isNaN(parsed) && parsed >= 0) {
-      onChange(itemId, +parsed.toFixed(1));
+      onChange(itemId, Math.min(MAX_VALUE, +parsed.toFixed(1)));
     }
     setEditing(false);
   };

@@ -25,6 +25,7 @@ interface FlowItem {
 }
 
 export function StockFlowCard({ items, stockMap, usageMap, wasteMap, orderMap }: StockFlowCardProps) {
+  // stockMap은 이미 remaining_stock (현재고 - 사용 - 폐기 후 값)
   const flowItems: FlowItem[] = items
     .filter((item) => {
       const stock = stockMap[item.id] ?? 0;
@@ -33,17 +34,16 @@ export function StockFlowCard({ items, stockMap, usageMap, wasteMap, orderMap }:
       return stock > 0 || usage > 0 || order > 0;
     })
     .map((item) => {
-      const currentStock = stockMap[item.id] ?? 0;
+      const remainingStock = stockMap[item.id] ?? 0;
       const todayUsage = usageMap[item.id] ?? 0;
       const todayWaste = wasteMap[item.id] ?? 0;
-      const remainingStock = Math.max(0, currentStock - todayUsage - todayWaste);
       const orderQty = orderMap[item.id] ?? 0;
       const tomorrowStock = remainingStock + orderQty;
       return {
         id: item.id,
         name: item.item_name,
         unit: item.unit,
-        currentStock,
+        currentStock: remainingStock,
         todayUsage,
         todayWaste,
         remainingStock,

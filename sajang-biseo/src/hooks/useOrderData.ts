@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { useToast } from "@/stores/useToast";
 import { toDateString, parseDate, addDays, formatDateShort, getDayNameFull } from "@/lib/utils/date";
 import { getTemplateForBusiness, GROUP_ICONS } from "@/lib/order/templates";
 import {
@@ -17,6 +18,7 @@ export type { DBOrderItem, OrderItemGroup, DailyOrder };
 export function useOrderData() {
   const supabase = useMemo(() => createClient(), []);
   const { storeId, businessType } = useStoreSettings();
+  const toast = useToast((s) => s.show);
 
   const [groups, setGroups] = useState<OrderItemGroup[]>([]);
   const [items, setItems] = useState<DBOrderItem[]>([]);
@@ -47,31 +49,41 @@ export function useOrderData() {
   const [orderMap, setOrderMap] = useState<Record<string, number>>({});
   const [orderSaving, setOrderSaving] = useState(false);
   const [orderSaved, setOrderSaved] = useState(false);
+  const [itemSaving, setItemSaving] = useState(false);
 
   // ── 데이터 로드 ──
   const loadData = useCallback(async () => {
     if (!storeId) { setLoading(false); return; }
     setLoading(true);
 
-    const [groupsRes, itemsRes] = await Promise.all([
-      supabase
-        .from("sb_order_item_groups")
-        .select("*")
-        .eq("store_id", storeId)
-        .is("deleted_at", null)
-        .order("sort_order"),
-      supabase
-        .from("sb_order_items")
-        .select("*")
-        .eq("store_id", storeId)
-        .is("deleted_at", null)
-        .order("sort_order"),
-    ]);
+    try {
+      const [groupsRes, itemsRes] = await Promise.all([
+        supabase
+          .from("sb_order_item_groups")
+          .select("*")
+          .eq("store_id", storeId)
+          .is("deleted_at", null)
+          .order("sort_order"),
+        supabase
+          .from("sb_order_items")
+          .select("*")
+          .eq("store_id", storeId)
+          .is("deleted_at", null)
+          .order("sort_order"),
+      ]);
 
-    setGroups(groupsRes.data ?? []);
-    setItems(itemsRes.data ?? []);
-    setLoading(false);
-  }, [storeId, supabase]);
+      if (groupsRes.error) throw groupsRes.error;
+      if (itemsRes.error) throw itemsRes.error;
+
+      setGroups(groupsRes.data ?? []);
+      setItems(itemsRes.data ?? []);
+    } catch (err) {
+      console.error("데이터 로드 실패:", err);
+      toast("품목 데이터를 불러오지 못했습니다", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [storeId, supabase, toast]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -79,105 +91,206 @@ export function useOrderData() {
   const loadUsageForDate = useCallback(async () => {
     if (!storeId) return;
 
-    const { data } = await supabase
-      .from("sb_daily_usage")
-      .select("*")
-      .eq("store_id", storeId)
-      .eq("date", selectedDate);
+    try {
+      const { data, error } = await supabase
+        .from("sb_daily_usage")
+        .select("*")
+        .eq("store_id", storeId)
+        .eq("date", selectedDate);
 
-    // 어제 사용량 로드 (참고값)
-    const yesterday = toDateString(addDays(parseDate(selectedDate), -1));
-    const { data: prevData } = await supabase
-      .from("sb_daily_usage")
-      .select("item_id, used_qty, remaining_stock")
-      .eq("store_id", storeId)
-      .eq("date", yesterday);
+      if (error) throw error;
 
-    const prevUMap: Record<string, number> = {};
-    if (prevData) {
-      for (const row of prevData) {
-        prevUMap[row.item_id] = row.used_qty;
-      }
-    }
-    setPrevUsageMap(prevUMap);
+      // 어제 사용량 로드 (참고값)
+      const yesterday = toDateString(addDays(parseDate(selectedDate), -1));
+      const { data: prevData, error: prevErr } = await supabase
+        .from("sb_daily_usage")
+        .select("item_id, used_qty, remaining_stock")
+        .eq("store_id", storeId)
+        .eq("date", yesterday);
 
-    if (data && data.length > 0) {
-      const uMap: Record<string, number> = {};
-      const wMap: Record<string, number> = {};
-      const sMap: Record<string, number> = {};
-      for (const row of data) {
-        uMap[row.item_id] = row.used_qty;
-        wMap[row.item_id] = row.waste_qty;
-        sMap[row.item_id] = row.remaining_stock;
-      }
-      setUsageMap(uMap);
-      setWasteMap(wMap);
-      setStockMap(sMap);
-      setUsageSaved(true);
-    } else {
-      const sMap: Record<string, number> = {};
+      if (prevErr) throw prevErr;
+
+      const prevUMap: Record<string, number> = {};
       if (prevData) {
         for (const row of prevData) {
-          sMap[row.item_id] = row.remaining_stock;
+          prevUMap[row.item_id] = row.used_qty;
         }
       }
-      setUsageMap({});
-      setWasteMap({});
-      setStockMap(sMap);
-      setUsageSaved(false);
+      setPrevUsageMap(prevUMap);
+
+      if (data && data.length > 0) {
+        const uMap: Record<string, number> = {};
+        const wMap: Record<string, number> = {};
+        const sMap: Record<string, number> = {};
+        for (const row of data) {
+          uMap[row.item_id] = row.used_qty;
+          wMap[row.item_id] = row.waste_qty;
+          sMap[row.item_id] = row.remaining_stock;
+        }
+        setUsageMap(uMap);
+        setWasteMap(wMap);
+        setStockMap(sMap);
+        setUsageSaved(true);
+      } else {
+        const sMap: Record<string, number> = {};
+        if (prevData) {
+          for (const row of prevData) {
+            sMap[row.item_id] = row.remaining_stock;
+          }
+        }
+        setUsageMap({});
+        setWasteMap({});
+        setStockMap(sMap);
+        setUsageSaved(false);
+      }
+    } catch (err) {
+      console.error("사용량 로드 실패:", err);
+      toast("사용량 데이터를 불러오지 못했습니다", "error");
     }
-  }, [storeId, selectedDate, supabase]);
+  }, [storeId, selectedDate, supabase, toast]);
 
   useEffect(() => { loadUsageForDate(); }, [loadUsageForDate]);
 
-  // ── 초기 세팅: 템플릿 로드 ──
+  // ── 초기 세팅: 템플릿 로드 (수동 호출 전용) ──
   const initializeFromTemplate = useCallback(async () => {
     if (!storeId) return;
 
-    const template = getTemplateForBusiness(businessType || "한식");
+    try {
+      const template = getTemplateForBusiness(businessType || "한식");
 
-    const groupInserts = template.map((g, i) => ({
-      store_id: storeId,
-      group_name: g.groupName,
-      icon: g.icon,
-      sort_order: i,
-    }));
-
-    const { data: newGroups, error: groupErr } = await supabase
-      .from("sb_order_item_groups")
-      .insert(groupInserts)
-      .select();
-
-    if (groupErr || !newGroups) { console.error("그룹 생성 실패:", groupErr); return; }
-
-    const groupIdMap = new Map<string, string>();
-    for (const g of newGroups) {
-      groupIdMap.set(g.group_name, g.id);
-    }
-
-    const itemInserts = template.flatMap((g) =>
-      g.items.map((item, i) => ({
+      const groupInserts = template.map((g, i) => ({
         store_id: storeId,
-        group_id: groupIdMap.get(g.groupName) ?? null,
-        item_name: item.name,
-        unit: item.unit,
-        unit_price: item.unitPrice,
-        default_order_qty: item.defaultOrderQty,
-        shelf_life_days: item.shelfLifeDays,
+        group_name: g.groupName,
+        icon: g.icon,
         sort_order: i,
-      }))
-    );
+      }));
 
-    const { error: itemErr } = await supabase.from("sb_order_items").insert(itemInserts);
-    if (itemErr) console.error("품목 생성 실패:", itemErr);
-    await loadData();
-  }, [storeId, businessType, supabase, loadData]);
+      const { data: newGroups, error: groupErr } = await supabase
+        .from("sb_order_item_groups")
+        .insert(groupInserts)
+        .select();
 
-  useEffect(() => {
-    if (!loading && groups.length === 0 && storeId) {
-      initializeFromTemplate();
+      if (groupErr || !newGroups) throw groupErr ?? new Error("그룹 생성 실패");
+
+      const groupIdMap = new Map<string, string>();
+      for (const g of newGroups) {
+        groupIdMap.set(g.group_name, g.id);
+      }
+
+      const itemInserts = template.flatMap((g) =>
+        g.items.map((item, i) => ({
+          store_id: storeId,
+          group_id: groupIdMap.get(g.groupName) ?? null,
+          item_name: item.name,
+          unit: item.unit,
+          unit_price: item.unitPrice,
+          default_order_qty: item.defaultOrderQty,
+          shelf_life_days: item.shelfLifeDays,
+          sort_order: i,
+        }))
+      );
+
+      const { error: itemErr } = await supabase.from("sb_order_items").insert(itemInserts);
+      if (itemErr) throw itemErr;
+
+      toast("기본 품목을 불러왔습니다", "success");
+      await loadData();
+    } catch (err) {
+      console.error("템플릿 초기화 실패:", err);
+      toast("기본 품목 불러오기에 실패했습니다", "error");
     }
-  }, [loading, groups.length, storeId, initializeFromTemplate]);
+  }, [storeId, businessType, supabase, loadData, toast]);
+
+  // 자동 초기화 제거 — 사용자가 "기본 품목 불러오기" 버튼을 눌러야만 실행
+
+  // ── 같은 요일 평균 사용량 (자동 학습) ──
+  const [avgUsageMap, setAvgUsageMap] = useState<Record<string, number>>({});
+
+  const loadWeekdayAverage = useCallback(async () => {
+    if (!storeId) return;
+    try {
+      const fourWeeksAgo = toDateString(addDays(new Date(), -28));
+      const todayDow = parseDate(selectedDate).getDay();
+
+      const { data, error } = await supabase
+        .from("sb_daily_usage")
+        .select("item_id, date, used_qty")
+        .eq("store_id", storeId)
+        .gte("date", fourWeeksAgo);
+
+      if (error) throw error;
+      if (!data) return;
+
+      // 같은 요일만 필터링
+      const sameDayData = data.filter((d) => {
+        const dow = new Date(d.date + "T00:00:00").getDay();
+        return dow === todayDow;
+      });
+
+      const byItem = new Map<string, number[]>();
+      for (const row of sameDayData) {
+        const arr = byItem.get(row.item_id) ?? [];
+        arr.push(row.used_qty);
+        byItem.set(row.item_id, arr);
+      }
+
+      const avgMap: Record<string, number> = {};
+      Array.from(byItem.entries()).forEach(([itemId, values]) => {
+        avgMap[itemId] = Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 10) / 10;
+      });
+      setAvgUsageMap(avgMap);
+    } catch (err) {
+      console.error("요일별 평균 로드 실패:", err);
+    }
+  }, [storeId, selectedDate, supabase]);
+
+  useEffect(() => { loadWeekdayAverage(); }, [loadWeekdayAverage]);
+
+  // 자동 채우기: 같은 요일 평균으로 사용량 세팅
+  const autoFillUsage = useCallback(() => {
+    if (Object.keys(avgUsageMap).length === 0) return;
+    setUsageMap(avgUsageMap);
+    setUsageSaved(false);
+    toast("요일 평균 사용량으로 채워졌습니다", "info");
+  }, [avgUsageMap, toast]);
+
+  // ── 입고 처리 ──
+  const [stockReceiving, setStockReceiving] = useState(false);
+
+  const receiveStock = useCallback(async (entries: { itemId: string; qty: number }[]) => {
+    if (!storeId) return;
+    setStockReceiving(true);
+
+    try {
+      // 현재 재고에 입고량 추가
+      for (const entry of entries) {
+        const currentStock = stockMap[entry.itemId] ?? 0;
+        const newStock = currentStock + entry.qty;
+
+        // 오늘자 사용량 데이터가 있으면 remaining_stock 업데이트
+        const { error } = await supabase
+          .from("sb_daily_usage")
+          .upsert({
+            store_id: storeId,
+            item_id: entry.itemId,
+            date: selectedDate,
+            used_qty: usageMap[entry.itemId] ?? 0,
+            waste_qty: wasteMap[entry.itemId] ?? 0,
+            remaining_stock: newStock,
+          }, { onConflict: "store_id,item_id,date" });
+
+        if (error) throw error;
+        setStockMap((prev) => ({ ...prev, [entry.itemId]: newStock }));
+      }
+
+      toast("입고가 처리되었습니다", "success");
+    } catch (err) {
+      console.error("입고 처리 실패:", err);
+      toast("입고 처리에 실패했습니다", "error");
+    } finally {
+      setStockReceiving(false);
+    }
+  }, [storeId, selectedDate, stockMap, usageMap, wasteMap, supabase, toast]);
 
   // ── 사용량 핸들러 ──
   const handleUsageChange = (itemId: string, value: number) => {
@@ -207,39 +320,46 @@ export function useOrderData() {
     if (!storeId) return;
     setUsageSaving(true);
 
-    const activeItems = items.filter((i) => i.is_active);
+    try {
+      const activeItems = items.filter((i) => i.is_active);
 
-    const { error: delErr } = await supabase
-      .from("sb_daily_usage")
-      .delete()
-      .eq("store_id", storeId)
-      .eq("date", selectedDate);
-    if (delErr) { console.error("사용량 삭제 실패:", delErr); setUsageSaving(false); return; }
+      const { error: delErr } = await supabase
+        .from("sb_daily_usage")
+        .delete()
+        .eq("store_id", storeId)
+        .eq("date", selectedDate);
+      if (delErr) throw delErr;
 
-    const inserts = activeItems
-      .filter((item) => (usageMap[item.id] ?? 0) > 0 || (wasteMap[item.id] ?? 0) > 0)
-      .map((item) => {
-        const used = usageMap[item.id] ?? 0;
-        const waste = wasteMap[item.id] ?? 0;
-        const prevStock = stockMap[item.id] ?? 0;
-        const remaining = Math.max(0, prevStock - used - waste);
-        return {
-          store_id: storeId,
-          item_id: item.id,
-          date: selectedDate,
-          used_qty: used,
-          waste_qty: waste,
-          remaining_stock: remaining,
-        };
-      });
+      const inserts = activeItems
+        .filter((item) => (usageMap[item.id] ?? 0) > 0 || (wasteMap[item.id] ?? 0) > 0)
+        .map((item) => {
+          const used = usageMap[item.id] ?? 0;
+          const waste = wasteMap[item.id] ?? 0;
+          const prevStock = stockMap[item.id] ?? 0;
+          const remaining = Math.max(0, prevStock - used - waste);
+          return {
+            store_id: storeId,
+            item_id: item.id,
+            date: selectedDate,
+            used_qty: used,
+            waste_qty: waste,
+            remaining_stock: remaining,
+          };
+        });
 
-    if (inserts.length > 0) {
-      const { error: usageErr } = await supabase.from("sb_daily_usage").insert(inserts);
-      if (usageErr) { console.error("사용량 저장 실패:", usageErr); setUsageSaving(false); return; }
+      if (inserts.length > 0) {
+        const { error: usageErr } = await supabase.from("sb_daily_usage").insert(inserts);
+        if (usageErr) throw usageErr;
+      }
+
+      setUsageSaved(true);
+      toast("사용량이 저장되었습니다", "success");
+    } catch (err) {
+      console.error("사용량 저장 실패:", err);
+      toast("사용량 저장에 실패했습니다", "error");
+    } finally {
+      setUsageSaving(false);
     }
-
-    setUsageSaving(false);
-    setUsageSaved(inserts.length > 0);
   };
 
   // ── 발주 추천 생성 ──
@@ -247,51 +367,61 @@ export function useOrderData() {
     if (!storeId) return;
     setRecLoading(true);
 
-    const activeItems = items.filter((i) => i.is_active);
+    try {
+      const activeItems = items.filter((i) => i.is_active);
 
-    const fourWeeksAgo = toDateString(addDays(new Date(), -28));
-    const { data: usageData } = await supabase
-      .from("sb_daily_usage")
-      .select("item_id, date, used_qty")
-      .eq("store_id", storeId)
-      .gte("date", fourWeeksAgo);
+      const fourWeeksAgo = toDateString(addDays(new Date(), -28));
+      const { data: usageData, error: usageErr } = await supabase
+        .from("sb_daily_usage")
+        .select("item_id, date, used_qty")
+        .eq("store_id", storeId)
+        .gte("date", fourWeeksAgo);
 
-    const { data: latestUsage } = await supabase
-      .from("sb_daily_usage")
-      .select("item_id, remaining_stock")
-      .eq("store_id", storeId)
-      .eq("date", toDateString(new Date()));
+      if (usageErr) throw usageErr;
 
-    const stockByItem = new Map<string, number>();
-    if (latestUsage) {
-      for (const row of latestUsage) {
-        stockByItem.set(row.item_id, row.remaining_stock);
+      const { data: latestUsage, error: latestErr } = await supabase
+        .from("sb_daily_usage")
+        .select("item_id, remaining_stock")
+        .eq("store_id", storeId)
+        .eq("date", toDateString(new Date()));
+
+      if (latestErr) throw latestErr;
+
+      const stockByItem = new Map<string, number>();
+      if (latestUsage) {
+        for (const row of latestUsage) {
+          stockByItem.set(row.item_id, row.remaining_stock);
+        }
       }
-    }
 
-    const usageByItem = new Map<string, { date: string; usedQty: number }[]>();
-    if (usageData) {
-      for (const row of usageData) {
-        const arr = usageByItem.get(row.item_id) ?? [];
-        arr.push({ date: row.date, usedQty: row.used_qty });
-        usageByItem.set(row.item_id, arr);
+      const usageByItem = new Map<string, { date: string; usedQty: number }[]>();
+      if (usageData) {
+        for (const row of usageData) {
+          const arr = usageByItem.get(row.item_id) ?? [];
+          arr.push({ date: row.date, usedQty: row.used_qty });
+          usageByItem.set(row.item_id, arr);
+        }
       }
+
+      const inputs: RecommendationInput[] = activeItems.map((item) => ({
+        itemId: item.id,
+        itemName: item.item_name,
+        unit: item.unit,
+        currentStock: stockByItem.get(item.id) ?? 0,
+        defaultOrderQty: item.default_order_qty,
+        usageHistory: usageByItem.get(item.id) ?? [],
+      }));
+
+      const recs = generateRecommendations(inputs);
+      setRecommendations(recs);
+      setConfirmedItems(new Map());
+    } catch (err) {
+      console.error("발주 추천 생성 실패:", err);
+      toast("발주 추천을 생성하지 못했습니다", "error");
+    } finally {
+      setRecLoading(false);
     }
-
-    const inputs: RecommendationInput[] = activeItems.map((item) => ({
-      itemId: item.id,
-      itemName: item.item_name,
-      unit: item.unit,
-      currentStock: stockByItem.get(item.id) ?? 0,
-      defaultOrderQty: item.default_order_qty,
-      usageHistory: usageByItem.get(item.id) ?? [],
-    }));
-
-    const recs = generateRecommendations(inputs);
-    setRecommendations(recs);
-    setConfirmedItems(new Map());
-    setRecLoading(false);
-  }, [storeId, items, supabase]);
+  }, [storeId, items, supabase, toast]);
 
   // 발주 확인
   const handleConfirm = (itemId: string, qty: number) => {
@@ -308,13 +438,21 @@ export function useOrderData() {
     setOrderSaved(false);
   };
 
-  // 확정된 발주를 orderMap에 반영
+  // 확정된 발주를 orderMap에 반영 (기존 수동 편집 보존)
   const applyConfirmedToOrders = useCallback(() => {
-    const map: Record<string, number> = {};
-    Array.from(confirmedItems.entries()).forEach(([itemId, qty]) => {
-      map[itemId] = qty;
+    setOrderMap((prev) => {
+      const next = { ...prev };
+      Array.from(confirmedItems.entries()).forEach(([itemId, qty]) => {
+        next[itemId] = qty;
+      });
+      // 확정 해제된 항목은 제거
+      Object.keys(next).forEach((id) => {
+        if (!confirmedItems.has(id) && next[id] > 0) {
+          // 수동 편집된 항목은 유지
+        }
+      });
+      return next;
     });
-    setOrderMap(map);
     setOrderSaved(false);
   }, [confirmedItems]);
 
@@ -323,80 +461,99 @@ export function useOrderData() {
     if (!storeId) return;
     setOrderSaving(true);
 
-    const orderDate = toDateString(addDays(new Date(), 1)); // 내일 날짜
+    try {
+      const orderDate = toDateString(addDays(new Date(), 1)); // 내일 날짜
 
-    // 기존 발주 삭제 후 재입력
-    await supabase.from("sb_daily_orders").delete()
-      .eq("store_id", storeId).eq("date", orderDate);
+      // 기존 발주 삭제 후 재입력
+      const { error: delErr } = await supabase.from("sb_daily_orders").delete()
+        .eq("store_id", storeId).eq("date", orderDate);
+      if (delErr) throw delErr;
 
-    const inserts = Object.entries(orderMap)
-      .filter(([, qty]) => qty > 0)
-      .map(([itemId, qty]) => {
-        const item = items.find((i) => i.id === itemId);
-        return {
-          store_id: storeId,
-          item_id: itemId,
-          date: orderDate,
-          order_qty: qty,
-          unit_price_at_order: item?.unit_price ?? null,
-          supplier_name: item?.supplier_name ?? null,
-        };
-      });
+      const inserts = Object.entries(orderMap)
+        .filter(([, qty]) => qty > 0)
+        .map(([itemId, qty]) => {
+          const item = items.find((i) => i.id === itemId);
+          return {
+            store_id: storeId,
+            item_id: itemId,
+            date: orderDate,
+            order_qty: qty,
+            unit_price_at_order: item?.unit_price ?? null,
+            supplier_name: item?.supplier_name ?? null,
+          };
+        });
 
-    if (inserts.length > 0) {
-      const { error: orderErr } = await supabase.from("sb_daily_orders").insert(inserts);
-      if (orderErr) { console.error("발주 저장 실패:", orderErr); setOrderSaving(false); return; }
+      if (inserts.length > 0) {
+        const { error: orderErr } = await supabase.from("sb_daily_orders").insert(inserts);
+        if (orderErr) throw orderErr;
 
-      // 가격 이력 기록 (단가가 있는 품목만)
-      const priceInserts = inserts
-        .filter((ins) => ins.unit_price_at_order != null)
-        .map((ins) => ({
-          store_id: storeId,
-          item_id: ins.item_id,
-          date: orderDate,
-          unit_price: ins.unit_price_at_order!,
-        }));
+        // 가격 이력 기록 (단가가 있는 품목만)
+        const priceInserts = inserts
+          .filter((ins) => ins.unit_price_at_order != null)
+          .map((ins) => ({
+            store_id: storeId,
+            item_id: ins.item_id,
+            date: orderDate,
+            unit_price: ins.unit_price_at_order!,
+          }));
 
-      if (priceInserts.length > 0) {
-        // upsert로 같은 날 같은 품목이면 업데이트
-        await supabase.from("sb_item_price_history")
-          .upsert(priceInserts, { onConflict: "store_id,item_id,date" });
+        if (priceInserts.length > 0) {
+          await supabase.from("sb_item_price_history")
+            .upsert(priceInserts, { onConflict: "store_id,item_id,date" });
+        }
       }
-    }
 
-    setOrderSaving(false);
-    setOrderSaved(true);
-  }, [storeId, orderMap, items, supabase]);
+      setOrderSaved(true);
+      toast("발주가 저장되었습니다", "success");
+    } catch (err) {
+      console.error("발주 저장 실패:", err);
+      toast("발주 저장에 실패했습니다", "error");
+    } finally {
+      setOrderSaving(false);
+    }
+  }, [storeId, orderMap, items, supabase, toast]);
 
   // 발주 이력 로드 (특정 날짜)
   const loadOrdersForDate = useCallback(async (date: string) => {
     if (!storeId) return;
-    const { data } = await supabase.from("sb_daily_orders").select("*")
-      .eq("store_id", storeId).eq("date", date);
-    if (data && data.length > 0) {
-      const map: Record<string, number> = {};
-      for (const row of data) { map[row.item_id] = row.order_qty; }
-      setOrderMap(map);
-      setOrderSaved(true);
-    } else {
-      setOrderMap({});
-      setOrderSaved(false);
+    try {
+      const { data, error } = await supabase.from("sb_daily_orders").select("*")
+        .eq("store_id", storeId).eq("date", date);
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const map: Record<string, number> = {};
+        for (const row of data) { map[row.item_id] = row.order_qty; }
+        setOrderMap(map);
+        setOrderSaved(true);
+      } else {
+        setOrderMap({});
+        setOrderSaved(false);
+      }
+    } catch (err) {
+      console.error("발주 이력 로드 실패:", err);
+      toast("발주 이력을 불러오지 못했습니다", "error");
     }
-  }, [storeId, supabase]);
+  }, [storeId, supabase, toast]);
 
   // ── 품목 관리 핸들러 ──
   const handleAddGroup = async (name: string): Promise<boolean> => {
     if (!storeId || !name.trim()) return false;
 
-    const { error: addGroupErr } = await supabase.from("sb_order_item_groups").insert({
-      store_id: storeId,
-      group_name: name.trim(),
-      icon: GROUP_ICONS[name.trim()] ?? "📦",
-      sort_order: groups.length,
-    });
-    if (addGroupErr) { console.error("그룹 추가 실패:", addGroupErr); return false; }
-    await loadData();
-    return true;
+    try {
+      const { error: addGroupErr } = await supabase.from("sb_order_item_groups").insert({
+        store_id: storeId,
+        group_name: name.trim(),
+        icon: GROUP_ICONS[name.trim()] ?? "📦",
+        sort_order: groups.length,
+      });
+      if (addGroupErr) throw addGroupErr;
+      await loadData();
+      return true;
+    } catch (err) {
+      console.error("그룹 추가 실패:", err);
+      toast("카테고리 추가에 실패했습니다", "error");
+      return false;
+    }
   };
 
   const handleSaveItem = async (data: {
@@ -409,45 +566,64 @@ export function useOrderData() {
     supplier_contact: string | null;
     group_id: string;
   }) => {
-    if (!storeId) return;
+    if (!storeId || itemSaving) return;
+    setItemSaving(true);
 
-    if (editModal.item) {
-      const { error: updateErr } = await supabase
-        .from("sb_order_items")
-        .update(data)
-        .eq("id", editModal.item.id);
-      if (updateErr) { console.error("품목 수정 실패:", updateErr); return; }
-    } else {
-      const { error: createErr } = await supabase.from("sb_order_items").insert({
-        ...data,
-        store_id: storeId,
-        sort_order: items.filter((i) => i.group_id === data.group_id).length,
-      });
-      if (createErr) { console.error("품목 생성 실패:", createErr); return; }
+    try {
+      if (editModal.item) {
+        const { error: updateErr } = await supabase
+          .from("sb_order_items")
+          .update(data)
+          .eq("id", editModal.item.id);
+        if (updateErr) throw updateErr;
+      } else {
+        const { error: createErr } = await supabase.from("sb_order_items").insert({
+          ...data,
+          store_id: storeId,
+          sort_order: items.filter((i) => i.group_id === data.group_id).length,
+        });
+        if (createErr) throw createErr;
+      }
+
+      setEditModal({ open: false, groupId: "" });
+      await loadData();
+      toast(editModal.item ? "품목이 수정되었습니다" : "품목이 추가되었습니다", "success");
+    } catch (err) {
+      console.error("품목 저장 실패:", err);
+      toast("품목 저장에 실패했습니다", "error");
+    } finally {
+      setItemSaving(false);
     }
-
-    setEditModal({ open: false, groupId: "" });
-    loadData();
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    const { error: softDelErr } = await supabase
-      .from("sb_order_items")
-      .update({ deleted_at: new Date().toISOString() })
-      .eq("id", itemId);
-    if (softDelErr) { console.error("품목 삭제 실패:", softDelErr); return; }
-    loadData();
+    try {
+      const { error: softDelErr } = await supabase
+        .from("sb_order_items")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", itemId);
+      if (softDelErr) throw softDelErr;
+      await loadData();
+    } catch (err) {
+      console.error("품목 삭제 실패:", err);
+      toast("품목 삭제에 실패했습니다", "error");
+    }
   };
 
   const handleToggleItem = async (itemId: string, isActive: boolean) => {
-    const { error: toggleErr } = await supabase
-      .from("sb_order_items")
-      .update({ is_active: isActive })
-      .eq("id", itemId);
-    if (toggleErr) { console.error("품목 토글 실패:", toggleErr); return; }
-    setItems((prev) =>
-      prev.map((i) => (i.id === itemId ? { ...i, is_active: isActive } : i))
-    );
+    try {
+      const { error: toggleErr } = await supabase
+        .from("sb_order_items")
+        .update({ is_active: isActive })
+        .eq("id", itemId);
+      if (toggleErr) throw toggleErr;
+      setItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, is_active: isActive } : i))
+      );
+    } catch (err) {
+      console.error("품목 토글 실패:", err);
+      toast("품목 상태 변경에 실패했습니다", "error");
+    }
   };
 
   // ── 파생 데이터 ──
@@ -484,10 +660,12 @@ export function useOrderData() {
     recommendations, confirmedItems, confirmedList, recLoading,
     needOrderRecs, sufficientRecs, orderDateLabel,
     hasUsageData,
-    orderMap, orderSaving, orderSaved,
+    orderMap, setOrderMap, orderSaving, orderSaved, itemSaving,
     handleUsageChange, handleWasteChange, applyPreset, saveUsage,
     generateRecs, initializeFromTemplate,
     handleConfirm, handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
     handleOrderChange, applyConfirmedToOrders, saveOrders, loadOrdersForDate,
+    avgUsageMap, autoFillUsage,
+    stockReceiving, receiveStock,
   };
 }
