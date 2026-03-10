@@ -25,9 +25,14 @@ export function AdminNotices() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/admin/notices");
-    const data = await res.json();
-    setNotices(data.notices ?? []);
+    try {
+      const res = await fetch("/api/admin/notices");
+      const data = await res.json();
+      setNotices(data.notices ?? []);
+    } catch (err) {
+      console.error("Notices load failed:", err);
+      setNotices([]);
+    }
     setLoading(false);
   }, []);
 

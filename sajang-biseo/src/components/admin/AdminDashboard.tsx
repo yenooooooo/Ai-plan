@@ -21,7 +21,11 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/dashboard").then((r) => r.json()).then(setData).finally(() => setLoading(false));
+    fetch("/api/admin/dashboard")
+      .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
+      .then(setData)
+      .catch((err) => console.error("Dashboard load failed:", err))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-red-500/20 border-t-red-500 rounded-full animate-spin" /></div>;
