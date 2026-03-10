@@ -58,7 +58,7 @@ export function OcrResultCard({
   const currentCat = categories.find((c) => c.id === catId);
 
   const confidenceLevel = data.confidence >= 0.8 ? "높음" : data.confidence >= 0.5 ? "보통" : "낮음";
-  const confidenceDots = Math.round(data.confidence * 5);
+  const confidenceDots = data.confidence >= 0.8 ? 3 : data.confidence >= 0.5 ? 2 : 1;
 
   function handleSave() {
     if (!merchant.trim() || !amount) return;
@@ -188,7 +188,7 @@ export function OcrResultCard({
       <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
         <span className="text-caption text-[var(--text-tertiary)]">신뢰도:</span>
         <div className="flex gap-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={`w-2 h-2 rounded-full ${
               i < confidenceDots ? "bg-primary-500" : "bg-[var(--bg-tertiary)]"
             }`} />

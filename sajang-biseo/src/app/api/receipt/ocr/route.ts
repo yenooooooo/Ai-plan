@@ -100,16 +100,39 @@ JSON만 응답하세요. 설명 금지.`,
     const result = await response.json();
     const text = result.content?.[0]?.text ?? "";
 
-    // JSON 파싱
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // JSON 파싱 (안전한 추출)
+    let parsed: OcrResult;
+    try {
+      // 코드블록 안의 JSON 우선 시도
+      const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      const rawJson = codeBlockMatch?.[1] ?? text.match(/\{[\s\S]*\}/)?.[0];
+      if (!rawJson) {
+        return NextResponse.json({
+          success: false,
+          error: "영수증 인식 결과를 파싱할 수 없습니다",
+        });
+      }
+      const raw = JSON.parse(rawJson);
+
+      // 필드 검증 및 정규화
+      parsed = {
+        date: typeof raw.date === "string" ? raw.date : null,
+        merchantName: typeof raw.merchantName === "string" ? raw.merchantName : null,
+        totalAmount: typeof raw.totalAmount === "number" ? raw.totalAmount : null,
+        vatAmount: typeof raw.vatAmount === "number" ? raw.vatAmount : null,
+        paymentMethod: ["카드", "현금", "이체"].includes(raw.paymentMethod) ? raw.paymentMethod : null,
+        cardLastFour: typeof raw.cardLastFour === "string" ? raw.cardLastFour : null,
+        items: Array.isArray(raw.items) ? raw.items : null,
+        categoryCode: typeof raw.categoryCode === "string" ? raw.categoryCode : "F99",
+        confidence: typeof raw.confidence === "number" ? Math.max(0, Math.min(1, raw.confidence)) : 0.5,
+      };
+    } catch {
       return NextResponse.json({
         success: false,
         error: "영수증 인식 결과를 파싱할 수 없습니다",
       });
     }
 
-    const parsed: OcrResult = JSON.parse(jsonMatch[0]);
     return NextResponse.json({ success: true, data: parsed });
   } catch (error) {
     console.error("OCR error:", error);

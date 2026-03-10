@@ -15,6 +15,8 @@ export interface ChannelSales {
   channel: string;
   /** 채널 매출 (원) */
   amount: number;
+  /** 배달 채널 여부 (true면 카드수수료 미적용, 배달앱 수수료 적용) */
+  isDelivery?: boolean;
   /** 배달앱 수수료율 (%) — 배달 채널만 해당 */
   feeRate?: number;
   /** 배달 건수 — 배달대행비 계산용 */
@@ -89,10 +91,11 @@ export function calculateFees(
   channels: ChannelSales[],
   cardConfig: CardFeeConfig
 ): FeeCalculationResult {
-  const deliveryChannels = new Set(["배민", "쿠팡이츠", "요기요", "땡겨요", "네이버주문"]);
+  // 하위 호환: isDelivery 플래그가 없으면 채널명으로 폴백 판별
+  const defaultDeliveryChannels = new Set(["배민", "쿠팡이츠", "요기요", "땡겨요", "네이버주문"]);
 
   const breakdown: FeeBreakdown[] = channels.map((ch) => {
-    const isDelivery = deliveryChannels.has(ch.channel);
+    const isDelivery = ch.isDelivery ?? defaultDeliveryChannels.has(ch.channel);
 
     // Step 1: 배달앱 수수료
     const platformFee = isDelivery && ch.feeRate

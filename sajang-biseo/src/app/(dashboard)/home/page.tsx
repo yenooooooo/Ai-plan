@@ -6,6 +6,7 @@ import {
   CheckCircle2, Circle, ChevronRight, Flame,
   BarChart3, Package, Receipt, MessageSquare,
   TrendingUp, ArrowUpRight, ArrowDownRight, Target,
+  AlertTriangle,
 } from "lucide-react";
 import { useHomeData } from "@/hooks/useHomeData";
 import { useStoreSettings } from "@/stores/useStoreSettings";
@@ -44,6 +45,26 @@ export default function HomePage() {
           {storeName || "사장님"}, 오늘도 화이팅!
         </h1>
       </div>
+
+      {/* 마감 미입력 알림 배너 */}
+      {summary.todaySales === null && summary.monthlySales > 0 && (
+        <Link href="/closing">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-warning/10 border border-warning/20 press-effect"
+          >
+            <AlertTriangle size={18} className="text-warning shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-body-small font-medium text-[var(--text-primary)]">오늘 마감을 아직 입력하지 않았어요</p>
+              <p className="text-[10px] text-[var(--text-tertiary)]">
+                {summary.yesterdaySales === null ? "어제 마감도 빠져있어요!" : "탭하여 지금 입력하기"}
+              </p>
+            </div>
+            <ChevronRight size={16} className="text-warning shrink-0" />
+          </motion.div>
+        </Link>
+      )}
 
       {/* 스트릭 */}
       {summary.streak > 0 && (

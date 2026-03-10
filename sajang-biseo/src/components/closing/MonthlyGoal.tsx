@@ -114,15 +114,38 @@ export function MonthlyGoal({
 
       {/* 남은 정보 */}
       {remaining > 0 && daysRemaining > 0 && (
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
-          <Target size={14} className="text-[var(--text-tertiary)]" />
-          <span className="text-caption text-[var(--text-tertiary)]">
-            남은 {daysRemaining}일, 일 평균{" "}
-            <span className="font-display text-[var(--text-secondary)]">
-              {formatCompact(dailyNeeded)}
-            </span>{" "}
-            필요
-          </span>
+        <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
+          <div className="flex items-center gap-2">
+            <Target size={14} className="text-[var(--text-tertiary)]" />
+            <span className="text-caption text-[var(--text-tertiary)]">
+              남은 {daysRemaining}일, 일 평균{" "}
+              <span className="font-display text-[var(--text-secondary)]">
+                {formatCompact(dailyNeeded)}
+              </span>{" "}
+              필요
+            </span>
+          </div>
+          {/* 시뮬레이터: 오늘 X만원이면 달성 */}
+          {daysRemaining > 1 && (
+            <div className="bg-[var(--bg-tertiary)] rounded-lg px-3 py-2">
+              <p className="text-[11px] text-[var(--text-tertiary)]">
+                오늘 <span className="font-display text-primary-500 font-medium">{formatCompact(dailyNeeded)}</span> 매출이면
+                → 남은 {daysRemaining - 1}일 일평균{" "}
+                <span className="font-display text-[var(--text-secondary)]">
+                  {formatCompact(Math.round((remaining - dailyNeeded) / (daysRemaining - 1)))}
+                </span>
+              </p>
+              {dailyNeeded * 2 <= remaining && (
+                <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+                  오늘 <span className="font-display text-success font-medium">{formatCompact(dailyNeeded * 2)}</span> 매출이면
+                  → 남은 {daysRemaining - 1}일 일평균{" "}
+                  <span className="font-display text-[var(--text-secondary)]">
+                    {formatCompact(Math.round((remaining - dailyNeeded * 2) / (daysRemaining - 1)))}
+                  </span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

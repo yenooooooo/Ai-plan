@@ -7,6 +7,8 @@ import {
   ClipboardList,
   Download,
   Plus,
+  Grid3X3,
+  List,
 } from "lucide-react";
 import { ReceiptCapture } from "@/components/receipt/ReceiptCapture";
 import { OcrResultCard } from "@/components/receipt/OcrResultCard";
@@ -14,12 +16,17 @@ import { FilterBar } from "@/components/receipt/FilterBar";
 import { ReceiptList } from "@/components/receipt/ReceiptList";
 import { ReceiptDetailModal } from "@/components/receipt/ReceiptDetailModal";
 import { SummaryCards } from "@/components/receipt/SummaryCards";
+import { ReceiptGallery } from "@/components/receipt/ReceiptGallery";
+import { MonthlyExpenseReport } from "@/components/receipt/MonthlyExpenseReport";
+import CategoryBudget from "@/components/receipt/CategoryBudget";
 import { useReceiptData } from "@/hooks/useReceiptData";
+import { useToast } from "@/stores/useToast";
 import { receiptsToCsv, downloadCsv } from "@/lib/receipt/csvExport";
 import type { Receipt } from "@/lib/supabase/types";
 
 type Tab = "list" | "capture";
 type GroupBy = "date" | "category";
+type ViewMode = "list" | "gallery";
 
 export default function ReceiptPage() {
   const {
@@ -29,11 +36,16 @@ export default function ReceiptPage() {
     filter,
     setFilter,
     saveReceipt,
+    updateReceipt,
     deleteReceipt,
+    hasMore,
+    loadMore,
   } = useReceiptData();
+  const toast = useToast((s) => s.show);
 
   const [tab, setTab] = useState<Tab>("list");
   const [groupBy, setGroupBy] = useState<GroupBy>("date");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
 
   // 촬영 플로우
@@ -65,7 +77,7 @@ export default function ReceiptPage() {
       if (json.success && json.data) {
         setOcrData(json.data);
       } else {
-        // 폴백: 빈 결과로 수동 입력 유도
+        toast(json.error || "영수증 인식에 실패했습니다. 직접 입력해주세요.", "error");
         setOcrData({
           date: new Date().toISOString().split("T")[0],
           merchantName: "",
@@ -78,6 +90,7 @@ export default function ReceiptPage() {
         });
       }
     } catch {
+      toast("영수증 인식 중 오류가 발생했습니다. 직접 입력해주세요.", "error");
       setOcrData({
         date: new Date().toISOString().split("T")[0],
         merchantName: "",
@@ -193,41 +206,69 @@ export default function ReceiptPage() {
             {/* 요약 */}
             <SummaryCards receipts={receipts} categories={categories} />
 
-            {/* 그룹 전환 */}
+            {/* 그룹 전환 + 뷰 모드 */}
             <div className="flex items-center justify-between">
-              <span className="text-caption text-[var(--text-tertiary)]">
-                {receipts.length}건
-              </span>
-              <div className="flex bg-[var(--bg-tertiary)] rounded-lg p-0.5">
-                {(["date", "category"] as const).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setGroupBy(g)}
-                    className={`px-3 py-1 rounded-md text-[12px] font-medium transition-all ${
-                      groupBy === g
-                        ? "bg-primary-500/15 text-primary-500"
-                        : "text-[var(--text-tertiary)]"
-                    }`}
-                  >
-                    {g === "date" ? "날짜별" : "카테고리별"}
+              <div className="flex items-center gap-2">
+                <span className="text-caption text-[var(--text-tertiary)]">
+                  {receipts.length}건
+                </span>
+                <div className="flex bg-[var(--bg-tertiary)] rounded-lg p-0.5">
+                  <button onClick={() => setViewMode("list")}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === "list" ? "bg-primary-500/15 text-primary-500" : "text-[var(--text-tertiary)]"}`}>
+                    <List size={14} />
                   </button>
-                ))}
+                  <button onClick={() => setViewMode("gallery")}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === "gallery" ? "bg-primary-500/15 text-primary-500" : "text-[var(--text-tertiary)]"}`}>
+                    <Grid3X3 size={14} />
+                  </button>
+                </div>
               </div>
+              {viewMode === "list" && (
+                <div className="flex bg-[var(--bg-tertiary)] rounded-lg p-0.5">
+                  {(["date", "category"] as const).map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => setGroupBy(g)}
+                      className={`px-3 py-1 rounded-md text-[12px] font-medium transition-all ${
+                        groupBy === g
+                          ? "bg-primary-500/15 text-primary-500"
+                          : "text-[var(--text-tertiary)]"
+                      }`}
+                    >
+                      {g === "date" ? "날짜별" : "카테고리별"}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* 리스트 */}
+            {/* 리스트 / 갤러리 */}
             {loading ? (
               <div className="flex justify-center py-12">
                 <div className="w-8 h-8 border-2 border-primary-500/20 border-t-primary-500 rounded-full animate-spin" />
               </div>
+            ) : viewMode === "gallery" ? (
+              <ReceiptGallery receipts={receipts} onItemClick={setSelectedReceipt} />
             ) : (
-              <ReceiptList
-                receipts={receipts}
-                categories={categories}
-                groupBy={groupBy}
-                onItemClick={setSelectedReceipt}
-              />
+              <>
+                <ReceiptList
+                  receipts={receipts}
+                  categories={categories}
+                  groupBy={groupBy}
+                  onItemClick={setSelectedReceipt}
+                />
+                {hasMore && (
+                  <button onClick={loadMore}
+                    className="w-full py-3 rounded-xl text-caption font-medium text-primary-500 bg-primary-500/5 hover:bg-primary-500/10 transition-colors press-effect mt-3">
+                    더 보기
+                  </button>
+                )}
+              </>
             )}
+
+            {/* 월별 경비 리포트 & 예산 */}
+            <MonthlyExpenseReport receipts={receipts} categories={categories} />
+            <CategoryBudget receipts={receipts} categories={categories} />
           </motion.div>
         )}
 
@@ -275,6 +316,7 @@ export default function ReceiptPage() {
             categories={categories}
             onClose={() => setSelectedReceipt(null)}
             onDelete={deleteReceipt}
+            onUpdate={updateReceipt}
           />
         )}
       </AnimatePresence>

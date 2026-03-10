@@ -1,20 +1,26 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { useToast } from "@/stores/useToast";
 import { DEFAULT_CATEGORIES } from "@/lib/receipt/categories";
 import type { Receipt, ReceiptCategory } from "@/lib/supabase/types";
 import type { ReceiptFilter } from "@/components/receipt/FilterBar";
 
+const PAGE_SIZE = 30;
+
 export function useReceiptData() {
   const supabase = useMemo(() => createClient(), []);
   const { storeId } = useStoreSettings();
+  const toast = useToast((s) => s.show);
 
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [categories, setCategories] = useState<ReceiptCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const pageRef = useRef(0);
 
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
@@ -63,10 +69,13 @@ export function useReceiptData() {
     }
   }, [storeId, supabase]);
 
-  // 영수증 로드 (필터 적용)
-  const loadReceipts = useCallback(async () => {
+  // 영수증 로드 (필터 적용 + 페이지네이션)
+  const loadReceipts = useCallback(async (append = false) => {
     if (!storeId) return;
-    setLoading(true);
+    if (!append) { setLoading(true); pageRef.current = 0; }
+
+    const from = pageRef.current * PAGE_SIZE;
+    const to = from + PAGE_SIZE;
 
     let query = supabase
       .from("sb_receipts")
@@ -75,7 +84,8 @@ export function useReceiptData() {
       .is("deleted_at", null)
       .gte("date", filter.dateFrom)
       .lte("date", filter.dateTo)
-      .order("date", { ascending: false });
+      .order("date", { ascending: false })
+      .range(from, to);
 
     if (filter.categoryIds.length > 0) {
       query = query.in("category_id", filter.categoryIds);
@@ -91,7 +101,10 @@ export function useReceiptData() {
     }
 
     const { data, error: queryError } = await query;
-    if (queryError) setError("영수증 데이터를 불러오지 못했습니다");
+    if (queryError) {
+      setError("영수증 데이터를 불러오지 못했습니다");
+      toast("영수증 데이터를 불러오지 못했습니다", "error");
+    }
     let filtered = data ?? [];
 
     // 요일 필터 (클라이언트 사이드)
@@ -102,16 +115,23 @@ export function useReceiptData() {
       });
     }
 
-    setReceipts(filtered);
+    setHasMore((data ?? []).length > PAGE_SIZE);
+    const trimmed = filtered.slice(0, PAGE_SIZE);
+    setReceipts((prev) => append ? [...prev, ...trimmed] : trimmed);
     setLoading(false);
-  }, [storeId, filter, supabase]);
+  }, [storeId, filter, supabase, toast]);
+
+  const loadMore = useCallback(() => {
+    pageRef.current += 1;
+    loadReceipts(true);
+  }, [loadReceipts]);
 
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
 
   useEffect(() => {
-    loadReceipts();
+    loadReceipts(false);
   }, [loadReceipts]);
 
   // 영수증 저장
@@ -150,6 +170,43 @@ export function useReceiptData() {
     [storeId, supabase, loadReceipts]
   );
 
+  // 영수증 수정
+  const updateReceipt = useCallback(
+    async (id: string, data: {
+      date: string;
+      merchantName: string;
+      totalAmount: number;
+      vatAmount: number | null;
+      paymentMethod: "카드" | "현금" | "이체";
+      cardLastFour: string | null;
+      categoryId: string | null;
+      memo: string;
+    }) => {
+      const { error: updateErr } = await supabase
+        .from("sb_receipts")
+        .update({
+          date: data.date,
+          merchant_name: data.merchantName,
+          total_amount: data.totalAmount,
+          vat_amount: data.vatAmount,
+          payment_method: data.paymentMethod,
+          card_last_four: data.cardLastFour,
+          category_id: data.categoryId,
+          memo: data.memo || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+      if (updateErr) {
+        console.error("영수증 수정 실패:", updateErr);
+        toast("영수증 수정에 실패했습니다", "error");
+        return;
+      }
+      toast("영수증이 수정되었습니다", "success");
+      await loadReceipts();
+    },
+    [supabase, loadReceipts, toast]
+  );
+
   // 영수증 삭제 (soft delete)
   const deleteReceipt = useCallback(
     async (id: string) => {
@@ -157,10 +214,15 @@ export function useReceiptData() {
         .from("sb_receipts")
         .update({ deleted_at: new Date().toISOString() })
         .eq("id", id);
-      if (deleteErr) { console.error("영수증 삭제 실패:", deleteErr); return; }
+      if (deleteErr) {
+        console.error("영수증 삭제 실패:", deleteErr);
+        toast("영수증 삭제에 실패했습니다", "error");
+        return;
+      }
+      toast("영수증이 삭제되었습니다", "success");
       await loadReceipts();
     },
-    [supabase, loadReceipts]
+    [supabase, loadReceipts, toast]
   );
 
   return {
@@ -171,7 +233,10 @@ export function useReceiptData() {
     filter,
     setFilter,
     saveReceipt,
+    updateReceipt,
     deleteReceipt,
+    hasMore,
+    loadMore,
     reload: loadReceipts,
   };
 }

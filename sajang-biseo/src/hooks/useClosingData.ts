@@ -40,6 +40,9 @@ export function useClosingData() {
   const [todayExpenses, setTodayExpenses] = useState<{ name: string; amount: number }[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [previousClosingDate, setPreviousClosingDate] = useState<string | null>(null);
+  const [deliveryChannelSet, setDeliveryChannelSet] = useState<Set<string>>(
+    new Set(["배민", "쿠팡이츠", "요기요", "땡겨요", "네이버주문"])
+  );
 
   useEffect(() => {
     if (!storeId) return;
@@ -56,11 +59,14 @@ export function useClosingData() {
         if (error) throw error;
         if (data && data.length > 0) {
           const map: Record<string, number> = {};
+          const deliverySet = new Set<string>();
           data.forEach((ch) => {
-            if (ch.category === "delivery" && ch.rate) {
-              map[ch.channel_name] = ch.rate;
+            if (ch.category === "delivery") {
+              deliverySet.add(ch.channel_name);
+              if (ch.rate) map[ch.channel_name] = ch.rate;
             }
           });
+          if (deliverySet.size > 0) setDeliveryChannelSet(deliverySet);
           setFeeRateMap((prev) => ({ ...prev, ...map }));
           const deliveryAgency = data.find((ch) => ch.category === "delivery_agency" && ch.fixed_amount);
           if (deliveryAgency) setDeliveryFeePerOrder(deliveryAgency.fixed_amount!);
@@ -158,12 +164,13 @@ export function useClosingData() {
       .map((ch) => ({
         channel: ch.channel,
         amount: Math.round((totalSales * ch.ratio) / 100),
+        isDelivery: deliveryChannelSet.has(ch.channel),
         feeRate: feeRateMap[ch.channel],
         deliveryCount: ch.deliveryCount,
         deliveryFeePerOrder: ch.deliveryCount ? deliveryFeePerOrder : 0,
       }));
     return calculateFees(channelSales, cardConfig);
-  }, [totalSales, channels, cardConfig, feeRateMap, deliveryFeePerOrder]);
+  }, [totalSales, channels, cardConfig, feeRateMap, deliveryFeePerOrder, deliveryChannelSet]);
 
   const displayAmount = mode === "net" ? feeResult.netSales : totalSales;
   const animatedAmount = useCountUp(displayAmount);
@@ -172,6 +179,20 @@ export function useClosingData() {
   function moveDate(days: number) {
     const d = parseDate(selectedDate);
     setSelectedDate(toDateString(addDays(d, days)));
+    setSaved(false);
+    setTotalSales(0);
+    setMemo("");
+    setTags([]);
+    setTodayExpenses([]);
+    setCustomFees([]);
+    setPreviousClosingDate(null);
+    setChannels(DEFAULT_PRESETS[0].channels);
+    setCardRatio(90);
+    setActivePreset("평일 기본");
+  }
+
+  function goToDate(date: string) {
+    setSelectedDate(date);
     setSaved(false);
     setTotalSales(0);
     setMemo("");
@@ -340,7 +361,7 @@ export function useClosingData() {
     presets, activePreset, setActivePreset,
     feeResult, animatedAmount, displayAmount,
     dateObj, dateLabel, isToday,
-    moveDate, applyPreset, handleSave,
+    moveDate, goToDate, applyPreset, handleSave,
     feeRateMap, setFeeRateMap,
     deliveryFeePerOrder, setDeliveryFeePerOrder,
     cardCreditRate, setCardCreditRate,

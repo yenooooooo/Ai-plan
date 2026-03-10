@@ -27,6 +27,8 @@ import { useClosingAnalytics } from "@/hooks/useClosingAnalytics";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { useRecurringExpenses } from "@/stores/useRecurringExpenses";
 import { useUIState } from "@/stores/useUIState";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/stores/useToast";
 
 type Tab = "input" | "analytics";
 
@@ -38,7 +40,7 @@ export default function ClosingPage() {
     presets, activePreset, setActivePreset,
     feeResult, animatedAmount,
     dateLabel, isToday,
-    moveDate, applyPreset, handleSave,
+    moveDate, goToDate, applyPreset, handleSave,
     setFeeRateMap, setDeliveryFeePerOrder, setCardCreditRate,
     customFees, setCustomFees,
     todayExpenses, setTodayExpenses,
@@ -49,12 +51,44 @@ export default function ClosingPage() {
   const analytics = useClosingAnalytics();
   const { monthlyGoal, setMonthlyGoal } = useStoreSettings();
   const { expenses: recurringExpenses, setExpenses: setRecurringExpenses } = useRecurringExpenses();
+  const { storeId } = useStoreSettings();
+  const toast = useToast((s) => s.show);
 
   const closingTab = useUIState((s) => s.closingTab);
   const setClosingTab = useUIState((s) => s.setClosingTab);
   const tab = closingTab as Tab;
   const setTab = setClosingTab;
   const [reportCopied, setReportCopied] = useState(false);
+
+  function handleCalendarDateClick(date: string) {
+    goToDate(date);
+    setTab("input");
+  }
+
+  async function handleImportReceipts() {
+    if (!storeId) return;
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("sb_receipts")
+      .select("merchant_name, total_amount")
+      .eq("store_id", storeId)
+      .eq("date", selectedDate)
+      .is("deleted_at", null);
+    if (!data || data.length === 0) {
+      toast("해당 날짜의 영수증 경비가 없습니다", "info");
+      return;
+    }
+    const existing = new Set(todayExpenses.map((e) => `${e.name}_${e.amount}`));
+    const newItems = data
+      .filter((r) => !existing.has(`${r.merchant_name}_${r.total_amount}`))
+      .map((r) => ({ name: r.merchant_name, amount: r.total_amount }));
+    if (newItems.length === 0) {
+      toast("이미 모든 영수증 경비가 반영되어 있습니다", "info");
+      return;
+    }
+    setTodayExpenses((prev: { name: string; amount: number }[]) => [...prev, ...newItems]);
+    toast(`영수증 ${newItems.length}건 경비가 추가되었습니다`, "success");
+  }
 
   // 아코디언 상태
   const openSections = useUIState((s) => s.closingSections);
@@ -211,6 +245,10 @@ export default function ClosingPage() {
               onToggle={() => toggleSection("expense")}
             >
               <TodayExpenses expenses={todayExpenses} onChange={setTodayExpenses} />
+              <button onClick={handleImportReceipts}
+                className="w-full mt-2 py-2 rounded-xl text-caption font-medium text-primary-500 bg-primary-500/5 hover:bg-primary-500/10 transition-colors press-effect flex items-center justify-center gap-1.5">
+                <Receipt size={13} />영수증 경비 불러오기
+              </button>
             </AccordionSection>
 
             {/* 고정 경비 */}
@@ -312,6 +350,7 @@ export default function ClosingPage() {
               todaySales={totalSales}
               monthlyGoal={monthlyGoal}
               onGoalChange={setMonthlyGoal}
+              onDateClick={handleCalendarDateClick}
             />
           </motion.div>
         )}

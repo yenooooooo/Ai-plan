@@ -9,6 +9,7 @@ import { GoalAlertBanner } from "@/components/closing/GoalAlertBanner";
 import { SalesComparison } from "@/components/closing/SalesComparison";
 import { ClosingCalendar } from "@/components/closing/ClosingCalendar";
 import { ProfitTrend } from "@/components/closing/ProfitTrend";
+import { ExpenseTrend } from "@/components/closing/ExpenseTrend";
 
 interface ClosingAnalyticsTabProps {
   analytics: {
@@ -30,9 +31,10 @@ interface ClosingAnalyticsTabProps {
   todaySales: number;
   monthlyGoal: number;
   onGoalChange: (goal: number) => void;
+  onDateClick?: (date: string) => void;
 }
 
-export function ClosingAnalyticsTab({ analytics, todaySales, monthlyGoal, onGoalChange }: ClosingAnalyticsTabProps) {
+export function ClosingAnalyticsTab({ analytics, todaySales, monthlyGoal, onGoalChange, onDateClick }: ClosingAnalyticsTabProps) {
   const [chartMode, setChartMode] = useState<"daily" | "weekly" | "monthly">("daily");
 
   if (analytics.loading) {
@@ -89,12 +91,17 @@ export function ClosingAnalyticsTab({ analytics, todaySales, monthlyGoal, onGoal
         lastMonthSales={analytics.lastMonthSamePeriodSales}
       />
 
-      <ClosingCalendar data={analytics.calendarData} monthLabel={analytics.monthLabel} />
+      <ClosingCalendar data={analytics.calendarData} monthLabel={analytics.monthLabel} onDateClick={onDateClick} />
 
       <ProfitTrend
         data={analytics.profitTrendData}
         monthLabel={analytics.monthLabel}
         daysRemaining={analytics.daysRemaining}
+      />
+
+      <ExpenseTrend
+        data={analytics.profitTrendData.map((d) => ({ date: d.date, expenses: d.expenses }))}
+        monthLabel={analytics.monthLabel}
       />
 
       <MonthlyGoal
