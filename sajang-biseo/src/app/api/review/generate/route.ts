@@ -67,8 +67,10 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const errBody = await response.text().catch(() => "");
       console.error("Anthropic API error:", response.status, errBody);
+      let detail = `API ${response.status}`;
+      try { const e = JSON.parse(errBody); detail = e?.error?.message ?? detail; } catch {}
       return NextResponse.json(
-        { success: false, error: `답글 생성 실패 (${response.status})` },
+        { success: false, error: `답글 생성 실패: ${detail}` },
         { status: 500 }
       );
     }
