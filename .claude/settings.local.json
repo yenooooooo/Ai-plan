@@ -29,7 +29,10 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(xargs:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npx vercel:*)",
+      "Bash(git add:*)",
+      "WebFetch(domain:ai-plan-lilac.vercel.app)"
     ]
   }
 }
