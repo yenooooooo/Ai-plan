@@ -119,8 +119,8 @@ export function useReviewData() {
           },
         }),
       });
-      if (!res.ok) throw new Error("답글 생성 실패");
       const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "답글 생성 실패");
       if (json.success && json.data?.versions) {
         const vs: ReplyBlock[][] = json.data.versions.map(
           (v: { blocks: { type: string; text: string }[] }) =>
@@ -134,8 +134,9 @@ export function useReviewData() {
         setVersions(vs);
       }
     } catch (err) {
-      console.error("답글 생성 오류:", err);
-      toast("답글 생성에 실패했습니다. 다시 시도해주세요.", "error");
+      const msg = err instanceof Error ? err.message : "답글 생성 실패";
+      console.error("답글 생성 오류:", msg);
+      toast(msg, "error");
     }
     setGenerating(false);
   }, [toneSettings, toast]);
