@@ -264,7 +264,16 @@ export default function ClosingPage() {
             {/* 고정 경비 */}
             <RecurringExpenses
               recurring={recurringExpenses}
-              onRecurringChange={setRecurringExpenses}
+              onRecurringChange={(updated) => {
+                // 삭제된 항목 찾아서 오늘 지출에서도 제거
+                const removedNames = recurringExpenses
+                  .filter((old) => !updated.some((u) => u.name === old.name && u.amount === old.amount))
+                  .map((r) => r.name);
+                if (removedNames.length > 0) {
+                  setTodayExpenses((prev) => prev.filter((e) => !removedNames.includes(e.name)));
+                }
+                setRecurringExpenses(updated);
+              }}
               onApplyToday={(items) => setTodayExpenses((prev) => {
                 const existingNames = new Set(prev.map((e) => e.name));
                 const newItems = items
