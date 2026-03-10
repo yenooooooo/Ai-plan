@@ -38,8 +38,13 @@ export const metadata: Metadata = {
     "매일 밤 1시간 걸리던 마감 업무를 5분으로. 마감 정산, 식자재 발주, 영수증 경비 장부, 리뷰 답글, 경영 브리핑까지. 외식업 사장님을 위한 올인원 AI 운영 비서.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icons/icon.svg",
-    apple: "/icons/icon.svg",
+    icon: "/icons/icon-192x192.png",
+    apple: "/icons/icon-192x192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "사장님비서",
   },
   openGraph: {
     title: "사장님비서 — AI 매장 운영 비서",

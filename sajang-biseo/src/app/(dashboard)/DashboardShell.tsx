@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ScrollToTop } from "@/components/shared/ScrollToTop";
 import { ToastContainer } from "@/components/shared/ToastContainer";
+import { IOSInstallPrompt } from "@/components/shared/IOSInstallPrompt";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { createClient } from "@/lib/supabase/client";
 
@@ -61,6 +62,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* 토스트 알림 */}
       <ToastContainer />
+
+      {/* iOS 홈 화면 추가 안내 */}
+      <IOSInstallPrompt />
     </div>
   );
 }
