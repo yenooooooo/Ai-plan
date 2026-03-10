@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { OrderItem as DBOrderItem, OrderItemGroup } from "@/lib/supabase/types";
 import { InlineEditForm } from "./InlineEditForm";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useUIState } from "@/stores/useUIState";
 
 interface ItemGroupAccordionProps {
@@ -50,12 +51,20 @@ export function ItemGroupAccordion({
   const [renaming, setRenaming] = useState(false);
   const [renameName, setRenameName] = useState(group.group_name);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: "group" | "item"; id: string; name: string } | null>(null);
   const activeCount = items.filter((i) => i.is_active).length;
 
   const handleRename = async () => {
     if (!renameName.trim() || renameName.trim() === group.group_name) { setRenaming(false); return; }
     const ok = await onRenameGroup(group.id, renameName);
     if (ok) setRenaming(false);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.type === "group") await onDeleteGroup(confirmDelete.id);
+    else onDeleteItem(confirmDelete.id);
+    setConfirmDelete(null);
   };
 
   return (
@@ -68,8 +77,7 @@ export function ItemGroupAccordion({
             <input autoFocus type="text" value={renameName}
               onChange={(e) => setRenameName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setRenaming(false); }}
-              onBlur={handleRename}
-              onClick={(e) => e.stopPropagation()}
+              onBlur={handleRename} onClick={(e) => e.stopPropagation()}
               className="flex-1 bg-[var(--bg-tertiary)] rounded-lg px-2 py-1 text-body-small text-[var(--text-primary)] outline-none border border-primary-500" />
           ) : (
             <span className="text-body-small font-semibold text-[var(--text-primary)]">{group.group_name}</span>
@@ -78,7 +86,6 @@ export function ItemGroupAccordion({
         </button>
 
         <div className="flex items-center gap-0.5">
-          {/* 순서 변경 */}
           {!isFirst && (
             <button onClick={() => onReorderGroup(group.id, "up")} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
               <ChevronUp size={14} />
@@ -90,7 +97,6 @@ export function ItemGroupAccordion({
             </button>
           )}
 
-          {/* 메뉴 */}
           <div className="relative">
             <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
               <MoreHorizontal size={16} />
@@ -103,7 +109,7 @@ export function ItemGroupAccordion({
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-body-small text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
                     <Pencil size={13} />이름 변경
                   </button>
-                  <button onClick={async () => { setMenuOpen(false); await onDeleteGroup(group.id); }}
+                  <button onClick={() => { setMenuOpen(false); setConfirmDelete({ type: "group", id: group.id, name: group.group_name }); }}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-body-small text-danger hover:bg-danger/5">
                     <Trash2 size={13} />카테고리 삭제
                   </button>
@@ -167,7 +173,6 @@ export function ItemGroupAccordion({
 
                     {!selectMode && (
                       <div className="flex items-center gap-0.5">
-                        {/* 이동 */}
                         {allGroups.length > 1 && (
                           <div className="relative">
                             <button onClick={() => setMovingItemId(movingItemId === item.id ? null : item.id)}
@@ -194,7 +199,7 @@ export function ItemGroupAccordion({
                           className={`p-1.5 rounded-md transition-colors ${editingItemId === item.id ? "text-primary-500" : "text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"}`}>
                           {editingItemId === item.id ? <X size={14} /> : <Pencil size={14} />}
                         </button>
-                        <button onClick={() => onDeleteItem(item.id)}
+                        <button onClick={() => setConfirmDelete({ type: "item", id: item.id, name: item.item_name })}
                           className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-danger transition-colors">
                           <Trash2 size={14} />
                         </button>
@@ -220,6 +225,18 @@ export function ItemGroupAccordion({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={confirmDelete?.type === "group" ? "카테고리 삭제" : "품목 삭제"}
+        message={confirmDelete?.type === "group"
+          ? `"${confirmDelete?.name}" 카테고리와 모든 품목이 삭제됩니다.`
+          : `"${confirmDelete?.name}" 품목을 삭제하시겠습니까?`}
+        confirmLabel="삭제" danger
+        onConfirm={handleConfirmAction}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { toDateString, addDays, formatDateShort } from "@/lib/utils/date";
-import type { OrderItem as DBOrderItem } from "@/lib/supabase/types";
+import type { OrderItem as DBOrderItem, OrderItemGroup } from "@/lib/supabase/types";
 
 export interface UsageChartPoint { label: string; usage: number; waste: number; }
 export interface WasteItem { name: string; wasteQty: number; unit: string; cost: number; }
+export interface CategoryCost { name: string; icon: string; cost: number; }
 
-export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | null) {
+export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | null, groups?: OrderItemGroup[]) {
   const supabase = useMemo(() => createClient(), []);
   const { storeId } = useStoreSettings();
 
@@ -66,7 +67,6 @@ export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | 
     return map;
   }, [items]);
 
-  // 선택된 품목 14일 사용량 차트
   const usageChartData = useMemo((): UsageChartPoint[] => {
     return Array.from({ length: 14 }, (_, i) => {
       const d = addDays(new Date(), -(13 - i));
@@ -78,7 +78,6 @@ export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | 
     });
   }, [usageRows, activeItemId]);
 
-  // 이번 달 식자재비 합계 (사용량 × 단가, null 단가는 0으로 처리)
   const totalCost = useMemo(() => {
     return Math.round(
       usageRows.reduce((sum, row) => {
@@ -89,7 +88,6 @@ export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | 
     );
   }, [usageRows, itemsMap]);
 
-  // 폐기 통계
   const { totalWasteCost, topWasteItems } = useMemo(() => {
     const byItem = new Map<string, { qty: number; cost: number }>();
     for (const row of usageRows) {
@@ -114,5 +112,21 @@ export function useOrderAnalytics(items: DBOrderItem[], activeItemId?: string | 
     };
   }, [usageRows, itemsMap]);
 
-  return { usageChartData, totalCost, totalWasteCost, topWasteItems, grossSales, netSales, monthLabel, loading };
+  // 카테고리별 원가
+  const categoryCosts = useMemo((): CategoryCost[] => {
+    if (!groups || groups.length === 0) return [];
+    const groupCostMap = new Map<string, number>();
+    for (const row of usageRows) {
+      const item = itemsMap.get(row.item_id);
+      if (!item || !item.group_id) continue;
+      const cost = row.used_qty * (item.unit_price ?? 0);
+      groupCostMap.set(item.group_id, (groupCostMap.get(item.group_id) ?? 0) + cost);
+    }
+    return groups
+      .map(g => ({ name: g.group_name, icon: g.icon ?? "📦", cost: Math.round(groupCostMap.get(g.id) ?? 0) }))
+      .filter(c => c.cost > 0)
+      .sort((a, b) => b.cost - a.cost);
+  }, [usageRows, itemsMap, groups]);
+
+  return { usageChartData, totalCost, totalWasteCost, topWasteItems, grossSales, netSales, monthLabel, loading, categoryCosts };
 }

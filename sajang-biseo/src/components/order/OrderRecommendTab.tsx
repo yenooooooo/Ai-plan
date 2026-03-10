@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { useUIState } from "@/stores/useUIState";
+import { useToast } from "@/stores/useToast";
 import { motion } from "framer-motion";
 import {
   Sparkles, AlertTriangle, CheckCircle2, Save,
@@ -51,6 +52,7 @@ export function OrderRecommendTab({
 }: OrderRecommendTabProps) {
   const recommendOpen = useUIState((s) => s.orderRecommendOpen);
   const setRecommendOpen = useUIState((s) => s.setOrderRecommendOpen);
+  const toast = useToast((s) => s.show);
   const openNeed = recommendOpen.need ?? true;
   const openSufficient = recommendOpen.sufficient ?? false;
   const openFlow = recommendOpen.flow ?? false;
@@ -70,15 +72,20 @@ export function OrderRecommendTab({
   const isEmpty = !recLoading && !hasData && activeItems.length === 0;
   const noRecs = !recLoading && !hasData && activeItems.length > 0;
 
+  // 재주문: 이전 발주 내역을 현재 발주에 적용
+  const handleReorder = (entries: { itemId: string; qty: number }[]) => {
+    const newMap: Record<string, number> = {};
+    for (const { itemId, qty } of entries) {
+      newMap[itemId] = qty;
+      handleConfirm(itemId, qty);
+    }
+    setOrderMap(newMap);
+    toast("이전 발주가 적용되었습니다", "success");
+  };
+
   return (
-    <motion.div
-      key="recommend"
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      transition={{ duration: 0.2 }}
-      className="space-y-4"
-    >
+    <motion.div key="recommend" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-4">
       {/* 헤더 */}
       <div className="glass-card p-4">
         <div className="flex items-center gap-2 mb-1">
@@ -89,15 +96,13 @@ export function OrderRecommendTab({
       </div>
 
       {/* 발주 템플릿 */}
-      <OrderTemplates
-        currentOrderMap={orderMap}
+      <OrderTemplates currentOrderMap={orderMap}
         onApplyTemplate={(templateItems) => {
           setOrderMap(templateItems);
           Array.from(Object.entries(templateItems)).forEach(([itemId, qty]) => {
             if (qty > 0) handleConfirm(itemId, qty);
           });
-        }}
-      />
+        }} />
 
       {/* 로딩 */}
       {recLoading && (
@@ -106,7 +111,7 @@ export function OrderRecommendTab({
         </div>
       )}
 
-      {/* 빈 상태: 사용량 데이터 없음 */}
+      {/* 빈 상태 */}
       {isEmpty && (
         <div className="glass-card p-8 text-center space-y-4">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center">
@@ -121,7 +126,6 @@ export function OrderRecommendTab({
         </div>
       )}
 
-      {/* 사용량은 있으나 추천 결과 없음 */}
       {noRecs && (
         <div className="glass-card p-8 text-center">
           <p className="text-body-small text-[var(--text-tertiary)]">사용량 데이터가 부족합니다.<br />일일 사용량을 먼저 입력해주세요.</p>
@@ -132,12 +136,9 @@ export function OrderRecommendTab({
       {!recLoading && hasData && (
         <>
           {needOrderRecs.length > 0 && (
-            <AccordionSection
-              title={`발주 필요 (${needOrderRecs.length}개)`}
+            <AccordionSection title={`발주 필요 (${needOrderRecs.length}개)`}
               icon={<AlertTriangle size={14} className="text-warning" />}
-              open={openNeed}
-              onToggle={() => setRecommendOpen("need", !openNeed)}
-            >
+              open={openNeed} onToggle={() => setRecommendOpen("need", !openNeed)}>
               <div className="space-y-3">
                 {needOrderRecs.map((rec) => (
                   <RecommendationCard key={rec.itemId} rec={rec} onConfirm={handleConfirm} confirmed={confirmedItems.has(rec.itemId)} />
@@ -147,13 +148,9 @@ export function OrderRecommendTab({
           )}
 
           {sufficientRecs.length > 0 && (
-            <AccordionSection
-              title="재고 충분"
-              summary={`${sufficientRecs.length}개 품목`}
+            <AccordionSection title="재고 충분" summary={`${sufficientRecs.length}개 품목`}
               icon={<CheckCircle2 size={14} className="text-success" />}
-              open={openSufficient}
-              onToggle={() => setRecommendOpen("sufficient", !openSufficient)}
-            >
+              open={openSufficient} onToggle={() => setRecommendOpen("sufficient", !openSufficient)}>
               <div className="space-y-1.5">
                 {sufficientRecs.map((rec) => (
                   <div key={rec.itemId} className="flex items-center justify-between text-caption">
@@ -178,22 +175,16 @@ export function OrderRecommendTab({
             </div>
           )}
 
-          <AccordionSection
-            title="재고 흐름"
+          <AccordionSection title="재고 흐름"
             icon={<Package size={14} className="text-primary-500" />}
-            open={openFlow}
-            onToggle={() => setRecommendOpen("flow", !openFlow)}
-          >
+            open={openFlow} onToggle={() => setRecommendOpen("flow", !openFlow)}>
             <StockFlowCard items={activeItems} stockMap={stockMap} usageMap={usageMap} wasteMap={wasteMap} orderMap={orderMap} />
           </AccordionSection>
 
-          <AccordionSection
-            title="발주 이력"
+          <AccordionSection title="발주 이력"
             icon={<ClipboardList size={14} className="text-[var(--text-secondary)]" />}
-            open={openHistory}
-            onToggle={() => setRecommendOpen("history", !openHistory)}
-          >
-            <OrderHistory items={items} />
+            open={openHistory} onToggle={() => setRecommendOpen("history", !openHistory)}>
+            <OrderHistory items={items} onReorder={handleReorder} />
           </AccordionSection>
         </>
       )}

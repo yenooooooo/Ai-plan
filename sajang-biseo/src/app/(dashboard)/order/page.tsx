@@ -21,6 +21,7 @@ import { OrderOnboarding } from "@/components/order/OrderOnboarding";
 import { OrderUsageTab } from "@/components/order/OrderUsageTab";
 import { OrderRecommendTab } from "@/components/order/OrderRecommendTab";
 import { AccordionSection } from "@/components/closing/AccordionSection";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { useOrderData } from "@/hooks/useOrderData";
 import { useOrderAnalytics } from "@/hooks/useOrderAnalytics";
 import { useStoreSettings } from "@/stores/useStoreSettings";
@@ -67,6 +68,7 @@ export default function OrderPage() {
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [pendingTab, setPendingTab] = useState<Tab | null>(null);
   const analyticsOpen = useUIState((s) => s.orderAnalyticsOpen);
   const setAnalyticsOpenKey = useUIState((s) => s.setOrderAnalyticsOpen);
 
@@ -87,16 +89,16 @@ export default function OrderPage() {
     handleConfirm, handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
     handleRenameGroup, handleDeleteGroup, handleReorderGroup, handleMoveItem, handleBulkAction,
     applyConfirmedToOrders, saveOrders,
-    items,
-    avgUsageMap, autoFillUsage,
+    items, avgUsageMap, autoFillUsage, copyToNextDay,
     stockReceiving, receiveStock,
   } = useOrderData();
 
   const analyticsItemId = useMemo(() => selectedItemId ?? (activeItems[0]?.id ?? null), [selectedItemId, activeItems]);
-  const analytics = useOrderAnalytics(items, analyticsItemId);
+  const analytics = useOrderAnalytics(items, analyticsItemId, groups);
   const selectedItem = useMemo(() => items.find((i) => i.id === analyticsItemId), [items, analyticsItemId]);
 
-  useEffect(() => { if (tab === "recommend") generateRecs(); }, [tab, generateRecs]);
+  // 발주추천 뱃지를 위해 항상 추천 생성
+  useEffect(() => { generateRecs(); }, [generateRecs]);
   useEffect(() => { if (confirmedItems.size > 0) applyConfirmedToOrders(); }, [confirmedItems, applyConfirmedToOrders]);
 
   const hasItems = activeItems.length > 0;
@@ -121,6 +123,15 @@ export default function OrderPage() {
     groupRefs.current[groupId]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // 미저장 경고: 사용량 탭에서 데이터가 있는데 저장 안 했으면 확인
+  const switchTab = (t: Tab) => {
+    if (tab === "usage" && hasUsageData && !usageSaved && t !== "usage") {
+      setPendingTab(t);
+      return;
+    }
+    setTab(t);
+  };
+
   return (
     <div className="animate-fade-in pb-8">
       <div className="mb-5">
@@ -140,9 +151,15 @@ export default function OrderPage() {
 
       <div className="flex bg-[var(--bg-tertiary)] rounded-2xl p-1 mb-5 overflow-x-auto">
         {TAB_CONFIG.map(({ key, label, icon: Icon }) => (
-          <button key={key} onClick={() => setTab(key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 whitespace-nowrap ${tab === key ? "bg-[var(--bg-elevated)] text-primary-500 shadow-sm" : "text-[var(--text-tertiary)]"}`}>
+          <button key={key} onClick={() => switchTab(key)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 whitespace-nowrap relative ${tab === key ? "bg-[var(--bg-elevated)] text-primary-500 shadow-sm" : "text-[var(--text-tertiary)]"}`}>
             <Icon size={15} />{label}
+            {/* 발주추천 뱃지 */}
+            {key === "recommend" && needOrderRecs.length > 0 && tab !== "recommend" && (
+              <span className="px-1.5 py-0.5 rounded-full bg-danger text-white text-[10px] font-bold leading-none">
+                {needOrderRecs.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -170,7 +187,6 @@ export default function OrderPage() {
               </div>
             ) : (
               <>
-                {/* 검색 + 관리 툴바 */}
                 <ItemSearch items={items} groups={groups} onScrollToGroup={scrollToGroup} />
                 <div className="flex items-center justify-between gap-2">
                   <button onClick={() => setShowTemplateSelector(true)}
@@ -191,8 +207,7 @@ export default function OrderPage() {
                           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-caption text-danger bg-danger/10 disabled:opacity-40">
                           <Trash2 size={12} />삭제
                         </button>
-                        <button onClick={exitSelectMode}
-                          className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]">
+                        <button onClick={exitSelectMode} className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]">
                           <X size={14} />
                         </button>
                       </>
@@ -238,6 +253,7 @@ export default function OrderPage() {
               selectedDate={selectedDate} setSelectedDate={setSelectedDate}
               handleUsageChange={handleUsageChange} handleWasteChange={handleWasteChange}
               applyPreset={applyPreset} hasAutoFillData={hasAutoFillData} autoFillUsage={autoFillUsage}
+              copyToNextDay={copyToNextDay}
               items={items} receiveStock={receiveStock} stockReceiving={stockReceiving}
               saveUsage={saveUsage} usageSaving={usageSaving} usageSaved={usageSaved} hasUsageData={hasUsageData}
               onGoToRecommend={() => setTab("recommend")}
@@ -299,7 +315,8 @@ export default function OrderPage() {
                 </AccordionSection>
                 <AccordionSection title="원가율" icon={<BarChart3 size={14} className="text-primary-500" />}
                   open={analyticsOpen.cost} onToggle={() => setAnalyticsOpenKey("cost", !analyticsOpen.cost)}>
-                  <CostRatioCard totalCost={analytics.totalCost} grossSales={analytics.grossSales} netSales={analytics.netSales} monthLabel={analytics.monthLabel} />
+                  <CostRatioCard totalCost={analytics.totalCost} grossSales={analytics.grossSales} netSales={analytics.netSales}
+                    monthLabel={analytics.monthLabel} categoryCosts={analytics.categoryCosts} businessType={businessType ?? undefined} />
                 </AccordionSection>
                 <AccordionSection title="폐기 분석" icon={<BarChart3 size={14} className="text-warning" />}
                   open={analyticsOpen.waste} onToggle={() => setAnalyticsOpenKey("waste", !analyticsOpen.waste)}>
@@ -334,6 +351,16 @@ export default function OrderPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* 미저장 경고 다이얼로그 */}
+      <ConfirmDialog
+        open={!!pendingTab}
+        title="저장되지 않은 데이터"
+        message="사용량 데이터가 저장되지 않았습니다. 저장하지 않고 이동하시겠습니까?"
+        confirmLabel="이동" cancelLabel="머물기" danger
+        onConfirm={() => { if (pendingTab) setTab(pendingTab); setPendingTab(null); }}
+        onCancel={() => setPendingTab(null)}
+      />
     </div>
   );
 }

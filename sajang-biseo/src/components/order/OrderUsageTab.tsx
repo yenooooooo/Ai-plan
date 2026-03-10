@@ -3,7 +3,7 @@
 import { useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useUIState } from "@/stores/useUIState";
-import { Save, Trash2, CheckCircle2, Wand2, ArrowRight, Sparkles } from "lucide-react";
+import { Save, CheckCircle2, Wand2, ArrowRight, Sparkles, Copy } from "lucide-react";
 import { AccordionSection } from "@/components/closing/AccordionSection";
 import { UsageStepper } from "@/components/order/UsageStepper";
 import { StockReceiving } from "@/components/order/StockReceiving";
@@ -24,6 +24,7 @@ interface OrderUsageTabProps {
   applyPreset: (type: "weekday" | "weekend") => void;
   hasAutoFillData: boolean;
   autoFillUsage: () => void;
+  copyToNextDay: () => void;
   items: DBOrderItem[];
   receiveStock: (entries: { itemId: string; qty: number }[]) => void;
   stockReceiving: boolean;
@@ -43,15 +44,12 @@ const PRESET_BUTTONS = [
 export function OrderUsageTab({
   groups, activeItems, usageMap, setUsageMap, wasteMap, stockMap, prevUsageMap,
   selectedDate, setSelectedDate, handleUsageChange, handleWasteChange,
-  applyPreset, hasAutoFillData, autoFillUsage, items, receiveStock,
+  applyPreset, hasAutoFillData, autoFillUsage, copyToNextDay, items, receiveStock,
   stockReceiving, saveUsage, usageSaving, usageSaved, hasUsageData, onGoToRecommend,
 }: OrderUsageTabProps) {
   const openGroups = useUIState((s) => s.orderUsageGroups);
   const setUsageGroup = useUIState((s) => s.setOrderUsageGroup);
-  const wasteOpen = useUIState((s) => s.orderWasteOpen);
-  const setWasteOpenStore = useUIState((s) => s.setOrderWasteOpen);
   const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const wasteRef = useRef<HTMLDivElement>(null);
   const receivingRef = useRef<HTMLDivElement>(null);
 
   const toggleGroup = useCallback((id: string) => {
@@ -61,12 +59,6 @@ export function OrderUsageTab({
       setTimeout(() => groupRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" }), 220);
     }
   }, [openGroups, setUsageGroup]);
-
-  const toggleWaste = useCallback(() => {
-    const next = !wasteOpen;
-    setWasteOpenStore(next);
-    if (next) setTimeout(() => wasteRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 220);
-  }, [wasteOpen, setWasteOpenStore]);
 
   const handlePreset = (type: "weekday" | "weekend" | "reset") => {
     if (type === "reset") { setUsageMap({}); return; }
@@ -100,10 +92,17 @@ export function OrderUsageTab({
               <span className="text-[10px] text-primary-400 leading-tight">같은 요일 4주 평균</span>
             </button>
           )}
+          {hasUsageData && (
+            <button onClick={copyToNextDay}
+              className="flex flex-col items-start px-3 py-1.5 rounded-lg bg-success/10 hover:bg-success/20 transition-colors press-effect">
+              <span className="text-caption text-success font-medium flex items-center gap-1"><Copy size={12} />내일도 동일</span>
+              <span className="text-[10px] text-success/70 leading-tight">내일 날짜로 복사</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 카테고리별 사용량 아코디언 */}
+      {/* 카테고리별 사용량 + 인라인 폐기 입력 */}
       {groups.map((group) => {
         const groupItems = activeItems.filter((i) => i.group_id === group.id);
         if (groupItems.length === 0) return null;
@@ -120,42 +119,15 @@ export function OrderUsageTab({
               <div className="divide-y divide-[var(--border-subtle)]">
                 {groupItems.map((item) => (
                   <UsageStepper key={item.id} itemId={item.id} itemName={item.item_name} unit={item.unit}
-                    value={usageMap[item.id] ?? 0} remainingStock={stockMap[item.id]} prevValue={prevUsageMap[item.id]} onChange={handleUsageChange} />
+                    value={usageMap[item.id] ?? 0} remainingStock={stockMap[item.id]} prevValue={prevUsageMap[item.id]}
+                    onChange={handleUsageChange}
+                    wasteValue={wasteMap[item.id] ?? 0} onWasteChange={handleWasteChange} />
                 ))}
               </div>
             </AccordionSection>
           </div>
         );
       })}
-
-      {/* 폐기 입력 아코디언 */}
-      <div ref={wasteRef}>
-        <AccordionSection
-          title="폐기 입력"
-          icon={<Trash2 size={16} className="text-danger" />}
-          open={wasteOpen}
-          onToggle={toggleWaste}
-        >
-          {groups.map((group) => {
-            const groupItems = activeItems.filter((i) => i.group_id === group.id);
-            if (groupItems.length === 0) return null;
-            return (
-              <div key={`waste-${group.id}`} className="mb-3 last:mb-0">
-                <div className="flex items-center gap-2 mb-2 pb-1 border-b border-[var(--border-subtle)]">
-                  <span>{group.icon ?? "📦"}</span>
-                  <span className="text-caption font-semibold text-[var(--text-primary)]">{group.group_name}</span>
-                </div>
-                <div className="divide-y divide-[var(--border-subtle)]">
-                  {groupItems.map((item) => (
-                    <UsageStepper key={`waste-${item.id}`} itemId={item.id} itemName={item.item_name} unit={item.unit}
-                      value={wasteMap[item.id] ?? 0} onChange={handleWasteChange} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </AccordionSection>
-      </div>
 
       {/* 입고 처리 */}
       <div ref={receivingRef}>

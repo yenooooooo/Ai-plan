@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { useToast } from "@/stores/useToast";
@@ -87,6 +87,9 @@ export function useOrderData() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // ── "내일도 동일하게" 대기 데이터 ──
+  const pendingCopyRef = useRef<{ usage: Record<string, number>; waste: Record<string, number> } | null>(null);
+
   // ── 일일 사용량 로드 ──
   const loadUsageForDate = useCallback(async () => {
     if (!storeId) return;
@@ -138,8 +141,15 @@ export function useOrderData() {
             sMap[row.item_id] = row.remaining_stock;
           }
         }
-        setUsageMap({});
-        setWasteMap({});
+        // "내일도 동일하게" 대기 데이터 적용
+        if (pendingCopyRef.current) {
+          setUsageMap(pendingCopyRef.current.usage);
+          setWasteMap(pendingCopyRef.current.waste);
+          pendingCopyRef.current = null;
+        } else {
+          setUsageMap({});
+          setWasteMap({});
+        }
         setStockMap(sMap);
         setUsageSaved(false);
       }
@@ -772,6 +782,17 @@ export function useOrderData() {
     }
   };
 
+  // ── 내일도 동일하게 ──
+  const copyToNextDay = useCallback(() => {
+    if (!Object.values(usageMap).some(v => v > 0)) {
+      toast("복사할 사용량이 없습니다", "info");
+      return;
+    }
+    pendingCopyRef.current = { usage: { ...usageMap }, waste: { ...wasteMap } };
+    setSelectedDate(toDateString(addDays(parseDate(selectedDate), 1)));
+    toast("내일 날짜로 사용량이 복사되었습니다", "success");
+  }, [usageMap, wasteMap, selectedDate, toast]);
+
   // ── 파생 데이터 ──
   const activeItems = useMemo(() => items.filter((i) => i.is_active), [items]);
 
@@ -813,7 +834,7 @@ export function useOrderData() {
     handleOrderChange, applyConfirmedToOrders, saveOrders, loadOrdersForDate,
     handleRenameGroup, handleDeleteGroup, handleReorderGroup, handleMoveItem, handleBulkAction,
     initializeFromSelected,
-    avgUsageMap, autoFillUsage,
+    avgUsageMap, autoFillUsage, copyToNextDay,
     stockReceiving, receiveStock,
   };
 }
