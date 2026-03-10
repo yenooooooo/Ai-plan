@@ -13,6 +13,9 @@ import { ToneSetup } from "@/components/review/ToneSetup";
 import { ReviewInput } from "@/components/review/ReviewInput";
 import { BlockEditor } from "@/components/review/BlockEditor";
 import { ReviewDashboard } from "@/components/review/ReviewDashboard";
+import { ReplyPreview } from "@/components/review/ReplyPreview";
+import { ReplyHistory } from "@/components/review/ReplyHistory";
+import { ReplyTemplates } from "@/components/review/ReplyTemplates";
 import { useReviewData } from "@/hooks/useReviewData";
 import type { Review } from "@/lib/supabase/types";
 import type { Platform, ToneAdjustment } from "@/lib/review/blocks";
@@ -28,9 +31,10 @@ const TAB_CONFIG: { key: Tab; label: string; icon: typeof MessageSquare }[] = [
 export default function ReviewPage() {
   const {
     reviews, toneSettings, loading,
-    versions, generating, regeneratingBlockId,
-    saveToneSettings, generateReply,
+    versions, generating, regeneratingBlockId, replyHistory,
+    saveToneSettings, addReview, generateReply,
     editBlock, regenerateBlock, saveReply, clearVersions,
+    deleteReview, loadReplyHistory,
   } = useReviewData();
 
   const [tab, setTab] = useState<Tab>("generate");
@@ -57,6 +61,7 @@ export default function ReviewPage() {
       rating: review.rating,
       platform: review.platform,
     });
+    loadReplyHistory(review.id);
     setTab("generate");
   }
 
@@ -153,6 +158,8 @@ export default function ReviewPage() {
                       regeneratingBlockId={regeneratingBlockId}
                     />
 
+                    <ReplyPreview blocks={versions[currentVersion] ?? []} />
+
                     {/* 선택된 리뷰가 있으면 저장 버튼 */}
                     {selectedReview && (
                       <motion.button
@@ -165,6 +172,14 @@ export default function ReviewPage() {
                     )}
                   </>
                 )}
+
+                {/* 답글 히스토리 */}
+                {selectedReview && replyHistory.length > 0 && (
+                  <ReplyHistory replies={replyHistory} />
+                )}
+
+                {/* 저장된 템플릿 */}
+                <ReplyTemplates />
               </>
             )}
           </motion.div>
@@ -184,7 +199,12 @@ export default function ReviewPage() {
                 <div className="w-8 h-8 border-2 border-primary-500/20 border-t-primary-500 rounded-full animate-spin" />
               </div>
             ) : (
-              <ReviewDashboard reviews={reviews} onReviewSelect={handleReviewSelect} />
+              <ReviewDashboard
+                reviews={reviews}
+                onReviewSelect={handleReviewSelect}
+                onAddReview={addReview}
+                onDeleteReview={deleteReview}
+              />
             )}
           </motion.div>
         )}

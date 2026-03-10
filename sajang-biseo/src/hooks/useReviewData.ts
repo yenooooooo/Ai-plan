@@ -3,12 +3,14 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { useToast } from "@/stores/useToast";
 import { genBlockId, type ReplyBlock, type Platform, type ToneAdjustment, blocksToFullText } from "@/lib/review/blocks";
-import type { Review, StoreToneSettings } from "@/lib/supabase/types";
+import type { Review, ReviewReply, StoreToneSettings } from "@/lib/supabase/types";
 
 export function useReviewData() {
   const supabase = useMemo(() => createClient(), []);
   const { storeId } = useStoreSettings();
+  const toast = useToast((s) => s.show);
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [toneSettings, setToneSettings] = useState<StoreToneSettings | null>(null);
@@ -19,6 +21,7 @@ export function useReviewData() {
   const [versions, setVersions] = useState<ReplyBlock[][]>([]);
   const [generating, setGenerating] = useState(false);
   const [regeneratingBlockId, setRegeneratingBlockId] = useState<string | null>(null);
+  const [replyHistory, setReplyHistory] = useState<ReviewReply[]>([]);
 
   // 리뷰 & 톤 설정 로드
   const loadData = useCallback(async () => {
@@ -60,16 +63,16 @@ export function useReviewData() {
       const { data: updated, error: updateErr } = await supabase
         .from("sb_store_tone_settings").update(data)
         .eq("id", toneSettings.id).select().single();
-      if (updateErr) { console.error("톤 설정 저장 실패:", updateErr); return; }
-      if (updated) setToneSettings(updated);
+      if (updateErr) { toast("톤 설정 저장에 실패했습니다.", "error"); return; }
+      if (updated) { setToneSettings(updated); toast("톤 설정이 저장되었습니다.", "success"); }
     } else {
       const { data: created, error: createErr } = await supabase
         .from("sb_store_tone_settings").insert({ store_id: storeId, ...data })
         .select().single();
-      if (createErr) { console.error("톤 설정 생성 실패:", createErr); return; }
-      if (created) setToneSettings(created);
+      if (createErr) { toast("톤 설정 생성에 실패했습니다.", "error"); return; }
+      if (created) { setToneSettings(created); toast("톤 설정이 저장되었습니다.", "success"); }
     }
-  }, [storeId, toneSettings, supabase]);
+  }, [storeId, toneSettings, supabase, toast]);
 
   // 리뷰 등록 (수동)
   const addReview = useCallback(async (data: {
@@ -84,9 +87,10 @@ export function useReviewData() {
       reply_status: "pending",
       reviewed_at: new Date().toISOString(),
     });
-    if (insertErr) { console.error("리뷰 등록 실패:", insertErr); return; }
+    if (insertErr) { toast("리뷰 등록에 실패했습니다.", "error"); return; }
+    toast("리뷰가 등록되었습니다.", "success");
     await loadData();
-  }, [storeId, supabase, loadData]);
+  }, [storeId, supabase, loadData, toast]);
 
   // 답글 생성 (전체)
   const generateReply = useCallback(async (review: {
@@ -131,9 +135,10 @@ export function useReviewData() {
       }
     } catch (err) {
       console.error("답글 생성 오류:", err);
+      toast("답글 생성에 실패했습니다. 다시 시도해주세요.", "error");
     }
     setGenerating(false);
-  }, [toneSettings]);
+  }, [toneSettings, toast]);
 
   // 블록 직접 편집
   const editBlock = useCallback((versionIdx: number, blockId: string, text: string) => {
@@ -190,9 +195,10 @@ export function useReviewData() {
       }
     } catch (err) {
       console.error("블록 재생성 오류:", err);
+      toast("블록 재생성에 실패했습니다.", "error");
     }
     setRegeneratingBlockId(null);
-  }, [toneSettings, versions]);
+  }, [toneSettings, versions, toast]);
 
   // 답글 저장 (DB)
   const saveReply = useCallback(async (reviewId: string, blocks: ReplyBlock[], version: number) => {
@@ -205,18 +211,42 @@ export function useReviewData() {
       version,
       is_selected: true,
     });
-    if (replyErr) { console.error("답글 저장 실패:", replyErr); return; }
+    if (replyErr) { toast("답글 저장에 실패했습니다.", "error"); return; }
     const { error: statusErr } = await supabase.from("sb_reviews").update({ reply_status: "replied" }).eq("id", reviewId);
     if (statusErr) console.error("리뷰 상태 업데이트 실패:", statusErr);
+    toast("답글이 저장되었습니다.", "success");
     await loadData();
-  }, [storeId, supabase, loadData]);
+  }, [storeId, supabase, loadData, toast]);
+
+  // 리뷰 삭제 (soft delete)
+  const deleteReview = useCallback(async (reviewId: string) => {
+    if (!storeId) return;
+    const { error: delErr } = await supabase
+      .from("sb_reviews").update({ deleted_at: new Date().toISOString() })
+      .eq("id", reviewId).eq("store_id", storeId);
+    if (delErr) { toast("리뷰 삭제에 실패했습니다.", "error"); return; }
+    toast("리뷰가 삭제되었습니다.", "success");
+    await loadData();
+  }, [storeId, supabase, loadData, toast]);
+
+  // 특정 리뷰의 답글 히스토리 로드
+  const loadReplyHistory = useCallback(async (reviewId: string) => {
+    if (!storeId) return;
+    const { data, error: histErr } = await supabase
+      .from("sb_review_replies").select("*")
+      .eq("review_id", reviewId).eq("store_id", storeId)
+      .order("created_at", { ascending: false });
+    if (histErr) { console.error("답글 히스토리 로드 실패:", histErr); return; }
+    setReplyHistory(data ?? []);
+  }, [storeId, supabase]);
 
   const clearVersions = useCallback(() => setVersions([]), []);
 
   return {
     reviews, toneSettings, loading, error,
-    versions, generating, regeneratingBlockId,
+    versions, generating, regeneratingBlockId, replyHistory,
     saveToneSettings, addReview, generateReply,
     editBlock, regenerateBlock, saveReply, clearVersions,
+    deleteReview, loadReplyHistory,
   };
 }

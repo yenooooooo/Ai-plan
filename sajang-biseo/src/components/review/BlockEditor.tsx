@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { RefreshCw, Pencil, Check, X, Copy, ChevronLeft, ChevronRight } from "lucide-react";
+import { RefreshCw, Pencil, Check, X, Copy, ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
 import {
   type ReplyBlock,
   type ToneAdjustment,
@@ -10,6 +10,7 @@ import {
   TONE_ADJUSTMENTS,
   blocksToFullText,
 } from "@/lib/review/blocks";
+import { useReplyTemplates } from "@/stores/useReplyTemplates";
 
 interface BlockEditorProps {
   versions: ReplyBlock[][];
@@ -31,9 +32,13 @@ export function BlockEditor({
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [savedTemplate, setSavedTemplate] = useState(false);
+  const addTemplate = useReplyTemplates((s) => s.addTemplate);
 
   const blocks = versions[currentVersion] ?? [];
   const fullText = blocksToFullText(blocks);
+  const charCount = fullText.length;
+  const lineCount = fullText.split("\n").filter((l) => l.trim()).length;
 
   function startEdit(block: ReplyBlock) {
     setEditingBlockId(block.id);
@@ -148,6 +153,24 @@ export function BlockEditor({
             </motion.div>
           );
         })}
+      </div>
+
+      {/* 글자수/줄수 표시 */}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-caption text-[var(--text-tertiary)]">
+          {charCount}자 · {lineCount}줄
+        </span>
+        <button
+          onClick={() => {
+            addTemplate(`v${currentVersion + 1}`, fullText);
+            setSavedTemplate(true);
+            setTimeout(() => setSavedTemplate(false), 2000);
+          }}
+          className="flex items-center gap-1 text-caption text-[var(--text-tertiary)] hover:text-warning transition-colors"
+        >
+          <Bookmark size={13} className={savedTemplate ? "fill-warning text-warning" : ""} />
+          {savedTemplate ? "저장됨" : "템플릿 저장"}
+        </button>
       </div>
 
       {/* 복사 버튼 */}

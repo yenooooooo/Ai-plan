@@ -136,7 +136,7 @@ export function useHomeData() {
     }
 
     load();
-  }, [storeId, today, yesterday]);
+  }, [storeId, today, yesterday, toast]);
 
   // 오늘의 할 일
   const todos: HomeTodo[] = useMemo(() => {

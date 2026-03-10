@@ -70,13 +70,19 @@ export async function POST(req: NextRequest) {
 
     const result = await response.json();
     const text = result.content?.[0]?.text ?? "";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
 
-    if (!jsonMatch) {
-      return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
+    let parsed;
+    try {
+      const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      const rawJson = codeBlockMatch?.[1] ?? text.match(/\{[\s\S]*\}/)?.[0];
+      if (!rawJson) {
+        return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
+      }
+      parsed = JSON.parse(rawJson);
+    } catch {
+      return NextResponse.json({ success: false, error: "답글 JSON 파싱 실패" }, { status: 500 });
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
     return NextResponse.json({ success: true, data: parsed });
   } catch (error) {
     console.error("Review generate error:", error);
@@ -155,14 +161,15 @@ ${ts.sampleReplies?.length ? `- 기존 답글 스타일 참고:\n${ts.sampleRepl
 전략: ${ratingContext}
 
 작성 규칙:
-1. 각 블록은 반드시 2~4문장으로 작성 (한 줄짜리 답변 금지)
-2. 전체 답글이 최소 10줄 이상 되어야 함
-3. 리뷰에서 언급된 구체적인 내용(메뉴명, 상황 등)을 반드시 답글에 포함
-4. 매장의 대표 메뉴나 특징을 자연스럽게 1~2회 언급
-5. 과도한 사과나 비굴한 톤 지양, 당당하면서도 겸손하게
-6. 기계적/템플릿 느낌 지양, 이 리뷰에만 해당되는 맞춤 답변으로 작성
-7. 각 버전은 서로 다른 표현과 구성으로 차별화
-8. ${versionsCount}개 버전 생성
+1. 각 블록은 반드시 3~5문장으로 작성 (한 줄짜리 답변 절대 금지)
+2. 블록 내부에서 문장마다 줄바꿈(\\n)을 넣어 가독성을 높여주세요
+3. 전체 답글이 최소 20줄 이상이 되어야 합니다 (7블록 × 3줄 이상)
+4. 리뷰에서 언급된 구체적인 내용(메뉴명, 상황 등)을 반드시 답글에 포함
+5. 매장의 대표 메뉴나 특징을 자연스럽게 1~2회 언급
+6. 과도한 사과나 비굴한 톤 지양, 당당하면서도 겸손하게
+7. 기계적/템플릿 느낌 지양, 이 리뷰에만 해당되는 맞춤 답변으로 작성
+8. 각 버전은 서로 다른 표현과 구성으로 차별화
+9. ${versionsCount}개 버전 생성
 
 블록 구성: ${blockInfo.types}
 
@@ -200,7 +207,7 @@ function buildBlockPrompt(body: GenerateRequest): string {
 다른 블록 내용: ${rb?.context}
 ${adjText ? `톤 조절 요청: ${adjText}` : ""}
 
-규칙: 최소 2~3문장, 리뷰 내용에 맞춤 작성, 기계적 표현 지양
+규칙: 최소 3~4문장, 문장마다 줄바꿈(\\n) 삽입, 리뷰 내용에 맞춤 작성, 기계적 표현 지양
 
 반드시 JSON으로만 응답: {"text": "새로운 블록 텍스트"}`;
 }
