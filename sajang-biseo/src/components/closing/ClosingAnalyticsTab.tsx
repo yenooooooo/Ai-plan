@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, CalendarDays } from "lucide-react";
+import { BarChart3, CalendarDays, FileBarChart } from "lucide-react";
 import { SalesChart } from "@/components/closing/SalesChart";
 import { WeekdayHeatmap } from "@/components/closing/WeekdayHeatmap";
 import { MonthlyGoal } from "@/components/closing/MonthlyGoal";
@@ -32,9 +32,10 @@ interface ClosingAnalyticsTabProps {
   monthlyGoal: number;
   onGoalChange: (goal: number) => void;
   onDateClick?: (date: string) => void;
+  onShowMonthSummary?: () => void;
 }
 
-export function ClosingAnalyticsTab({ analytics, todaySales, monthlyGoal, onGoalChange, onDateClick }: ClosingAnalyticsTabProps) {
+export function ClosingAnalyticsTab({ analytics, todaySales, monthlyGoal, onGoalChange, onDateClick, onShowMonthSummary }: ClosingAnalyticsTabProps) {
   const [chartMode, setChartMode] = useState<"daily" | "weekly" | "monthly">("daily");
 
   if (analytics.loading) {
@@ -111,6 +112,17 @@ export function ClosingAnalyticsTab({ analytics, todaySales, monthlyGoal, onGoal
         daysRemaining={analytics.daysRemaining}
         monthLabel={analytics.monthLabel}
       />
+
+      {onShowMonthSummary && (
+        <button
+          onClick={onShowMonthSummary}
+          className="w-full py-3 rounded-2xl bg-[var(--bg-tertiary)] text-body-small font-medium
+            text-[var(--text-secondary)] hover:text-primary-500 flex items-center justify-center gap-2 press-effect transition-colors"
+        >
+          <FileBarChart size={16} />
+          {analytics.monthLabel} 월간 요약 보기
+        </button>
+      )}
     </>
   );
 }

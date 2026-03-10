@@ -20,6 +20,10 @@ import { StickyProfitBar } from "@/components/closing/StickyProfitBar";
 import { ClosingExport } from "@/components/closing/ClosingExport";
 import { RecurringExpenses } from "@/components/closing/RecurringExpenses";
 import { ClosingAnalyticsTab } from "@/components/closing/ClosingAnalyticsTab";
+import { VoiceInput } from "@/components/closing/VoiceInput";
+import { WeekdayInsight } from "@/components/closing/WeekdayInsight";
+import { MonthEndSummary } from "@/components/closing/MonthEndSummary";
+import { useUnsavedGuard } from "@/hooks/useUnsavedGuard";
 import { formatCurrency } from "@/lib/utils/format";
 import { formatDateShort, parseDate } from "@/lib/utils/date";
 import { useClosingData } from "@/hooks/useClosingData";
@@ -59,6 +63,11 @@ export default function ClosingPage() {
   const tab = closingTab as Tab;
   const setTab = setClosingTab;
   const [reportCopied, setReportCopied] = useState(false);
+  const [showMonthSummary, setShowMonthSummary] = useState(false);
+
+  // 미저장 경고
+  const isDirty = !saved && (totalSales > 0 || memo !== "" || tags.length > 0 || todayExpenses.length > 0);
+  useUnsavedGuard(isDirty);
 
   function handleCalendarDateClick(date: string) {
     goToDate(date);
@@ -186,8 +195,9 @@ export default function ClosingPage() {
               )}
             </div>
 
-            {/* 키패드 (항상 노출) */}
+            {/* 키패드 + 음성 입력 */}
             <NumericKeypad value={totalSales} onChange={setTotalSales} />
+            <VoiceInput onResult={setTotalSales} />
 
             {/* ── 아코디언 섹션들 ── */}
 
@@ -276,6 +286,7 @@ export default function ClosingPage() {
               <TagMemo
                 tags={tags}
                 memo={memo}
+                date={selectedDate}
                 onTagsChange={setTags}
                 onMemoChange={setMemo}
               />
@@ -309,6 +320,12 @@ export default function ClosingPage() {
 
             {saved && (
               <>
+                <WeekdayInsight
+                  selectedDate={selectedDate}
+                  totalSales={totalSales}
+                  weekdayAvg={analytics.weekdayAvg}
+                  prevDaySales={analytics.prevDaySales}
+                />
                 <DailyReportCard
                   totalSales={totalSales}
                   feeResult={feeResult}
@@ -351,6 +368,7 @@ export default function ClosingPage() {
               monthlyGoal={monthlyGoal}
               onGoalChange={setMonthlyGoal}
               onDateClick={handleCalendarDateClick}
+              onShowMonthSummary={() => setShowMonthSummary(true)}
             />
           </motion.div>
         )}
@@ -362,6 +380,14 @@ export default function ClosingPage() {
           totalSales={totalSales}
           totalFees={totalFeesAll}
           totalExpenses={totalExp}
+        />
+      )}
+
+      {/* 월간 요약 팝업 */}
+      {showMonthSummary && (
+        <MonthEndSummary
+          selectedMonth={selectedDate.slice(0, 7)}
+          onClose={() => setShowMonthSummary(false)}
         />
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, X } from "lucide-react";
+import { WeatherTag } from "@/components/closing/WeatherTag";
 
 const PRESET_TAGS = ["비옴", "맑음", "흐림", "눈/한파", "근처행사", "명절연휴", "재료부족", "직원결근", "기념일", "할인행사"];
 const CUSTOM_TAGS_KEY = "sajang-custom-tags";
@@ -9,11 +10,12 @@ const CUSTOM_TAGS_KEY = "sajang-custom-tags";
 interface TagMemoProps {
   tags: string[];
   memo: string;
+  date: string;
   onTagsChange: (tags: string[]) => void;
   onMemoChange: (memo: string) => void;
 }
 
-export function TagMemo({ tags, memo, onTagsChange, onMemoChange }: TagMemoProps) {
+export function TagMemo({ tags, memo, date, onTagsChange, onMemoChange }: TagMemoProps) {
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [showInput, setShowInput] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -59,6 +61,10 @@ export function TagMemo({ tags, memo, onTagsChange, onMemoChange }: TagMemoProps
       <div>
         <p className="text-caption text-[var(--text-tertiary)] mb-2">오늘 특이사항</p>
         <div className="flex flex-wrap gap-2">
+          {/* 날씨 자동 태깅 */}
+          <WeatherTag date={date} tags={tags} onAddTag={(tag) => {
+            if (!tags.includes(tag)) onTagsChange([...tags, tag]);
+          }} />
           {allTags.map((tag) => {
             const isSelected = tags.includes(tag);
             const isCustom = customTags.includes(tag);

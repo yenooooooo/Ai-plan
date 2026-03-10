@@ -3,12 +3,17 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  Clock, Zap, Shield, Star, ArrowRight, Check,
-  ChevronRight, Sparkles,
+  Clock, Zap, Shield, ArrowRight, Check,
+  ChevronRight, Sparkles, CreditCard,
 } from "lucide-react";
 import { ScrollReveal } from "@/components/landing/ScrollReveal";
 import { FeeCalculatorDemo } from "@/components/landing/FeeCalculatorDemo";
-import { FEATURES, TESTIMONIALS, PLANS } from "@/components/landing/data";
+import { ImpactCounter } from "@/components/landing/ImpactCounter";
+import { AppShowcase } from "@/components/landing/AppShowcase";
+import { ComparisonChart } from "@/components/landing/ComparisonChart";
+import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
+import { FAQSection } from "@/components/landing/FAQSection";
+import { FEATURES, PLANS } from "@/components/landing/data";
 
 export default function LandingPage() {
   return (
@@ -35,7 +40,6 @@ export default function LandingPage() {
       {/* ────────────── 히어로 섹션 ────────────── */}
       <section className="pt-28 pb-16 px-5">
         <div className="max-w-4xl mx-auto text-center">
-          {/* 뱃지 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -46,7 +50,6 @@ export default function LandingPage() {
             <span className="text-caption text-primary-500">AI 기반 매장 운영 솔루션</span>
           </motion.div>
 
-          {/* 헤드카피 */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -58,7 +61,6 @@ export default function LandingPage() {
             이제 <span className="text-primary-500">5분</span>이면 끝.
           </motion.h1>
 
-          {/* 서브카피 */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -70,21 +72,31 @@ export default function LandingPage() {
             외식업 사장님을 위한 올인원 AI 비서.
           </motion.p>
 
-          {/* CTA */}
+          {/* CTA + 리스크 리버설 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3"
+            className="space-y-4"
           >
-            <Link href="/signup"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-primary-500 text-white font-semibold text-lg flex items-center justify-center gap-2 press-effect hover:bg-primary-600 hover:shadow-glow-orange-md transition-all">
-              무료로 시작하기 <ArrowRight size={20} />
-            </Link>
-            <a href="#features"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-medium text-lg flex items-center justify-center gap-2 press-effect hover:bg-[var(--bg-elevated)] transition-colors">
-              기능 살펴보기 <ChevronRight size={18} />
-            </a>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/signup"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-primary-500 text-white font-semibold text-lg flex items-center justify-center gap-2 press-effect hover:bg-primary-600 hover:shadow-glow-orange-md transition-all">
+                무료로 시작하기 <ArrowRight size={20} />
+              </Link>
+              <a href="#features"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-medium text-lg flex items-center justify-center gap-2 press-effect hover:bg-[var(--bg-elevated)] transition-colors">
+                기능 살펴보기 <ChevronRight size={18} />
+              </a>
+            </div>
+            {/* 리스크 리버설 */}
+            <div className="flex items-center justify-center gap-4 text-[11px] text-[var(--text-tertiary)]">
+              <span className="flex items-center gap-1"><CreditCard size={11} />신용카드 필요 없음</span>
+              <span>·</span>
+              <span>3분 가입</span>
+              <span>·</span>
+              <span>언제든 해지 가능</span>
+            </div>
           </motion.div>
 
           {/* 신뢰 지표 */}
@@ -92,7 +104,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex items-center justify-center gap-6 mt-10 text-caption text-[var(--text-tertiary)]"
+            className="flex items-center justify-center gap-6 mt-8 text-caption text-[var(--text-tertiary)]"
           >
             <div className="flex items-center gap-1.5">
               <Shield size={14} /> 무료 플랜 제공
@@ -137,6 +149,9 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* ────────────── 임팩트 숫자 카운터 ────────────── */}
+      <ImpactCounter />
+
       {/* ────────────── 기능 소개 ────────────── */}
       <section id="features" className="py-16 px-5">
         <div className="max-w-5xl mx-auto">
@@ -180,8 +195,11 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ────────────── 앱 실제 화면 데모 ────────────── */}
+      <AppShowcase />
+
       {/* ────────────── 수수료 계산기 ────────────── */}
-      <section className="py-16 px-5 bg-gradient-to-b from-transparent via-primary-500/[0.03] to-transparent">
+      <section className="py-16 px-5">
         <div className="max-w-5xl mx-auto">
           <ScrollReveal>
             <div className="text-center mb-10">
@@ -200,40 +218,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ────────────── 사장님 후기 ────────────── */}
-      <section className="py-16 px-5">
-        <div className="max-w-5xl mx-auto">
-          <ScrollReveal>
-            <div className="text-center mb-10">
-              <h2 className="text-heading-lg md:text-[2rem] font-bold text-[var(--text-primary)] mb-3">
-                사장님들의 실제 후기
-              </h2>
-            </div>
-          </ScrollReveal>
+      {/* ────────────── 비교 차트 ────────────── */}
+      <ComparisonChart />
 
-          <div className="space-y-3 md:grid md:grid-cols-3 md:gap-4 md:space-y-0">
-            {TESTIMONIALS.map((t, i) => (
-              <ScrollReveal key={t.name} delay={i * 0.1}>
-                <div className="glass-card p-5 h-full flex flex-col">
-                  <div className="flex gap-0.5 mb-3">
-                    {Array.from({ length: 5 }).map((_, n) => (
-                      <Star key={n} size={14}
-                        className={n < t.rating ? "text-warning fill-warning" : "text-[var(--text-tertiary)]"} />
-                    ))}
-                  </div>
-                  <p className="text-body-small text-[var(--text-primary)] leading-relaxed flex-1 mb-4">
-                    &quot;{t.content}&quot;
-                  </p>
-                  <div>
-                    <p className="text-caption font-medium text-[var(--text-primary)]">{t.name}</p>
-                    <p className="text-[11px] text-[var(--text-tertiary)]">{t.business}</p>
-                  </div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ────────────── 사장님 후기 ────────────── */}
+      <TestimonialsSection />
 
       {/* ────────────── 요금제 ────────────── */}
       <section id="pricing" className="py-16 px-5 bg-gradient-to-b from-transparent via-primary-500/[0.03] to-transparent">
@@ -245,6 +234,9 @@ export default function LandingPage() {
               </h2>
               <p className="text-body-small text-[var(--text-secondary)]">
                 무료로 시작하고, 필요할 때 업그레이드하세요
+              </p>
+              <p className="text-[11px] text-[var(--text-tertiary)] mt-1">
+                모든 플랜 언제든 변경·해지 가능 · 신용카드 없이 시작
               </p>
             </div>
           </ScrollReveal>
@@ -293,6 +285,9 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ────────────── FAQ ────────────── */}
+      <FAQSection />
+
       {/* ────────────── 최종 CTA ────────────── */}
       <section className="py-20 px-5">
         <ScrollReveal>
@@ -309,6 +304,9 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary-500 text-white font-semibold text-lg press-effect hover:bg-primary-600 hover:shadow-glow-orange-md transition-all">
               무료로 시작하기 <ArrowRight size={20} />
             </Link>
+            <p className="text-[11px] text-[var(--text-tertiary)] mt-3">
+              신용카드 없이 무료 시작 · 언제든 해지 가능
+            </p>
           </div>
         </ScrollReveal>
       </section>
