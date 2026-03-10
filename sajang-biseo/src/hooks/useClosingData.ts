@@ -336,7 +336,7 @@ export function useClosingData() {
   return {
     mode, selectedDate, totalSales, setTotalSales,
     channels, setChannels, cardRatio, setCardRatio,
-    memo, setMemo, saving, saved,
+    memo, setMemo, saving, saved, setSaved,
     presets, activePreset, setActivePreset,
     feeResult, animatedAmount, displayAmount,
     dateObj, dateLabel, isToday,

@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  CalendarDays, ChevronLeft, ChevronRight, Save, Check,
+  CalendarDays, ChevronLeft, ChevronRight, Save,
   BarChart3, Keyboard, BookmarkPlus, BookmarkCheck, Copy, CopyCheck,
-  LayoutGrid, CreditCard, Receipt, Tag, Wallet,
+  LayoutGrid, CreditCard, Receipt, Tag, Wallet, Edit3,
 } from "lucide-react";
 import { NumericKeypad } from "@/components/shared/NumericKeypad";
 import { ChannelSlider } from "@/components/closing/ChannelSlider";
@@ -33,7 +33,7 @@ export default function ClosingPage() {
   const {
     mode, selectedDate, totalSales, setTotalSales,
     channels, setChannels, cardRatio, setCardRatio,
-    memo, setMemo, saving, saved,
+    memo, setMemo, saving, saved, setSaved,
     presets, activePreset, setActivePreset,
     feeResult, animatedAmount,
     dateLabel, isToday,
@@ -247,12 +247,22 @@ export default function ClosingPage() {
               />
             )}
 
-            {/* 저장 버튼 */}
-            <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave} disabled={totalSales === 0 || saving || saved} className={`w-full h-14 rounded-[14px] font-body font-semibold text-[1rem] flex items-center justify-center gap-2 transition-all duration-300 ease-smooth ${saved ? "bg-success text-white" : "bg-primary-500 text-white hover:bg-primary-600 hover:shadow-lg"} disabled:opacity-50 disabled:cursor-not-allowed`}>
-              {saving ? (
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
-              ) : saved ? (<><Check size={18} />저장 완료</>) : (<><Save size={18} />마감 저장</>)}
-            </motion.button>
+            {/* 저장 / 수정 버튼 */}
+            {saved ? (
+              <button
+                onClick={() => setSaved(false)}
+                className="w-full h-14 rounded-[14px] font-body font-semibold text-[1rem] flex items-center justify-center gap-2 transition-all
+                  bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500 hover:border-primary-500/30 border border-transparent press-effect"
+              >
+                <Edit3 size={18} />수정하기
+              </button>
+            ) : (
+              <motion.button whileTap={{ scale: 0.97 }} onClick={async () => { await handleSave(); analytics.reload(); }} disabled={totalSales === 0 || saving} className="w-full h-14 rounded-[14px] font-body font-semibold text-[1rem] flex items-center justify-center gap-2 transition-all duration-300 ease-smooth bg-primary-500 text-white hover:bg-primary-600 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                {saving ? (
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
+                ) : (<><Save size={18} />마감 저장</>)}
+              </motion.button>
+            )}
 
             {saved && (
               <>
