@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { useToast } from "@/stores/useToast";
 import { toDateString, parseDate, addDays, formatDateShort, getDayNameFull } from "@/lib/utils/date";
-import { getTemplateForBusiness, GROUP_ICONS } from "@/lib/order/templates";
+import { getTemplateForBusiness, GROUP_ICONS, type TemplateGroup } from "@/lib/order/templates";
 import {
   generateRecommendations,
   type RecommendationInput,
@@ -626,6 +626,152 @@ export function useOrderData() {
     }
   };
 
+  // ── 카테고리 이름 변경 ──
+  const handleRenameGroup = async (groupId: string, newName: string): Promise<boolean> => {
+    if (!storeId || !newName.trim()) return false;
+    try {
+      const updateData: { group_name: string; icon?: string } = { group_name: newName.trim() };
+      if (GROUP_ICONS[newName.trim()]) updateData.icon = GROUP_ICONS[newName.trim()];
+      const { error } = await supabase.from("sb_order_item_groups").update(updateData).eq("id", groupId);
+      if (error) throw error;
+      await loadData();
+      toast("카테고리 이름이 변경되었습니다", "success");
+      return true;
+    } catch (err) {
+      console.error("그룹 이름 변경 실패:", err);
+      toast("카테고리 이름 변경에 실패했습니다", "error");
+      return false;
+    }
+  };
+
+  // ── 카테고리 삭제 ──
+  const handleDeleteGroup = async (groupId: string): Promise<boolean> => {
+    if (!storeId) return false;
+    try {
+      const now = new Date().toISOString();
+      await supabase.from("sb_order_items").update({ deleted_at: now }).eq("group_id", groupId);
+      const { error } = await supabase.from("sb_order_item_groups").update({ deleted_at: now }).eq("id", groupId);
+      if (error) throw error;
+      await loadData();
+      toast("카테고리가 삭제되었습니다", "success");
+      return true;
+    } catch (err) {
+      console.error("그룹 삭제 실패:", err);
+      toast("카테고리 삭제에 실패했습니다", "error");
+      return false;
+    }
+  };
+
+  // ── 카테고리 순서 변경 ──
+  const handleReorderGroup = async (groupId: string, direction: "up" | "down"): Promise<void> => {
+    const idx = groups.findIndex((g) => g.id === groupId);
+    if (idx < 0) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= groups.length) return;
+    try {
+      const a = groups[idx];
+      const b = groups[swapIdx];
+      await Promise.all([
+        supabase.from("sb_order_item_groups").update({ sort_order: b.sort_order }).eq("id", a.id),
+        supabase.from("sb_order_item_groups").update({ sort_order: a.sort_order }).eq("id", b.id),
+      ]);
+      await loadData();
+    } catch (err) {
+      console.error("그룹 순서 변경 실패:", err);
+      toast("순서 변경에 실패했습니다", "error");
+    }
+  };
+
+  // ── 품목 카테고리 이동 ──
+  const handleMoveItem = async (itemId: string, targetGroupId: string): Promise<void> => {
+    try {
+      const targetItems = items.filter((i) => i.group_id === targetGroupId);
+      const { error } = await supabase.from("sb_order_items")
+        .update({ group_id: targetGroupId, sort_order: targetItems.length })
+        .eq("id", itemId);
+      if (error) throw error;
+      await loadData();
+      toast("품목이 이동되었습니다", "success");
+    } catch (err) {
+      console.error("품목 이동 실패:", err);
+      toast("품목 이동에 실패했습니다", "error");
+    }
+  };
+
+  // ── 일괄 삭제/비활성화 ──
+  const handleBulkAction = async (itemIds: string[], action: "delete" | "activate" | "deactivate"): Promise<void> => {
+    if (itemIds.length === 0) return;
+    try {
+      if (action === "delete") {
+        const { error } = await supabase.from("sb_order_items")
+          .update({ deleted_at: new Date().toISOString() }).in("id", itemIds);
+        if (error) throw error;
+        toast(`${itemIds.length}개 품목이 삭제되었습니다`, "success");
+      } else {
+        const isActive = action === "activate";
+        const { error } = await supabase.from("sb_order_items")
+          .update({ is_active: isActive }).in("id", itemIds);
+        if (error) throw error;
+        toast(`${itemIds.length}개 품목이 ${isActive ? "활성화" : "비활성화"}되었습니다`, "success");
+      }
+      await loadData();
+    } catch (err) {
+      console.error("일괄 작업 실패:", err);
+      toast("일괄 작업에 실패했습니다", "error");
+    }
+  };
+
+  // ── 선택적 템플릿 가져오기 ──
+  const initializeFromSelected = async (selectedGroups: TemplateGroup[]): Promise<void> => {
+    if (!storeId || selectedGroups.length === 0) return;
+    try {
+      const nonEmpty = selectedGroups.filter((g) => g.items.length > 0);
+      if (nonEmpty.length === 0) return;
+
+      const existingNames = new Set(groups.map((g) => g.group_name));
+      const newGroupInserts = nonEmpty
+        .filter((g) => !existingNames.has(g.groupName))
+        .map((g, i) => ({
+          store_id: storeId,
+          group_name: g.groupName,
+          icon: g.icon,
+          sort_order: groups.length + i,
+        }));
+
+      const groupIdMap = new Map<string, string>();
+      for (const g of groups) groupIdMap.set(g.group_name, g.id);
+
+      if (newGroupInserts.length > 0) {
+        const { data: newGroups, error: groupErr } = await supabase
+          .from("sb_order_item_groups").insert(newGroupInserts).select();
+        if (groupErr || !newGroups) throw groupErr ?? new Error("그룹 생성 실패");
+        for (const g of newGroups) groupIdMap.set(g.group_name, g.id);
+      }
+
+      const itemInserts = nonEmpty.flatMap((g) =>
+        g.items.map((item, i) => ({
+          store_id: storeId,
+          group_id: groupIdMap.get(g.groupName) ?? null,
+          item_name: item.name,
+          unit: item.unit,
+          unit_price: item.unitPrice,
+          default_order_qty: item.defaultOrderQty,
+          shelf_life_days: item.shelfLifeDays,
+          sort_order: i,
+        }))
+      );
+
+      const { error: itemErr } = await supabase.from("sb_order_items").insert(itemInserts);
+      if (itemErr) throw itemErr;
+
+      toast(`${itemInserts.length}개 품목을 추가했습니다`, "success");
+      await loadData();
+    } catch (err) {
+      console.error("선택 품목 추가 실패:", err);
+      toast("품목 추가에 실패했습니다", "error");
+    }
+  };
+
   // ── 파생 데이터 ──
   const activeItems = useMemo(() => items.filter((i) => i.is_active), [items]);
 
@@ -665,6 +811,8 @@ export function useOrderData() {
     generateRecs, initializeFromTemplate,
     handleConfirm, handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
     handleOrderChange, applyConfirmedToOrders, saveOrders, loadOrdersForDate,
+    handleRenameGroup, handleDeleteGroup, handleReorderGroup, handleMoveItem, handleBulkAction,
+    initializeFromSelected,
     avgUsageMap, autoFillUsage,
     stockReceiving, receiveStock,
   };

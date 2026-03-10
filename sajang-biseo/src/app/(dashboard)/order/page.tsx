@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Package, ClipboardList, BarChart3, Settings2,
-  Plus, Sparkles,
+  Plus, Sparkles, CheckSquare, Trash2, EyeOff, X,
 } from "lucide-react";
 import { ItemGroupAccordion } from "@/components/order/ItemGroupAccordion";
 import { ItemEditModal } from "@/components/order/ItemEditModal";
+import { ItemSearch } from "@/components/order/ItemSearch";
+import { TemplateSelector } from "@/components/order/TemplateSelector";
 import { UsageChart } from "@/components/order/UsageChart";
 import { CostRatioCard } from "@/components/order/CostRatioCard";
 import { WasteTracker } from "@/components/order/WasteTracker";
@@ -21,6 +23,7 @@ import { OrderRecommendTab } from "@/components/order/OrderRecommendTab";
 import { AccordionSection } from "@/components/closing/AccordionSection";
 import { useOrderData } from "@/hooks/useOrderData";
 import { useOrderAnalytics } from "@/hooks/useOrderAnalytics";
+import { useStoreSettings } from "@/stores/useStoreSettings";
 
 type Tab = "settings" | "usage" | "recommend" | "analytics";
 
@@ -57,10 +60,15 @@ export default function OrderPage() {
   const [addingGroup, setAddingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  // 분석 탭 아코디언
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [analyticsOpen, setAnalyticsOpen] = useState<Record<string, boolean>>({
     chart: true, cost: false, waste: false, shelf: false, price: false,
   });
+
+  const { businessType } = useStoreSettings();
+  const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const {
     groups, loading, activeItems, itemsMap,
@@ -72,8 +80,9 @@ export default function OrderPage() {
     needOrderRecs, sufficientRecs, orderDateLabel, recommendations,
     orderMap, setOrderMap, orderSaving, orderSaved,
     handleUsageChange, handleWasteChange, applyPreset, saveUsage,
-    generateRecs, initializeFromTemplate,
+    generateRecs, initializeFromSelected,
     handleConfirm, handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
+    handleRenameGroup, handleDeleteGroup, handleReorderGroup, handleMoveItem, handleBulkAction,
     applyConfirmedToOrders, saveOrders,
     items,
     avgUsageMap, autoFillUsage,
@@ -88,14 +97,26 @@ export default function OrderPage() {
   useEffect(() => { if (confirmedItems.size > 0) applyConfirmedToOrders(); }, [confirmedItems, applyConfirmedToOrders]);
 
   const hasItems = activeItems.length > 0;
-  // 온보딩은 전체 플로우 완료 전까지 표시
   const showOnboarding = !loading && (!hasItems || !usageSaved && !hasUsageData || !orderSaved);
   const hasAutoFillData = Object.keys(avgUsageMap).length > 0;
 
-  // 첫 방문 시 품목관리 탭, 품목 있으면 사용량 탭
   useEffect(() => {
     if (!loading && hasItems && tab === "settings") setTab("usage");
   }, [loading, hasItems]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleSelectId = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); };
+
+  const scrollToGroup = (groupId: string) => {
+    groupRefs.current[groupId]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="animate-fade-in pb-8">
@@ -108,14 +129,12 @@ export default function OrderPage() {
         <OrderOnboarding hasItems={hasItems} hasUsage={hasUsageData || usageSaved} hasOrders={orderSaved} onGoToTab={(t) => setTab(t as Tab)} />
       )}
 
-      {/* 재고 부족 알림 */}
       {hasItems && !showOnboarding && (
         <div className="mb-4">
           <StockAlertBanner items={items} stockMap={stockMap} avgUsageMap={avgUsageMap} onGoToRecommend={() => setTab("recommend")} />
         </div>
       )}
 
-      {/* 탭 */}
       <div className="flex bg-[var(--bg-tertiary)] rounded-2xl p-1 mb-5 overflow-x-auto">
         {TAB_CONFIG.map(({ key, label, icon: Icon }) => (
           <button key={key} onClick={() => setTab(key)}
@@ -136,10 +155,10 @@ export default function OrderPage() {
             ) : groups.length === 0 ? (
               <div className="glass-card p-8 text-center space-y-4">
                 <p className="text-body-small text-[var(--text-secondary)] font-medium">등록된 품목이 없어요</p>
-                <p className="text-caption text-[var(--text-tertiary)]">업종에 맞는 기본 품목을 자동으로 불러올 수 있어요</p>
-                <button onClick={() => initializeFromTemplate()}
+                <p className="text-caption text-[var(--text-tertiary)]">업종에 맞는 기본 품목을 골라서 추가할 수 있어요</p>
+                <button onClick={() => setShowTemplateSelector(true)}
                   className="mx-auto px-6 py-2.5 rounded-xl bg-primary-500 text-white text-body-small font-medium hover:bg-primary-600 transition-colors flex items-center gap-2">
-                  <Package size={15} />기본 품목 불러오기
+                  <Package size={15} />품목 선택해서 불러오기
                 </button>
                 <AddGroupInline adding={addingGroup} name={newGroupName}
                   onToggle={() => { setAddingGroup((v) => !v); setNewGroupName(""); }}
@@ -148,13 +167,53 @@ export default function OrderPage() {
               </div>
             ) : (
               <>
-                {groups.map((group) => (
-                  <ItemGroupAccordion key={group.id} group={group}
-                    items={items.filter((i) => i.group_id === group.id)}
-                    onAddItem={(groupId) => setEditModal({ open: true, item: null, groupId })}
-                    onEditItem={(item) => setEditModal({ open: true, item, groupId: item.group_id ?? "" })}
-                    onSaveItem={handleSaveItem} onDeleteItem={handleDeleteItem} onToggleItem={handleToggleItem}
-                    editingItemId={editingItemId} onSetEditingItemId={setEditingItemId} />
+                {/* 검색 + 관리 툴바 */}
+                <ItemSearch items={items} groups={groups} onScrollToGroup={scrollToGroup} />
+                <div className="flex items-center justify-between gap-2">
+                  <button onClick={() => setShowTemplateSelector(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-caption text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:text-primary-500 transition-colors press-effect">
+                    <Package size={13} />템플릿 추가
+                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {selectMode ? (
+                      <>
+                        <span className="text-caption text-[var(--text-tertiary)]">{selectedIds.size}개 선택</span>
+                        <button onClick={async () => { await handleBulkAction(Array.from(selectedIds), "deactivate"); exitSelectMode(); }}
+                          disabled={selectedIds.size === 0}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-caption text-warning bg-warning/10 disabled:opacity-40">
+                          <EyeOff size={12} />비활성화
+                        </button>
+                        <button onClick={async () => { await handleBulkAction(Array.from(selectedIds), "delete"); exitSelectMode(); }}
+                          disabled={selectedIds.size === 0}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-caption text-danger bg-danger/10 disabled:opacity-40">
+                          <Trash2 size={12} />삭제
+                        </button>
+                        <button onClick={exitSelectMode}
+                          className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)]">
+                          <X size={14} />
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => setSelectMode(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-caption text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:text-primary-500 transition-colors press-effect">
+                        <CheckSquare size={13} />선택
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {groups.map((group, idx) => (
+                  <div key={group.id} ref={(el) => { groupRefs.current[group.id] = el; }}>
+                    <ItemGroupAccordion group={group}
+                      items={items.filter((i) => i.group_id === group.id)}
+                      allGroups={groups} isFirst={idx === 0} isLast={idx === groups.length - 1}
+                      selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={toggleSelectId}
+                      onAddItem={(groupId) => setEditModal({ open: true, item: null, groupId })}
+                      onSaveItem={handleSaveItem} onDeleteItem={handleDeleteItem} onToggleItem={handleToggleItem}
+                      onRenameGroup={handleRenameGroup} onDeleteGroup={handleDeleteGroup}
+                      onReorderGroup={handleReorderGroup} onMoveItem={handleMoveItem}
+                      editingItemId={editingItemId} onSetEditingItemId={setEditingItemId} />
+                  </div>
                 ))}
                 <AddGroupInline adding={addingGroup} name={newGroupName}
                   onToggle={() => { setAddingGroup((v) => !v); setNewGroupName(""); }}
@@ -260,6 +319,16 @@ export default function OrderPage() {
       <AnimatePresence>
         {editModal.open && (
           <ItemEditModal item={editModal.item} groupId={editModal.groupId} onSave={handleSaveItem} onClose={() => setEditModal({ open: false, groupId: "" })} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showTemplateSelector && (
+          <TemplateSelector
+            businessType={businessType || "한식"}
+            onImport={initializeFromSelected}
+            onClose={() => setShowTemplateSelector(false)}
+          />
         )}
       </AnimatePresence>
     </div>
