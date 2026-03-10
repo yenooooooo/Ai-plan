@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info, Download, ExternalLink } from "lucide-react";
+import { Info, Download, ExternalLink, MessageCircle } from "lucide-react";
 
 interface AppInfoSectionProps {
   onExportData: () => Promise<void>;
@@ -39,6 +39,17 @@ export function AppInfoSection({ onExportData }: AppInfoSectionProps) {
         </div>
       </div>
 
+      <a
+        href="http://pf.kakao.com/_XutZX/chat"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full h-10 rounded-xl bg-[#FEE500] text-[#191919] text-body-small font-medium
+          flex items-center justify-center gap-2 press-effect"
+      >
+        <MessageCircle size={15} />
+        카카오톡 문의하기
+      </a>
+
       <button
         onClick={handleExport}
         disabled={exporting}
@@ -49,10 +60,6 @@ export function AppInfoSection({ onExportData }: AppInfoSectionProps) {
         <Download size={15} />
         {exporting ? "내보내는 중..." : "매출 데이터 CSV 내보내기"}
       </button>
-
-      <p className="text-[10px] text-[var(--text-tertiary)] text-center">
-        문의: support@sajang-biseo.app
-      </p>
     </section>
   );
 }
