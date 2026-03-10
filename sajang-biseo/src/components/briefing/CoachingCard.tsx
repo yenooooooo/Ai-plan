@@ -1,17 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Brain, Target, Lightbulb, Sparkles } from "lucide-react";
+import { Brain, Target, Lightbulb, Sparkles, CheckCircle2, Circle, ChevronDown, History } from "lucide-react";
+import { useBriefingGoals } from "@/stores/useBriefingGoals";
 import type { AiCoachingData } from "@/lib/briefing/types";
 
 interface CoachingCardProps {
   data: AiCoachingData;
   generating: boolean;
   onGenerate: () => void;
+  weekStart: string;
+  prevCoaching?: AiCoachingData | null;
 }
 
-export function CoachingCard({ data, generating, onGenerate }: CoachingCardProps) {
+export function CoachingCard({ data, generating, onGenerate, weekStart, prevCoaching }: CoachingCardProps) {
   const hasContent = data.actions.length > 0;
+  const { completed, toggle, getProgress } = useBriefingGoals();
+  const [showPrev, setShowPrev] = useState(false);
+
+  const progress = getProgress(weekStart, data.goals.length);
+  const progressPercent = progress.total > 0 ? (progress.done / progress.total) * 100 : 0;
 
   return (
     <div className="space-y-4">
@@ -59,21 +68,84 @@ export function CoachingCard({ data, generating, onGenerate }: CoachingCardProps
         </div>
       )}
 
-      {/* 목표 */}
+      {/* 목표 달성률 트래킹 */}
       {data.goals.length > 0 && (
-        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Lightbulb size={13} className="text-amber-500" />
-            <span className="text-caption font-semibold text-[var(--text-primary)]">이번 주 목표</span>
+        <div className="bg-[var(--bg-tertiary)] rounded-xl p-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Lightbulb size={13} className="text-amber-500" />
+              <span className="text-caption font-semibold text-[var(--text-primary)]">이번 주 목표</span>
+            </div>
+            <span className="text-[11px] font-medium text-amber-500">
+              {progress.done}/{progress.total} 완료
+            </span>
           </div>
+
+          {/* 진행률 바 */}
+          <div className="h-1.5 bg-[var(--bg-primary)] rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.5 }}
+              className={`h-full rounded-full ${progressPercent >= 100 ? "bg-success" : "bg-amber-500"}`}
+            />
+          </div>
+
+          {/* 체크 가능한 목표 리스트 */}
           <div className="space-y-1.5">
-            {data.goals.map((goal, i) => (
-              <div key={i} className="flex items-center gap-2 text-caption text-[var(--text-secondary)]">
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                {goal}
-              </div>
-            ))}
+            {data.goals.map((goal, i) => {
+              const key = `${weekStart}-${i}`;
+              const isDone = !!completed[key];
+              return (
+                <button
+                  key={i}
+                  onClick={() => toggle(weekStart, i)}
+                  className="w-full flex items-center gap-2 text-left press-effect"
+                >
+                  {isDone ? (
+                    <CheckCircle2 size={16} className="text-success shrink-0" />
+                  ) : (
+                    <Circle size={16} className="text-[var(--text-tertiary)] shrink-0" />
+                  )}
+                  <span className={`text-caption ${isDone ? "text-[var(--text-tertiary)] line-through" : "text-[var(--text-secondary)]"}`}>
+                    {goal}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {/* 지난주 코칭 비교 */}
+      {prevCoaching && prevCoaching.actions.length > 0 && (
+        <div className="border border-[var(--bg-tertiary)] rounded-xl overflow-hidden">
+          <button
+            onClick={() => setShowPrev(!showPrev)}
+            className="w-full flex items-center justify-between p-3 press-effect"
+          >
+            <div className="flex items-center gap-1.5">
+              <History size={13} className="text-[var(--text-tertiary)]" />
+              <span className="text-caption font-medium text-[var(--text-secondary)]">지난주 코칭 비교</span>
+            </div>
+            <ChevronDown size={14} className={`text-[var(--text-tertiary)] transition-transform ${showPrev ? "rotate-180" : ""}`} />
+          </button>
+          {showPrev && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="px-3 pb-3 space-y-2"
+            >
+              <p className="text-[11px] text-[var(--text-tertiary)] italic">
+                {prevCoaching.insight}
+              </p>
+              {prevCoaching.actions.map((a, i) => (
+                <div key={i} className="text-[11px] text-[var(--text-secondary)]">
+                  <span className="text-[var(--text-tertiary)]">{i + 1}.</span> {a.title}
+                </div>
+              ))}
+            </motion.div>
+          )}
         </div>
       )}
 

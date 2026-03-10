@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3, Archive, ChevronLeft, ChevronRight,
-  Copy, CopyCheck, Share2,
+  Copy, CopyCheck, Share2, Image as ImageIcon,
 } from "lucide-react";
 import { useBriefingData } from "@/hooks/useBriefingData";
 import { BriefingCarousel } from "@/components/briefing/BriefingCarousel";
 import { ArchiveList } from "@/components/briefing/ArchiveList";
+import { useToast } from "@/stores/useToast";
 import { parseDate, formatDateShort } from "@/lib/utils/date";
 import { formatCurrency } from "@/lib/utils/format";
 import type { BriefingData } from "@/lib/briefing/types";
@@ -58,13 +59,33 @@ function generateBriefingText(data: BriefingData): string {
 
 export default function BriefingPage() {
   const {
-    briefing, loading, generating, archives,
+    briefing, loading, generating, archives, prevCoaching,
     weekOffset, generateCoaching,
     goToPrevWeek, goToNextWeek, goToWeek,
   } = useBriefingData();
 
+  const toast = useToast((s) => s.show);
   const [tab, setTab] = useState<Tab>("briefing");
   const [copied, setCopied] = useState(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const saveAsImage = useCallback(async () => {
+    if (!carouselRef.current) return;
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(carouselRef.current, {
+        backgroundColor: null,
+        scale: 2,
+      });
+      const link = document.createElement("a");
+      link.download = `briefing-${briefing?.weekStart ?? "week"}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast("이미지가 저장되었습니다.", "success");
+    } catch {
+      toast("이미지 저장에 실패했습니다.", "error");
+    }
+  }, [briefing?.weekStart, toast]);
 
   const weekLabel = briefing
     ? `${formatDateShort(parseDate(briefing.weekStart))} ~ ${formatDateShort(parseDate(briefing.weekEnd))}`
@@ -132,11 +153,14 @@ export default function BriefingPage() {
               </div>
             ) : briefing ? (
               <>
-                <BriefingCarousel
-                  data={briefing}
-                  generating={generating}
-                  onGenerateCoaching={generateCoaching}
-                />
+                <div ref={carouselRef}>
+                  <BriefingCarousel
+                    data={briefing}
+                    generating={generating}
+                    onGenerateCoaching={generateCoaching}
+                    prevCoaching={prevCoaching}
+                  />
+                </div>
 
                 {/* 공유 버튼 */}
                 <div className="flex gap-2">
@@ -171,6 +195,13 @@ export default function BriefingPage() {
                   >
                     <Share2 size={14} />
                     공유하기
+                  </button>
+                  <button
+                    onClick={saveAsImage}
+                    className="flex-1 py-2.5 rounded-xl bg-[var(--bg-tertiary)] text-body-small text-[var(--text-secondary)] hover:text-primary-500 flex items-center justify-center gap-1.5 press-effect"
+                  >
+                    <ImageIcon size={14} />
+                    이미지 저장
                   </button>
                 </div>
               </>

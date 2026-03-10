@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { useToast } from "@/stores/useToast";
 import { toDateString, addDays, getThisWeekRange } from "@/lib/utils/date";
 import {
   aggregateSales,
@@ -17,12 +18,14 @@ import type { WeeklyBriefing } from "@/lib/supabase/types";
 export function useBriefingData() {
   const supabase = useMemo(() => createClient(), []);
   const { storeId } = useStoreSettings();
+  const toast = useToast((s) => s.show);
 
   const [briefing, setBriefing] = useState<BriefingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [archives, setArchives] = useState<WeeklyBriefing[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [prevCoaching, setPrevCoaching] = useState<AiCoachingData | null>(null);
 
   // 현재 선택된 주 (기본: 지난주)
   const [weekOffset, setWeekOffset] = useState(-1);
@@ -44,7 +47,7 @@ export function useBriefingData() {
 
     try {
     // 병렬 쿼리
-    const [closingsRes, channelsRes, prevClosingsRes, receiptsRes, reviewsRes, prevReviewsRes, usagesRes, itemsRes, savedRes] =
+    const [closingsRes, channelsRes, prevClosingsRes, receiptsRes, reviewsRes, prevReviewsRes, usagesRes, itemsRes, savedRes, receiptCatsRes] =
       await Promise.all([
         supabase.from("sb_daily_closing").select("*")
           .eq("store_id", storeId).gte("date", start).lte("date", end)
@@ -70,6 +73,8 @@ export function useBriefingData() {
           .eq("store_id", storeId).eq("is_active", true).is("deleted_at", null),
         supabase.from("sb_weekly_briefings").select("*")
           .eq("store_id", storeId).eq("week_start", start).maybeSingle(),
+        supabase.from("sb_receipt_categories").select("*")
+          .eq("store_id", storeId),
       ]);
 
     // 쿼리 에러 체크
@@ -89,10 +94,11 @@ export function useBriefingData() {
     const prevReviews = prevReviewsRes.data ?? [];
     const usages = usagesRes.data ?? [];
     const items = itemsRes.data ?? [];
+    const receiptCats = receiptCatsRes.data ?? [];
 
     const sales = aggregateSales(closings, channels, prevClosings);
     const fees = aggregateFees(closings, channels, prevClosings);
-    const expenses = aggregateExpenses(receipts, sales.totalSales, sales.netSales);
+    const expenses = aggregateExpenses(receipts, receiptCats, sales.totalSales, sales.netSales);
     const ingredients = aggregateIngredients(usages, items);
     const reputation = aggregateReputation(reviews, prevReviews);
 
@@ -105,11 +111,18 @@ export function useBriefingData() {
     };
 
     setBriefing({ weekStart: start, weekEnd: end, sales, fees, expenses, ingredients, reputation, coaching });
+
+    // 전주 코칭 로드
+    const { data: prevSaved } = await supabase
+      .from("sb_weekly_briefings").select("ai_coaching")
+      .eq("store_id", storeId).eq("week_start", prevRange.start).maybeSingle();
+    setPrevCoaching((prevSaved?.ai_coaching as unknown as AiCoachingData) ?? null);
     } catch {
       setError("브리핑 데이터를 불러오지 못했습니다");
+      toast("브리핑 데이터를 불러오지 못했습니다", "error");
     }
     setLoading(false);
-  }, [storeId, supabase, getWeekRange]);
+  }, [storeId, supabase, getWeekRange, toast]);
 
   // 아카이브 로드
   const loadArchives = useCallback(async () => {
@@ -142,9 +155,9 @@ export function useBriefingData() {
           reputation: briefing.reputation,
         }),
       });
-      if (!res.ok) throw new Error("코칭 생성 실패");
       const json = await res.json();
-      if (json.success && json.data) {
+      if (!json.success) throw new Error(json.error || "코칭 생성 실패");
+      if (json.data) {
         const coaching = json.data as AiCoachingData;
         setBriefing((prev) => prev ? { ...prev, coaching } : null);
 
@@ -162,12 +175,14 @@ export function useBriefingData() {
           ai_coaching: coaching as unknown as import("@/lib/supabase/types").Json,
         }, { onConflict: "store_id,week_start" });
         if (upsertError) console.error("브리핑 저장 실패:", upsertError);
+        toast("AI 코칭이 생성되었습니다.", "success");
       }
     } catch (err) {
       console.error("코칭 생성 오류:", err);
+      toast("AI 코칭 생성에 실패했습니다.", "error");
     }
     setGenerating(false);
-  }, [briefing, storeId, supabase, getWeekRange, weekOffset]);
+  }, [briefing, storeId, supabase, getWeekRange, weekOffset, toast]);
 
   // 주 이동
   const goToPrevWeek = useCallback(() => setWeekOffset((o) => o - 1), []);
@@ -181,7 +196,7 @@ export function useBriefingData() {
   }, []);
 
   return {
-    briefing, loading, generating, archives, error,
+    briefing, loading, generating, archives, error, prevCoaching,
     weekOffset, generateCoaching,
     goToPrevWeek, goToNextWeek, goToWeek,
   };

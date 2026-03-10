@@ -14,7 +14,7 @@ import { IngredientCard } from "./IngredientCard";
 import { ReputationCard } from "./ReputationCard";
 import { CoachingCard } from "./CoachingCard";
 import { CARD_GRADIENTS } from "@/lib/briefing/types";
-import type { BriefingData } from "@/lib/briefing/types";
+import type { BriefingData, AiCoachingData } from "@/lib/briefing/types";
 
 const CARD_CONFIG = [
   { key: "sales", title: "매출 요약", icon: DollarSign },
@@ -29,9 +29,10 @@ interface BriefingCarouselProps {
   data: BriefingData;
   generating: boolean;
   onGenerateCoaching: () => void;
+  prevCoaching?: AiCoachingData | null;
 }
 
-export function BriefingCarousel({ data, generating, onGenerateCoaching }: BriefingCarouselProps) {
+export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoaching }: BriefingCarouselProps) {
   const [currentCard, setCurrentCard] = useState(0);
   const [direction, setDirection] = useState(0);
   const touchStartX = useRef(0);
@@ -128,6 +129,8 @@ export function BriefingCarousel({ data, generating, onGenerateCoaching }: Brief
                 data={data.coaching}
                 generating={generating}
                 onGenerate={onGenerateCoaching}
+                weekStart={data.weekStart}
+                prevCoaching={prevCoaching}
               />
             )}
           </motion.div>

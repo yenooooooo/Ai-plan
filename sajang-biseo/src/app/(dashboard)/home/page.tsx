@@ -6,7 +6,7 @@ import {
   CheckCircle2, Circle, ChevronRight, Flame,
   BarChart3, Package, Receipt, MessageSquare,
   TrendingUp, ArrowUpRight, ArrowDownRight, Target,
-  AlertTriangle,
+  AlertTriangle, Brain,
 } from "lucide-react";
 import { useHomeData } from "@/hooks/useHomeData";
 import { useStoreSettings } from "@/stores/useStoreSettings";
@@ -255,21 +255,31 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 주간 브리핑 바로가기 */}
+      {/* 주간 브리핑 바로가기 + AI 코칭 인사이트 */}
       <Link
         href="/briefing"
-        className="glass-card p-4 flex items-center justify-between press-effect group block"
+        className="glass-card p-4 flex flex-col gap-3 press-effect group block"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
-            <TrendingUp size={20} className="text-primary-500" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
+              <TrendingUp size={20} className="text-primary-500" />
+            </div>
+            <div>
+              <p className="text-body-small font-semibold text-[var(--text-primary)]">주간 경영 브리핑</p>
+              <p className="text-caption text-[var(--text-tertiary)]">AI가 분석한 이번 주 인사이트</p>
+            </div>
           </div>
-          <div>
-            <p className="text-body-small font-semibold text-[var(--text-primary)]">주간 경영 브리핑</p>
-            <p className="text-caption text-[var(--text-tertiary)]">AI가 분석한 이번 주 인사이트</p>
-          </div>
+          <ChevronRight size={18} className="text-[var(--text-tertiary)] group-hover:text-primary-500 transition-colors" />
         </div>
-        <ChevronRight size={18} className="text-[var(--text-tertiary)] group-hover:text-primary-500 transition-colors" />
+        {summary.latestCoachingInsight && (
+          <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/15 rounded-lg px-3 py-2">
+            <Brain size={14} className="text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed line-clamp-2">
+              {summary.latestCoachingInsight}
+            </p>
+          </div>
+        )}
       </Link>
     </div>
   );

@@ -24,6 +24,7 @@ export interface HomeSummary {
   pendingOrders: boolean;
   recentExpenseTotal: number;
   todayMemo: string | null;
+  latestCoachingInsight: string | null;
 }
 
 export function useHomeData() {
@@ -40,6 +41,7 @@ export function useHomeData() {
     pendingOrders: false,
     recentExpenseTotal: 0,
     todayMemo: null,
+    latestCoachingInsight: null,
   });
 
   const today = useMemo(() => toDateString(new Date()), []);
@@ -116,6 +118,15 @@ export function useHomeData() {
           return s + (expenses?.reduce((es, e) => es + e.amount, 0) ?? 0);
         }, 0) ?? 0;
 
+        // 최신 브리핑 코칭 인사이트
+        const { data: latestBriefing } = await supabase
+          .from("sb_weekly_briefings").select("ai_coaching")
+          .eq("store_id", storeId!)
+          .order("week_start", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const coaching = latestBriefing?.ai_coaching as { insight?: string } | null;
+
         setSummary({
           todaySales: todayClosing?.total_sales ?? null,
           yesterdaySales: yesterdayClosing?.total_sales ?? null,
@@ -126,6 +137,7 @@ export function useHomeData() {
           pendingOrders: false,
           recentExpenseTotal: expenseTotal,
           todayMemo: todayClosing?.memo ?? null,
+          latestCoachingInsight: coaching?.insight ?? null,
         });
       } catch (err) {
         console.error("홈 데이터 로드 실패:", err);

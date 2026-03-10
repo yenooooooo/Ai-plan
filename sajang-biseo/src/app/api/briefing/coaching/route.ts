@@ -82,26 +82,50 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
+        max_tokens: 2048,
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error("Coaching API error:", res.status, errBody);
       return NextResponse.json({ success: false, error: "코칭 생성 실패" }, { status: 500 });
     }
 
     const result = await res.json();
     const text = result.content?.[0]?.text ?? "";
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const candidate = codeBlockMatch?.[1]?.trim() ?? text;
+    const jsonMatch = candidate.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json({ success: false, error: "파싱 실패" }, { status: 500 });
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(escapeJsonStrings(jsonMatch[0]));
     return NextResponse.json({ success: true, data: parsed });
   } catch {
     return NextResponse.json({ success: false, error: "서버 오류" }, { status: 500 });
   }
+}
+
+function escapeJsonStrings(raw: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === "\\" && inString) { result += ch; escaped = true; continue; }
+    if (ch === '"') { inString = !inString; result += ch; continue; }
+    if (inString) {
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+    }
+    result += ch;
+  }
+  return result;
 }
