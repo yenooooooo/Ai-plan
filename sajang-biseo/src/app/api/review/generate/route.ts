@@ -65,7 +65,12 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      return NextResponse.json({ success: false, error: "답글 생성 실패" }, { status: 500 });
+      const errBody = await response.text().catch(() => "");
+      console.error("Anthropic API error:", response.status, errBody);
+      return NextResponse.json(
+        { success: false, error: `답글 생성 실패 (${response.status})` },
+        { status: 500 }
+      );
     }
 
     const result = await response.json();
