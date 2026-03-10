@@ -1,0 +1,19 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export type ThemeMode = "system" | "light" | "dark";
+
+interface ThemeStore {
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
+}
+
+export const useThemeStore = create<ThemeStore>()(
+  persist(
+    (set) => ({
+      mode: "dark" as ThemeMode,
+      setMode: (mode) => set({ mode }),
+    }),
+    { name: "sajang-theme" }
+  )
+);

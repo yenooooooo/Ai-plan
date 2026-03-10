@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Target, Check } from "lucide-react";
+import { Target, Check, Smartphone } from "lucide-react";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { formatCurrency } from "@/lib/utils/format";
 
@@ -85,6 +85,12 @@ export function MonthlyGoalSection() {
           직접 입력
         </button>
       )}
+
+      {/* #5 기기 로컬 저장 안내 */}
+      <div className="flex items-center gap-1.5 pt-1">
+        <Smartphone size={11} className="text-[var(--text-tertiary)]" />
+        <p className="text-[10px] text-[var(--text-tertiary)]">이 설정은 현재 기기에만 저장됩니다</p>
+      </div>
     </section>
   );
 }

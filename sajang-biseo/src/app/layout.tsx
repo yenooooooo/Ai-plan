@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import { ThemeSync } from "@/components/shared/ThemeSync";
 
 /* ── Plus Jakarta Sans: 숫자/금액 전용 ── */
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -81,7 +82,15 @@ export default function RootLayout({
       className={`dark ${plusJakartaSans.variable} ${pretendard.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var s=JSON.parse(localStorage.getItem('sajang-theme')||'{}');var m=s.state&&s.state.mode;if(m==='light')document.documentElement.classList.remove('dark');else if(m==='system'&&window.matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.classList.remove('dark');}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="font-body antialiased">
+        <ThemeSync />
         {children}
       </body>
     </html>

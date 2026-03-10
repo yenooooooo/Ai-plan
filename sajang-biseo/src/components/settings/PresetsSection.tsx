@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { BookmarkPlus, Trash2, ChevronDown, ChevronUp, Plus, Check, Save } from "lucide-react";
+import { BookmarkPlus, Trash2, ChevronDown, ChevronUp, Plus, Check, Save, Smartphone } from "lucide-react";
 import { usePresetsStore, type Preset } from "@/stores/usePresetsStore";
 
 function PresetCard({ preset, index, canDelete }: { preset: Preset; index: number; canDelete: boolean }) {
@@ -13,6 +13,7 @@ function PresetCard({ preset, index, canDelete }: { preset: Preset; index: numbe
     Object.fromEntries(preset.channels.map((c) => [c.channel, c.ratio]))
   );
   const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     setName(preset.name);
@@ -29,6 +30,16 @@ function PresetCard({ preset, index, canDelete }: { preset: Preset; index: numbe
     setTimeout(() => { setSaved(false); setOpen(false); }, 1200);
   }, [preset, ratios, name, cardRatio, index, updatePreset]);
 
+  // #11 삭제 확인
+  const handleDelete = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
+      return;
+    }
+    removePreset(index);
+  };
+
   return (
     <div className="border border-[var(--border-default)] rounded-xl overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 bg-[var(--bg-tertiary)]">
@@ -39,8 +50,11 @@ function PresetCard({ preset, index, canDelete }: { preset: Preset; index: numbe
         <div className="flex items-center gap-1">
           {canDelete && (
             <button
-              onClick={() => removePreset(index)}
-              className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--danger)] transition-colors"
+              onClick={handleDelete}
+              className={`p-1.5 rounded-lg transition-colors ${
+                confirmDelete ? "text-danger bg-danger/10" : "text-[var(--text-tertiary)] hover:text-danger"
+              }`}
+              title={confirmDelete ? "한 번 더 눌러서 삭제" : "삭제"}
             >
               <Trash2 size={14} />
             </button>
@@ -85,8 +99,8 @@ function PresetCard({ preset, index, canDelete }: { preset: Preset; index: numbe
                 </div>
               ))}
             </div>
-            <p className={`text-caption mt-1.5 ${total === 100 ? "text-[var(--success)]" : total > 100 ? "text-[var(--danger)]" : "text-[var(--text-tertiary)]"}`}>
-              합계 {total}% {total === 100 ? "✓" : total > 100 ? "초과" : ""}
+            <p className={`text-caption mt-1.5 ${total === 100 ? "text-success" : total > 100 ? "text-danger" : "text-[var(--text-tertiary)]"}`}>
+              합계 {total}% {total === 100 ? "OK" : total > 100 ? "초과" : ""}
             </p>
           </div>
 
@@ -109,7 +123,7 @@ function PresetCard({ preset, index, canDelete }: { preset: Preset; index: numbe
             disabled={total !== 100 || !name.trim() || saved}
             className={`w-full h-9 rounded-xl text-white text-body-small font-medium flex items-center justify-center gap-1.5
               transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-              ${saved ? "bg-[var(--success)]" : "bg-primary-500 hover:bg-primary-600"}`}
+              ${saved ? "bg-success" : "bg-primary-500 hover:bg-primary-600"}`}
           >
             {saved ? <><Check size={14} />저장됨</> : <><Save size={14} />저장</>}
           </button>
@@ -163,6 +177,12 @@ export function PresetsSection() {
       >
         <Plus size={14} />프리셋 추가
       </button>
+
+      {/* #6 기기 로컬 저장 안내 */}
+      <div className="flex items-center gap-1.5">
+        <Smartphone size={11} className="text-[var(--text-tertiary)]" />
+        <p className="text-[10px] text-[var(--text-tertiary)]">프리셋은 현재 기기에만 저장됩니다</p>
+      </div>
     </div>
   );
 }

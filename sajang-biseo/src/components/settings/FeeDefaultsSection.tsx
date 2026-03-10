@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Truck, Check, Save, Plus, X } from "lucide-react";
+import { CreditCard, Truck, Check, Save, Plus, X, AlertTriangle } from "lucide-react";
 import { CARD_FEE_TIERS } from "@/lib/fees/presets";
 import type { DeliveryChannelSetting } from "@/hooks/useSettingsData";
 
@@ -28,12 +28,24 @@ export function FeeDefaultsSection({
 }: FeeDefaultsSectionProps) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   function handleAdd() {
     if (!newName.trim()) return;
     onAddChannel(newName.trim());
     setNewName("");
     setAdding(false);
+  }
+
+  // #11 삭제 확인
+  function handleRemove(id: string) {
+    if (confirmDeleteId === id) {
+      onRemoveChannel(id);
+      setConfirmDeleteId(null);
+    } else {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId(null), 3000);
+    }
   }
 
   return (
@@ -46,45 +58,58 @@ export function FeeDefaultsSection({
       {/* 배달앱 수수료 */}
       <div>
         <p className="text-caption text-[var(--text-tertiary)] mb-2">배달앱 중개수수료율</p>
-        <div className="space-y-2">
-          {deliveryChannels.map((ch) => (
-            <div key={ch.id} className="flex items-center gap-3">
-              <button
-                onClick={() => onChannelActiveToggle(ch.id, !ch.is_active)}
-                className={`shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
-                  ch.is_active
-                    ? "bg-primary-500 border-primary-500 text-white"
-                    : "bg-[var(--bg-tertiary)] border-[var(--border-default)]"
-                }`}
-              >
-                {ch.is_active && <Check size={11} strokeWidth={3} />}
-              </button>
-              <span className={`flex-1 text-body-small ${ch.is_active ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]"}`}>
-                {ch.channel_name}
-              </span>
-              <div className="flex items-center gap-1">
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="30"
-                  value={ch.rate}
-                  onChange={(e) => onChannelRateChange(ch.id, parseFloat(e.target.value) || 0)}
-                  disabled={!ch.is_active}
-                  className="w-16 h-8 px-2 text-right rounded-lg bg-[var(--bg-tertiary)] text-body-small font-display text-[var(--text-primary)]
-                    border border-[var(--border-default)] focus:outline-none focus:border-primary-500 disabled:opacity-40 transition-colors"
-                />
-                <span className="text-caption text-[var(--text-tertiary)]">%</span>
+        {/* #9 빈 상태 */}
+        {deliveryChannels.length === 0 ? (
+          <div className="py-4 text-center">
+            <p className="text-body-small text-[var(--text-tertiary)]">등록된 배달 채널이 없습니다</p>
+            <p className="text-[11px] text-[var(--text-tertiary)] mt-1">아래 버튼으로 채널을 추가하세요</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {deliveryChannels.map((ch) => (
+              <div key={ch.id} className="flex items-center gap-3">
+                <button
+                  onClick={() => onChannelActiveToggle(ch.id, !ch.is_active)}
+                  className={`shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                    ch.is_active
+                      ? "bg-primary-500 border-primary-500 text-white"
+                      : "bg-[var(--bg-tertiary)] border-[var(--border-default)]"
+                  }`}
+                >
+                  {ch.is_active && <Check size={11} strokeWidth={3} />}
+                </button>
+                <span className={`flex-1 text-body-small ${ch.is_active ? "text-[var(--text-primary)]" : "text-[var(--text-tertiary)]"}`}>
+                  {ch.channel_name}
+                </span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="30"
+                    value={ch.rate}
+                    onChange={(e) => onChannelRateChange(ch.id, parseFloat(e.target.value) || 0)}
+                    disabled={!ch.is_active}
+                    className="w-16 h-8 px-2 text-right rounded-lg bg-[var(--bg-tertiary)] text-body-small font-display text-[var(--text-primary)]
+                      border border-[var(--border-default)] focus:outline-none focus:border-primary-500 disabled:opacity-40 transition-colors"
+                  />
+                  <span className="text-caption text-[var(--text-tertiary)]">%</span>
+                </div>
+                <button
+                  onClick={() => handleRemove(ch.id)}
+                  className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
+                    confirmDeleteId === ch.id
+                      ? "bg-danger/10 text-danger"
+                      : "text-[var(--text-tertiary)] hover:text-danger hover:bg-danger/10"
+                  }`}
+                  title={confirmDeleteId === ch.id ? "한 번 더 눌러서 삭제" : "삭제"}
+                >
+                  {confirmDeleteId === ch.id ? <AlertTriangle size={13} /> : <X size={13} />}
+                </button>
               </div>
-              <button
-                onClick={() => onRemoveChannel(ch.id)}
-                className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-[var(--text-tertiary)] hover:text-danger hover:bg-danger/10 transition-colors"
-              >
-                <X size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* 채널 추가 */}
         {adding ? (
@@ -119,7 +144,7 @@ export function FeeDefaultsSection({
       <div>
         <p className="text-caption text-[var(--text-tertiary)] mb-2">배달대행비 (건당)</p>
         <div className="flex items-center gap-2">
-          <span className="text-body-small text-[var(--text-tertiary)]">₩</span>
+          <span className="text-body-small text-[var(--text-tertiary)]">&#8361;</span>
           <input
             type="number"
             step="100"
