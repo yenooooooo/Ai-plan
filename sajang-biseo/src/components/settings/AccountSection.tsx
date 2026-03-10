@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { User, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { User, LogOut, Trash2 } from "lucide-react";
 
 interface AccountSectionProps {
   email: string;
@@ -9,8 +10,11 @@ interface AccountSectionProps {
 }
 
 export function AccountSection({ email, onLogout }: AccountSectionProps) {
+  const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleLogout = async () => {
     if (!confirmLogout) {
@@ -20,6 +24,23 @@ export function AccountSection({ email, onLogout }: AccountSectionProps) {
     }
     setLoggingOut(true);
     await onLogout();
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 5000);
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/account/delete", { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      router.push("/login");
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   return (
@@ -47,6 +68,19 @@ export function AccountSection({ email, onLogout }: AccountSectionProps) {
       >
         <LogOut size={15} />
         {loggingOut ? "로그아웃 중..." : confirmLogout ? "한 번 더 눌러서 로그아웃" : "로그아웃"}
+      </button>
+
+      <button
+        onClick={handleDelete}
+        disabled={deleting}
+        className={`w-full h-10 rounded-xl text-caption font-medium flex items-center justify-center gap-2 transition-all duration-200
+          ${confirmDelete
+            ? "bg-[var(--danger)] text-white"
+            : "text-[var(--text-tertiary)] hover:text-[var(--danger)]"
+          } disabled:opacity-50`}
+      >
+        <Trash2 size={13} />
+        {deleting ? "탈퇴 처리 중..." : confirmDelete ? "정말 탈퇴하시겠습니까? 다시 클릭" : "회원 탈퇴"}
       </button>
     </div>
   );

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "사장님비서 <noreply@updates.sajangbiseo.com>",
+        from: process.env.EMAIL_FROM || "사장님비서 <onboarding@resend.dev>",
         to: [to],
         subject: `[사장님비서] ${briefing.week_start} ~ ${briefing.week_end} 주간 브리핑`,
         html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">

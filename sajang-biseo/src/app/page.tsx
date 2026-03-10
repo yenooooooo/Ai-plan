@@ -321,6 +321,8 @@ export default function LandingPage() {
           <div className="flex items-center gap-4 text-caption text-[var(--text-tertiary)]">
             <Link href="/login" className="hover:text-[var(--text-secondary)] transition-colors">로그인</Link>
             <Link href="/signup" className="hover:text-[var(--text-secondary)] transition-colors">회원가입</Link>
+            <Link href="/terms" className="hover:text-[var(--text-secondary)] transition-colors">이용약관</Link>
+            <Link href="/privacy" className="hover:text-[var(--text-secondary)] transition-colors">개인정보처리방침</Link>
             <span>2025 사장님비서</span>
           </div>
         </div>

@@ -61,7 +61,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // 관리자 전용 경로 — 이메일 체크
-  if (isAdminRoute && user && user.email !== "yaya01234@naver.com") {
+  const adminEmails = (process.env.ADMIN_EMAILS || "yaya01234@naver.com").split(",").map(e => e.trim());
+  if (isAdminRoute && user && !adminEmails.includes(user.email ?? "")) {
     const url = request.nextUrl.clone();
     url.pathname = "/home";
     return NextResponse.redirect(url);

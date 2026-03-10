@@ -170,6 +170,15 @@ export default function SignupPage() {
             </motion.p>
           )}
 
+          {/* 약관 동의 안내 */}
+          <p className="text-[11px] text-[var(--text-tertiary)] text-center leading-relaxed">
+            가입 시{" "}
+            <Link href="/terms" className="text-primary-500 hover:underline" target="_blank">이용약관</Link>
+            {" "}및{" "}
+            <Link href="/privacy" className="text-primary-500 hover:underline" target="_blank">개인정보처리방침</Link>
+            에 동의하게 됩니다.
+          </p>
+
           {/* 가입 버튼 */}
           <button
             type="submit"

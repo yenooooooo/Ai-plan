@@ -166,8 +166,15 @@ function LoginForm() {
           </button>
         </form>
 
+        {/* 비밀번호 찾기 */}
+        <p className="text-center mt-4 text-caption text-[var(--text-tertiary)]">
+          <Link href="/reset-password" className="hover:underline hover:text-[var(--text-secondary)] transition-colors">
+            비밀번호를 잊으셨나요?
+          </Link>
+        </p>
+
         {/* 회원가입 링크 */}
-        <p className="text-center mt-6 text-body-small text-[var(--text-tertiary)]">
+        <p className="text-center mt-4 text-body-small text-[var(--text-tertiary)]">
           아직 계정이 없으신가요?{" "}
           <Link
             href="/signup"

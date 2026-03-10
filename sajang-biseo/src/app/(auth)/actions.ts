@@ -62,3 +62,17 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+export async function resetPassword(formData: FormData) {
+  const supabase = createServerSupabaseClient();
+  const email = formData.get("email") as string;
+
+  if (!email) return { error: "이메일을 입력해주세요." };
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://sajangbiseo.com"}/reset-password/confirm`,
+  });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
