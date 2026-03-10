@@ -35,24 +35,31 @@ interface BriefingCarouselProps {
 export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoaching }: BriefingCarouselProps) {
   const [currentCard, setCurrentCard] = useState(0);
   const [direction, setDirection] = useState(0);
+  const currentRef = useRef(0);
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
   const navigate = useCallback((newIndex: number) => {
     if (newIndex < 0 || newIndex >= CARD_CONFIG.length) return;
-    setDirection(newIndex > currentCard ? 1 : -1);
+    if (newIndex === currentRef.current) return;
+    setDirection(newIndex > currentRef.current ? 1 : -1);
+    currentRef.current = newIndex;
     setCurrentCard(newIndex);
-  }, [currentCard]);
+  }, []);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
-  };
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) {
-      navigate(diff > 0 ? currentCard + 1 : currentCard - 1);
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = touchStartX.current - e.changedTouches[0].clientX;
+    const dy = touchStartY.current - e.changedTouches[0].clientY;
+    // 가로 스와이프만 반응 (세로 스크롤과 구분)
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      navigate(dx > 0 ? currentRef.current + 1 : currentRef.current - 1);
     }
-  };
+  }, [navigate]);
 
   const card = CARD_CONFIG[currentCard];
   const Icon = card.icon;
@@ -60,25 +67,27 @@ export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoa
   const isCoaching = currentCard === 5;
 
   const variants = {
-    enter: (d: number) => ({ x: d > 0 ? 200 : -200, opacity: 0 }),
+    enter: (d: number) => ({ x: d > 0 ? 120 : -120, opacity: 0 }),
     center: { x: 0, opacity: 1 },
-    exit: (d: number) => ({ x: d > 0 ? -200 : 200, opacity: 0 }),
+    exit: (d: number) => ({ x: d > 0 ? -120 : 120, opacity: 0 }),
   };
 
   return (
     <div className="space-y-3">
       {/* 카드 인디케이터 */}
-      <div className="flex items-center justify-center gap-1.5">
+      <div className="flex items-center justify-center gap-2">
         {CARD_CONFIG.map((c, i) => (
           <button
             key={c.key}
             onClick={() => navigate(i)}
-            className={`transition-all duration-200 rounded-full ${
+            className="p-1"
+          >
+            <div className={`transition-all duration-200 rounded-full ${
               i === currentCard
                 ? "w-6 h-2 bg-primary-500"
                 : "w-2 h-2 bg-[var(--bg-tertiary)]"
-            }`}
-          />
+            }`} />
+          </button>
         ))}
       </div>
 
@@ -88,7 +97,7 @@ export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoa
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <AnimatePresence mode="wait" custom={direction}>
+        <AnimatePresence initial={false} mode="popLayout" custom={direction}>
           <motion.div
             key={currentCard}
             custom={direction}
@@ -96,7 +105,7 @@ export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoa
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className={`glass-card p-5 bg-gradient-to-br ${gradient} ${
               isCoaching ? "border border-amber-500/20" : ""
             }`}
@@ -136,21 +145,21 @@ export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoa
           </motion.div>
         </AnimatePresence>
 
-        {/* 좌우 버튼 */}
+        {/* 좌우 버튼 — 터치 영역 확대 */}
         {currentCard > 0 && (
           <button
             onClick={() => navigate(currentCard - 1)}
-            className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[var(--bg-elevated)] shadow-md flex items-center justify-center text-[var(--text-tertiary)] press-effect"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[var(--bg-elevated)]/90 shadow-md flex items-center justify-center text-[var(--text-tertiary)] active:scale-90 transition-transform"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={18} />
           </button>
         )}
         {currentCard < CARD_CONFIG.length - 1 && (
           <button
             onClick={() => navigate(currentCard + 1)}
-            className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[var(--bg-elevated)] shadow-md flex items-center justify-center text-[var(--text-tertiary)] press-effect"
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[var(--bg-elevated)]/90 shadow-md flex items-center justify-center text-[var(--text-tertiary)] active:scale-90 transition-transform"
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={18} />
           </button>
         )}
       </div>
