@@ -25,6 +25,7 @@ export interface HomeSummary {
   recentExpenseTotal: number;
   todayMemo: string | null;
   latestCoachingInsight: string | null;
+  nextSettlement: string | null;
 }
 
 export function useHomeData() {
@@ -42,6 +43,7 @@ export function useHomeData() {
     recentExpenseTotal: 0,
     todayMemo: null,
     latestCoachingInsight: null,
+    nextSettlement: null,
   });
 
   const today = useMemo(() => toDateString(new Date()), []);
@@ -127,6 +129,28 @@ export function useHomeData() {
           .maybeSingle();
         const coaching = latestBriefing?.ai_coaching as { insight?: string } | null;
 
+        // 다음 정산일 계산
+        const settlementMap: Record<string, number> = { "배민": 2, "쿠팡이츠": 3, "요기요": 4 };
+        const todayDow = new Date().getDay();
+        let nextSettlement: string | null = null;
+        const { data: feeChannelsData } = await supabase
+          .from("sb_fee_channels").select("channel_name")
+          .eq("store_id", storeId!).eq("is_active", true).is("deleted_at", null);
+        if (feeChannelsData) {
+          for (const fc of feeChannelsData) {
+            const dow = settlementMap[fc.channel_name];
+            if (dow !== undefined) {
+              const daysUntil = (dow - todayDow + 7) % 7 || 7;
+              if (daysUntil === 1) {
+                nextSettlement = `내일 ${fc.channel_name} 정산일`;
+                break;
+              } else if (!nextSettlement || daysUntil < 3) {
+                nextSettlement = `${fc.channel_name} 정산 ${daysUntil}일 후`;
+              }
+            }
+          }
+        }
+
         setSummary({
           todaySales: todayClosing?.total_sales ?? null,
           yesterdaySales: yesterdayClosing?.total_sales ?? null,
@@ -138,6 +162,7 @@ export function useHomeData() {
           recentExpenseTotal: expenseTotal,
           todayMemo: todayClosing?.memo ?? null,
           latestCoachingInsight: coaching?.insight ?? null,
+          nextSettlement,
         });
       } catch (err) {
         console.error("홈 데이터 로드 실패:", err);
