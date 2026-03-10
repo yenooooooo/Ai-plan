@@ -24,6 +24,7 @@ import { AccordionSection } from "@/components/closing/AccordionSection";
 import { useOrderData } from "@/hooks/useOrderData";
 import { useOrderAnalytics } from "@/hooks/useOrderAnalytics";
 import { useStoreSettings } from "@/stores/useStoreSettings";
+import { useUIState } from "@/stores/useUIState";
 
 type Tab = "settings" | "usage" | "recommend" | "analytics";
 
@@ -55,7 +56,10 @@ const TAB_CONFIG: { key: Tab; label: string; icon: typeof Package }[] = [
 ];
 
 export default function OrderPage() {
-  const [tab, setTab] = useState<Tab>("settings");
+  const orderTab = useUIState((s) => s.orderTab);
+  const setOrderTab = useUIState((s) => s.setOrderTab);
+  const tab = orderTab as Tab;
+  const setTab = setOrderTab;
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [addingGroup, setAddingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
@@ -63,9 +67,8 @@ export default function OrderPage() {
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [analyticsOpen, setAnalyticsOpen] = useState<Record<string, boolean>>({
-    chart: true, cost: false, waste: false, shelf: false, price: false,
-  });
+  const analyticsOpen = useUIState((s) => s.orderAnalyticsOpen);
+  const setAnalyticsOpenKey = useUIState((s) => s.setOrderAnalyticsOpen);
 
   const { businessType } = useStoreSettings();
   const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -291,23 +294,23 @@ export default function OrderPage() {
                   </div>
                 )}
                 <AccordionSection title="사용량 추이" icon={<ClipboardList size={14} className="text-primary-500" />}
-                  open={analyticsOpen.chart} onToggle={() => setAnalyticsOpen((p) => ({ ...p, chart: !p.chart }))}>
+                  open={analyticsOpen.chart} onToggle={() => setAnalyticsOpenKey("chart", !analyticsOpen.chart)}>
                   <UsageChart data={analytics.usageChartData} itemName={selectedItem?.item_name ?? "식자재"} unit={selectedItem?.unit ?? ""} />
                 </AccordionSection>
                 <AccordionSection title="원가율" icon={<BarChart3 size={14} className="text-primary-500" />}
-                  open={analyticsOpen.cost} onToggle={() => setAnalyticsOpen((p) => ({ ...p, cost: !p.cost }))}>
+                  open={analyticsOpen.cost} onToggle={() => setAnalyticsOpenKey("cost", !analyticsOpen.cost)}>
                   <CostRatioCard totalCost={analytics.totalCost} grossSales={analytics.grossSales} netSales={analytics.netSales} monthLabel={analytics.monthLabel} />
                 </AccordionSection>
                 <AccordionSection title="폐기 분석" icon={<BarChart3 size={14} className="text-warning" />}
-                  open={analyticsOpen.waste} onToggle={() => setAnalyticsOpen((p) => ({ ...p, waste: !p.waste }))}>
+                  open={analyticsOpen.waste} onToggle={() => setAnalyticsOpenKey("waste", !analyticsOpen.waste)}>
                   <WasteTracker totalWasteCost={analytics.totalWasteCost} topWasteItems={analytics.topWasteItems} monthLabel={analytics.monthLabel} />
                 </AccordionSection>
                 <AccordionSection title="유통기한 알림" icon={<BarChart3 size={14} className="text-danger" />}
-                  open={analyticsOpen.shelf} onToggle={() => setAnalyticsOpen((p) => ({ ...p, shelf: !p.shelf }))}>
+                  open={analyticsOpen.shelf} onToggle={() => setAnalyticsOpenKey("shelf", !analyticsOpen.shelf)}>
                   <ShelfLifeAlert items={items} stockMap={stockMap} usageMap={usageMap} />
                 </AccordionSection>
                 <AccordionSection title="단가 이력" icon={<BarChart3 size={14} className="text-info" />}
-                  open={analyticsOpen.price} onToggle={() => setAnalyticsOpen((p) => ({ ...p, price: !p.price }))}>
+                  open={analyticsOpen.price} onToggle={() => setAnalyticsOpenKey("price", !analyticsOpen.price)}>
                   <PriceHistoryCard items={items} />
                 </AccordionSection>
               </>

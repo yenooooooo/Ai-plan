@@ -26,6 +26,7 @@ import { useClosingData } from "@/hooks/useClosingData";
 import { useClosingAnalytics } from "@/hooks/useClosingAnalytics";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { useRecurringExpenses } from "@/stores/useRecurringExpenses";
+import { useUIState } from "@/stores/useUIState";
 
 type Tab = "input" | "analytics";
 
@@ -49,20 +50,18 @@ export default function ClosingPage() {
   const { monthlyGoal, setMonthlyGoal } = useStoreSettings();
   const { expenses: recurringExpenses, setExpenses: setRecurringExpenses } = useRecurringExpenses();
 
-  const [tab, setTab] = useState<Tab>("input");
+  const closingTab = useUIState((s) => s.closingTab);
+  const setClosingTab = useUIState((s) => s.setClosingTab);
+  const tab = closingTab as Tab;
+  const setTab = setClosingTab;
   const [reportCopied, setReportCopied] = useState(false);
 
   // 아코디언 상태
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    channel: true,
-    payment: false,
-    fee: false,
-    expense: false,
-    tag: false,
-  });
+  const openSections = useUIState((s) => s.closingSections);
+  const setClosingSection = useUIState((s) => s.setClosingSection);
 
   function toggleSection(key: string) {
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+    setClosingSection(key, !openSections[key]);
   }
 
   async function handleCopyReport() {

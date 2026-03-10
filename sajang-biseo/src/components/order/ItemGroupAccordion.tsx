@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { OrderItem as DBOrderItem, OrderItemGroup } from "@/lib/supabase/types";
 import { InlineEditForm } from "./InlineEditForm";
+import { useUIState } from "@/stores/useUIState";
 
 interface ItemGroupAccordionProps {
   group: OrderItemGroup;
@@ -41,7 +42,10 @@ export function ItemGroupAccordion({
   onRenameGroup, onDeleteGroup, onReorderGroup, onMoveItem,
   editingItemId, onSetEditingItemId,
 }: ItemGroupAccordionProps) {
-  const [open, setOpen] = useState(true);
+  const itemGroupsOpen = useUIState((s) => s.orderItemGroups);
+  const setItemGroupOpen = useUIState((s) => s.setOrderItemGroup);
+  const open = itemGroupsOpen[group.id] ?? true;
+  const setOpen = (v: boolean) => setItemGroupOpen(group.id, v);
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [renameName, setRenameName] = useState(group.group_name);

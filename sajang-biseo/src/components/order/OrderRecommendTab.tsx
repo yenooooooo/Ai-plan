@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
+import { useUIState } from "@/stores/useUIState";
 import { motion } from "framer-motion";
 import {
   Sparkles, AlertTriangle, CheckCircle2, Save,
@@ -48,10 +49,12 @@ export function OrderRecommendTab({
   activeItems, stockMap, usageMap,
   wasteMap, itemsMap, items, onGoToUsage,
 }: OrderRecommendTabProps) {
-  const [openNeed, setOpenNeed] = useState(true);
-  const [openSufficient, setOpenSufficient] = useState(false);
-  const [openFlow, setOpenFlow] = useState(false);
-  const [openHistory, setOpenHistory] = useState(false);
+  const recommendOpen = useUIState((s) => s.orderRecommendOpen);
+  const setRecommendOpen = useUIState((s) => s.setOrderRecommendOpen);
+  const openNeed = recommendOpen.need ?? true;
+  const openSufficient = recommendOpen.sufficient ?? false;
+  const openFlow = recommendOpen.flow ?? false;
+  const openHistory = recommendOpen.history ?? false;
 
   const confirmedRef = useRef<HTMLDivElement>(null);
   const prevConfirmedSize = useRef(confirmedItems.size);
@@ -133,7 +136,7 @@ export function OrderRecommendTab({
               title={`발주 필요 (${needOrderRecs.length}개)`}
               icon={<AlertTriangle size={14} className="text-warning" />}
               open={openNeed}
-              onToggle={() => setOpenNeed((v) => !v)}
+              onToggle={() => setRecommendOpen("need", !openNeed)}
             >
               <div className="space-y-3">
                 {needOrderRecs.map((rec) => (
@@ -149,7 +152,7 @@ export function OrderRecommendTab({
               summary={`${sufficientRecs.length}개 품목`}
               icon={<CheckCircle2 size={14} className="text-success" />}
               open={openSufficient}
-              onToggle={() => setOpenSufficient((v) => !v)}
+              onToggle={() => setRecommendOpen("sufficient", !openSufficient)}
             >
               <div className="space-y-1.5">
                 {sufficientRecs.map((rec) => (
@@ -179,7 +182,7 @@ export function OrderRecommendTab({
             title="재고 흐름"
             icon={<Package size={14} className="text-primary-500" />}
             open={openFlow}
-            onToggle={() => setOpenFlow((v) => !v)}
+            onToggle={() => setRecommendOpen("flow", !openFlow)}
           >
             <StockFlowCard items={activeItems} stockMap={stockMap} usageMap={usageMap} wasteMap={wasteMap} orderMap={orderMap} />
           </AccordionSection>
@@ -188,7 +191,7 @@ export function OrderRecommendTab({
             title="발주 이력"
             icon={<ClipboardList size={14} className="text-[var(--text-secondary)]" />}
             open={openHistory}
-            onToggle={() => setOpenHistory((v) => !v)}
+            onToggle={() => setRecommendOpen("history", !openHistory)}
           >
             <OrderHistory items={items} />
           </AccordionSection>

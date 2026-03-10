@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { motion } from "framer-motion";
+import { useUIState } from "@/stores/useUIState";
 import { Save, Trash2, CheckCircle2, Wand2, ArrowRight, Sparkles } from "lucide-react";
 import { AccordionSection } from "@/components/closing/AccordionSection";
 import { UsageStepper } from "@/components/order/UsageStepper";
@@ -45,28 +46,27 @@ export function OrderUsageTab({
   applyPreset, hasAutoFillData, autoFillUsage, items, receiveStock,
   stockReceiving, saveUsage, usageSaving, usageSaved, hasUsageData, onGoToRecommend,
 }: OrderUsageTabProps) {
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const [wasteOpen, setWasteOpen] = useState(false);
+  const openGroups = useUIState((s) => s.orderUsageGroups);
+  const setUsageGroup = useUIState((s) => s.setOrderUsageGroup);
+  const wasteOpen = useUIState((s) => s.orderWasteOpen);
+  const setWasteOpenStore = useUIState((s) => s.setOrderWasteOpen);
   const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const wasteRef = useRef<HTMLDivElement>(null);
   const receivingRef = useRef<HTMLDivElement>(null);
 
   const toggleGroup = useCallback((id: string) => {
-    setOpenGroups((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
-      if (next[id]) {
-        setTimeout(() => groupRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" }), 220);
-      }
-      return next;
-    });
-  }, []);
+    const next = !openGroups[id];
+    setUsageGroup(id, next);
+    if (next) {
+      setTimeout(() => groupRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "start" }), 220);
+    }
+  }, [openGroups, setUsageGroup]);
 
   const toggleWaste = useCallback(() => {
-    setWasteOpen((prev) => {
-      if (!prev) setTimeout(() => wasteRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 220);
-      return !prev;
-    });
-  }, []);
+    const next = !wasteOpen;
+    setWasteOpenStore(next);
+    if (next) setTimeout(() => wasteRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 220);
+  }, [wasteOpen, setWasteOpenStore]);
 
   const handlePreset = (type: "weekday" | "weekend" | "reset") => {
     if (type === "reset") { setUsageMap({}); return; }
