@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
       }
       parsed = JSON.parse(jsonMatch[0]);
-    } catch (parseErr) {
+    } catch {
       console.error("JSON 파싱 실패, 원본:", text.slice(0, 500));
       return NextResponse.json({ success: false, error: "답글 JSON 파싱 실패" }, { status: 500 });
     }
