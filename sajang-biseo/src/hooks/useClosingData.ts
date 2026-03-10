@@ -39,17 +39,21 @@ export function useClosingData() {
   const [customFees, setCustomFees] = useState<{ name: string; amount: number }[]>([]);
   const [todayExpenses, setTodayExpenses] = useState<{ name: string; amount: number }[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [previousClosingDate, setPreviousClosingDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (!storeId) return;
-    const supabase = createClient();
-    supabase
-      .from("sb_fee_channels")
-      .select("channel_name, rate, fixed_amount, category")
-      .eq("store_id", storeId)
-      .eq("is_active", true)
-      .is("deleted_at", null)
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("sb_fee_channels")
+          .select("channel_name, rate, fixed_amount, category")
+          .eq("store_id", storeId)
+          .eq("is_active", true)
+          .is("deleted_at", null);
+
+        if (error) throw error;
         if (data && data.length > 0) {
           const map: Record<string, number> = {};
           data.forEach((ch) => {
@@ -61,13 +65,18 @@ export function useClosingData() {
           const deliveryAgency = data.find((ch) => ch.category === "delivery_agency" && ch.fixed_amount);
           if (deliveryAgency) setDeliveryFeePerOrder(deliveryAgency.fixed_amount!);
         }
-      });
-  }, [storeId]);
+      } catch (err) {
+        console.error("수수료 채널 로드 실패:", err);
+        toast("수수료 설정을 불러오지 못했습니다", "error");
+      }
+    })();
+  }, [storeId, toast]);
 
   // ── 기존 마감 데이터 로드 ──
   const loadClosingData = useCallback(
     async (date: string) => {
       if (!storeId) return;
+      try {
       const supabase = createClient();
 
       const { data: existing } = await supabase
@@ -83,7 +92,9 @@ export function useClosingData() {
         setMemo(existing.memo ?? "");
         setTags((existing.tags as string[]) ?? []);
         setTodayExpenses((existing.daily_expenses as { name: string; amount: number }[]) ?? []);
+        setCustomFees((existing.custom_fees as { name: string; amount: number }[]) ?? []);
         setSaved(true);
+        setPreviousClosingDate(null);
 
         const chData = (existing as Record<string, unknown>).sb_daily_closing_channels as Array<{
           channel_name: string; ratio: number; delivery_count: number | null;
@@ -101,7 +112,7 @@ export function useClosingData() {
       // 이전 영업일 비율
       const { data: prev } = await supabase
         .from("sb_daily_closing")
-        .select("card_ratio, sb_daily_closing_channels(channel_name, ratio, delivery_count)")
+        .select("date, card_ratio, sb_daily_closing_channels(channel_name, ratio, delivery_count)")
         .eq("store_id", storeId)
         .lt("date", date)
         .order("date", { ascending: false })
@@ -109,6 +120,7 @@ export function useClosingData() {
         .maybeSingle();
 
       if (prev) {
+        setPreviousClosingDate(prev.date);
         setCardRatio(prev.card_ratio);
         const prevChannels = (prev as Record<string, unknown>).sb_daily_closing_channels as Array<{
           channel_name: string; ratio: number; delivery_count: number | null;
@@ -120,9 +132,15 @@ export function useClosingData() {
           })));
           setActivePreset(null);
         }
+      } else {
+        setPreviousClosingDate(null);
+      }
+      } catch (err) {
+        console.error("마감 데이터 로드 실패:", err);
+        toast("마감 데이터를 불러오지 못했습니다", "error");
       }
     },
-    [storeId]
+    [storeId, toast]
   );
 
   useEffect(() => { loadClosingData(selectedDate); }, [selectedDate, loadClosingData]);
@@ -159,6 +177,8 @@ export function useClosingData() {
     setMemo("");
     setTags([]);
     setTodayExpenses([]);
+    setCustomFees([]);
+    setPreviousClosingDate(null);
     setChannels(DEFAULT_PRESETS[0].channels);
     setCardRatio(90);
     setActivePreset("평일 기본");
@@ -188,6 +208,7 @@ export function useClosingData() {
             fee_rate: feeResult.feeRatePercent,
             memo: memo || null, input_mode: "keypad" as const,
             daily_expenses: todayExpenses,
+            custom_fees: customFees,
             tags,
           },
           { onConflict: "store_id,date" }
@@ -230,32 +251,41 @@ export function useClosingData() {
   // ── 전날 복사 ──
   async function copyFromPreviousDay() {
     if (!storeId) return;
-    const supabase = createClient();
-    const { data: prev } = await supabase
-      .from("sb_daily_closing")
-      .select("total_sales, card_ratio, memo, tags, daily_expenses, sb_daily_closing_channels(channel_name, ratio, delivery_count)")
-      .eq("store_id", storeId)
-      .lt("date", selectedDate)
-      .order("date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    try {
+      const supabase = createClient();
+      const { data: prev, error } = await supabase
+        .from("sb_daily_closing")
+        .select("date, total_sales, card_ratio, memo, tags, daily_expenses, custom_fees, sb_daily_closing_channels(channel_name, ratio, delivery_count)")
+        .eq("store_id", storeId)
+        .lt("date", selectedDate)
+        .order("date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (!prev) return;
-    setTotalSales(prev.total_sales);
-    setCardRatio(prev.card_ratio);
-    setMemo(prev.memo ?? "");
-    setTags((prev.tags as string[]) ?? []);
-    setTodayExpenses((prev.daily_expenses as { name: string; amount: number }[]) ?? []);
-    setSaved(false);
+      if (error) throw error;
+      if (!prev) { toast("복사할 이전 마감 데이터가 없습니다", "info"); return; }
 
-    const prevChannels = (prev as Record<string, unknown>).sb_daily_closing_channels as Array<{
-      channel_name: string; ratio: number; delivery_count: number | null;
-    }> | null;
-    if (prevChannels && prevChannels.length > 0) {
-      setChannels(prevChannels.map((ch) => ({
-        channel: ch.channel_name, ratio: ch.ratio, deliveryCount: ch.delivery_count ?? undefined,
-      })));
-      setActivePreset(null);
+      setTotalSales(prev.total_sales);
+      setCardRatio(prev.card_ratio);
+      setMemo(prev.memo ?? "");
+      setTags((prev.tags as string[]) ?? []);
+      setTodayExpenses((prev.daily_expenses as { name: string; amount: number }[]) ?? []);
+      setCustomFees((prev.custom_fees as { name: string; amount: number }[]) ?? []);
+      setSaved(false);
+
+      const prevChannels = (prev as Record<string, unknown>).sb_daily_closing_channels as Array<{
+        channel_name: string; ratio: number; delivery_count: number | null;
+      }> | null;
+      if (prevChannels && prevChannels.length > 0) {
+        setChannels(prevChannels.map((ch) => ({
+          channel: ch.channel_name, ratio: ch.ratio, deliveryCount: ch.delivery_count ?? undefined,
+        })));
+        setActivePreset(null);
+      }
+      toast("이전 마감 데이터를 복사했습니다", "success");
+    } catch (err) {
+      console.error("이전 마감 복사 실패:", err);
+      toast("이전 마감 데이터를 불러오지 못했습니다", "error");
     }
   }
 
@@ -317,6 +347,6 @@ export function useClosingData() {
     customFees, setCustomFees,
     todayExpenses, setTodayExpenses,
     tags, setTags,
-    copyFromPreviousDay, generateReportText,
+    copyFromPreviousDay, previousClosingDate, generateReportText,
   };
 }

@@ -132,6 +132,16 @@ export function getThisMonthRange(referenceDate?: Date): {
 }
 
 /**
+ * 주어진 날짜가 속한 주의 월요일 반환
+ */
+export function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return d;
+}
+
+/**
  * 상대적 날짜 표시
  * @example getRelativeDate(yesterday) → "어제"
  * @example getRelativeDate(twoDaysAgo) → "2일 전"

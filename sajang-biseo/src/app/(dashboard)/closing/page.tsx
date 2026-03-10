@@ -21,8 +21,10 @@ import { SalesChart } from "@/components/closing/SalesChart";
 import { WeekdayHeatmap } from "@/components/closing/WeekdayHeatmap";
 import { MonthlyGoal } from "@/components/closing/MonthlyGoal";
 import { formatCurrency } from "@/lib/utils/format";
+import { formatDateShort, parseDate } from "@/lib/utils/date";
 import { useClosingData } from "@/hooks/useClosingData";
 import { useClosingAnalytics } from "@/hooks/useClosingAnalytics";
+import { useStoreSettings } from "@/stores/useStoreSettings";
 
 type Tab = "input" | "analytics";
 
@@ -39,14 +41,14 @@ export default function ClosingPage() {
     customFees, setCustomFees,
     todayExpenses, setTodayExpenses,
     tags, setTags,
-    copyFromPreviousDay, generateReportText,
+    copyFromPreviousDay, previousClosingDate, generateReportText,
   } = useClosingData();
 
   const analytics = useClosingAnalytics();
+  const { monthlyGoal, setMonthlyGoal } = useStoreSettings();
 
   const [tab, setTab] = useState<Tab>("input");
   const [chartMode, setChartMode] = useState<"daily" | "weekly" | "monthly">("daily");
-  const [monthlyGoal, setMonthlyGoal] = useState(40_000_000);
   const [reportCopied, setReportCopied] = useState(false);
 
   // 아코디언 상태
@@ -143,7 +145,9 @@ export default function ClosingPage() {
                     hover:text-primary-500 hover:border-primary-500/30 transition-all press-effect"
                 >
                   <Copy size={13} />
-                  전날 복사
+                  {previousClosingDate
+                    ? `${formatDateShort(parseDate(previousClosingDate))} 복사`
+                    : "이전 복사"}
                 </button>
               )}
             </div>
@@ -273,7 +277,15 @@ export default function ClosingPage() {
             ) : (
               <>
                 {analytics.chartData.length > 0 ? (
-                  <SalesChart data={analytics.chartData} mode={chartMode} onModeChange={setChartMode} />
+                  <SalesChart
+                    data={
+                      chartMode === "weekly" ? analytics.weeklyChartData
+                      : chartMode === "monthly" ? analytics.monthlyChartData
+                      : analytics.chartData
+                    }
+                    mode={chartMode}
+                    onModeChange={setChartMode}
+                  />
                 ) : (
                   <div className="glass-card p-8 text-center">
                     <BarChart3 size={32} className="mx-auto mb-3 text-[var(--text-tertiary)]" />

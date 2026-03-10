@@ -9,6 +9,8 @@ export interface Expense {
   amount: number;
 }
 
+const EXPENSE_PRESETS = ["식재료", "포장재", "광고", "인건비", "수선/수리", "기타"] as const;
+
 interface TodayExpensesProps {
   expenses: Expense[];
   onChange: (expenses: Expense[]) => void;
@@ -69,6 +71,24 @@ export function TodayExpenses({ expenses, onChange }: TodayExpensesProps) {
           <div className="h-px bg-[var(--border-subtle)] mt-1" />
         </div>
       )}
+
+      {/* 카테고리 프리셋 */}
+      <div className="flex gap-1.5 flex-wrap">
+        {EXPENSE_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => { setNewName(preset); setNameError(false); }}
+            className={`px-2.5 h-7 rounded-lg text-[12px] font-medium transition-all
+              ${newName === preset
+                ? "bg-primary-500/10 text-primary-500 border border-primary-500/30"
+                : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent hover:text-[var(--text-secondary)]"
+              }`}
+          >
+            {preset}
+          </button>
+        ))}
+      </div>
 
       {/* 추가 입력 폼 — 모바일에서 세로 배치 */}
       <div

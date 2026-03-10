@@ -182,6 +182,7 @@ export interface Database {
           input_mode: "keypad" | "voice" | "chat";
           weather_tag: string | null;
           daily_expenses: Json;
+          custom_fees: Json;
           tags: string[];
           created_at: string;
           updated_at: string;
@@ -201,6 +202,7 @@ export interface Database {
           input_mode?: "keypad" | "voice" | "chat";
           weather_tag?: string | null;
           daily_expenses?: Json;
+          custom_fees?: Json;
           tags?: string[];
           created_at?: string;
           updated_at?: string;
@@ -217,6 +219,7 @@ export interface Database {
           input_mode?: "keypad" | "voice" | "chat";
           weather_tag?: string | null;
           daily_expenses?: Json;
+          custom_fees?: Json;
           tags?: string[];
           updated_at?: string;
           deleted_at?: string | null;
