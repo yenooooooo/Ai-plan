@@ -15,6 +15,8 @@ interface DailyReportCardProps {
   weekdayAvg: number | null;
   date: string;
   channelRatios: { channel: string; ratio: number }[];
+  totalExpenses?: number;
+  totalCustomFees?: number;
 }
 
 function ChangeIndicator({ current, previous, label }: { current: number; previous: number | null; label: string }) {
@@ -54,6 +56,8 @@ export function DailyReportCard({
   weekdayAvg,
   date,
   channelRatios,
+  totalExpenses = 0,
+  totalCustomFees = 0,
 }: DailyReportCardProps) {
   const { mode } = useFeeToggle();
   const displaySales = mode === "net" ? feeResult.netSales : totalSales;
@@ -108,6 +112,38 @@ export function DailyReportCard({
           </div>
         </div>
       )}
+
+      {/* 경비 & 순이익 */}
+      {(totalExpenses > 0 || totalCustomFees > 0) && (() => {
+        const allFees = feeResult.totalFees + totalCustomFees;
+        const netProfit = totalSales - allFees - totalExpenses;
+        return (
+          <div className="flex items-center gap-4 mb-4 pb-4 border-b border-[var(--border-subtle)]">
+            {totalExpenses > 0 && (
+              <div>
+                <p className="text-caption text-[var(--text-tertiary)]">경비</p>
+                <p className="text-body-small font-display text-[var(--fee-deducted)]">
+                  -{formatCurrency(totalExpenses)}
+                </p>
+              </div>
+            )}
+            <div>
+              <p className="text-caption text-[var(--text-tertiary)]">순이익</p>
+              <p className={`text-body-small font-display font-semibold ${netProfit >= 0 ? "text-[var(--net-income)]" : "text-danger"}`}>
+                {formatCurrency(netProfit)}
+              </p>
+            </div>
+            {totalSales > 0 && (
+              <div>
+                <p className="text-caption text-[var(--text-tertiary)]">수익률</p>
+                <p className="text-body-small font-display text-[var(--text-secondary)]">
+                  {formatPercent((netProfit / totalSales) * 100)}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 비교 지표 */}
       <div className="space-y-2 mb-4">

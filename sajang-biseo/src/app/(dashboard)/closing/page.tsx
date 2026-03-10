@@ -218,7 +218,13 @@ export default function ClosingPage() {
             <RecurringExpenses
               recurring={recurringExpenses}
               onRecurringChange={setRecurringExpenses}
-              onApplyToday={(items) => setTodayExpenses((prev) => [...prev, ...items.map((e) => ({ name: e.name, amount: e.amount }))])}
+              onApplyToday={(items) => setTodayExpenses((prev) => {
+                const existingNames = new Set(prev.map((e) => e.name));
+                const newItems = items
+                  .filter((e) => !existingNames.has(e.name))
+                  .map((e) => ({ name: e.name, amount: e.amount }));
+                return [...prev, ...newItems];
+              })}
               dayOfMonth={new Date().getDate()}
             />
 
@@ -273,6 +279,8 @@ export default function ClosingPage() {
                   weekdayAvg={analytics.weekdayAvg}
                   date={selectedDate}
                   channelRatios={channels}
+                  totalExpenses={totalExp}
+                  totalCustomFees={customFees.reduce((s, f) => s + f.amount, 0)}
                 />
                 <button
                   onClick={handleCopyReport}
