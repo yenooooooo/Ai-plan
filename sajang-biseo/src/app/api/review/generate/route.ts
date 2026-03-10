@@ -80,13 +80,18 @@ export async function POST(req: NextRequest) {
 
     let parsed;
     try {
-      const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-      const rawJson = codeBlockMatch?.[1] ?? text.match(/\{[\s\S]*\}/)?.[0];
-      if (!rawJson) {
+      // 1) 코드블록 안의 JSON 추출
+      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const candidate = codeBlockMatch?.[1]?.trim() ?? text;
+      // 2) 가장 바깥쪽 { ... } 추출 (greedy)
+      const jsonMatch = candidate.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error("JSON 추출 실패, 원본:", text.slice(0, 500));
         return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
       }
-      parsed = JSON.parse(rawJson);
-    } catch {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (parseErr) {
+      console.error("JSON 파싱 실패, 원본:", text.slice(0, 500));
       return NextResponse.json({ success: false, error: "답글 JSON 파싱 실패" }, { status: 500 });
     }
 
