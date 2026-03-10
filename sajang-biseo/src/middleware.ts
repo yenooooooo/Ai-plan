@@ -46,15 +46,24 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/settings") ||
     pathname.startsWith("/onboarding");
 
+  const isAdminRoute = pathname.startsWith("/admin");
+
   // 인증 페이지
   const isAuthRoute =
     pathname.startsWith("/login") || pathname.startsWith("/signup");
 
   // 미로그인 + 보호된 경로 → 로그인으로
-  if (!user && isProtectedRoute) {
+  if (!user && (isProtectedRoute || isAdminRoute)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // 관리자 전용 경로 — 이메일 체크
+  if (isAdminRoute && user && user.email !== "yaya01234@naver.com") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/home";
     return NextResponse.redirect(url);
   }
 

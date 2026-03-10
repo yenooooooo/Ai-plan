@@ -724,6 +724,47 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      sb_notices: {
+        Row: {
+          id: string;
+          title: string;
+          content: string;
+          type: "info" | "warning" | "update" | "maintenance";
+          link: string | null;
+          is_active: boolean;
+          priority: number;
+          starts_at: string;
+          ends_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          content: string;
+          type?: "info" | "warning" | "update" | "maintenance";
+          link?: string | null;
+          is_active?: boolean;
+          priority?: number;
+          starts_at?: string;
+          ends_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          content?: string;
+          type?: "info" | "warning" | "update" | "maintenance";
+          link?: string | null;
+          is_active?: boolean;
+          priority?: number;
+          starts_at?: string;
+          ends_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -769,3 +810,4 @@ export type StoreToneSettings = Tables<"sb_store_tone_settings">;
 export type WeeklyBriefing = Tables<"sb_weekly_briefings">;
 export type DailyOrder = Tables<"sb_daily_orders">;
 export type ItemPriceHistory = Tables<"sb_item_price_history">;
+export type Notice = Tables<"sb_notices">;

@@ -14,6 +14,14 @@ export interface HomeTodo {
   urgent?: boolean;
 }
 
+export interface NoticeData {
+  id: string;
+  title: string;
+  content: string;
+  type: "info" | "warning" | "update" | "maintenance";
+  link: string | null;
+}
+
 export interface HomeSummary {
   todaySales: number | null;
   yesterdaySales: number | null;
@@ -30,6 +38,7 @@ export interface HomeSummary {
 
 export function useHomeData() {
   const { storeId, storeName } = useStoreSettings();
+  const [notices, setNotices] = useState<NoticeData[]>([]);
   const toast = useToast((s) => s.show);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<HomeSummary>({
@@ -151,6 +160,18 @@ export function useHomeData() {
           }
         }
 
+        // 공지사항 로드
+        const now = new Date().toISOString();
+        const { data: noticesData } = await supabase
+          .from("sb_notices")
+          .select("id, title, content, type, link")
+          .eq("is_active", true)
+          .lte("starts_at", now)
+          .or(`ends_at.is.null,ends_at.gte.${now}`)
+          .order("priority", { ascending: false })
+          .limit(3);
+        setNotices((noticesData as NoticeData[]) ?? []);
+
         setSummary({
           todaySales: todayClosing?.total_sales ?? null,
           yesterdaySales: yesterdayClosing?.total_sales ?? null,
@@ -232,5 +253,6 @@ export function useHomeData() {
     today,
     summary,
     todos,
+    notices,
   };
 }

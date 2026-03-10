@@ -11,6 +11,7 @@ import {
 import { useHomeData } from "@/hooks/useHomeData";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { DailyNote } from "@/components/home/DailyNote";
+import { NoticeBanner } from "@/components/home/NoticeBanner";
 import { formatCurrency } from "@/lib/utils/format";
 
 const QUICK_MENU = [
@@ -21,7 +22,7 @@ const QUICK_MENU = [
 ];
 
 export default function HomePage() {
-  const { loading, storeName, greeting, summary, todos } = useHomeData();
+  const { loading, storeName, greeting, summary, todos, notices } = useHomeData();
   const { monthlyGoal } = useStoreSettings();
 
   const salesChange = summary.todaySales !== null && summary.yesterdaySales !== null && summary.yesterdaySales > 0
@@ -45,6 +46,9 @@ export default function HomePage() {
           {storeName || "사장님"}, 오늘도 화이팅!
         </h1>
       </div>
+
+      {/* 공지사항 배너 */}
+      {notices.length > 0 && <NoticeBanner notices={notices} />}
 
       {/* 마감 미입력 알림 배너 */}
       {summary.todaySales === null && summary.monthlySales > 0 && (
