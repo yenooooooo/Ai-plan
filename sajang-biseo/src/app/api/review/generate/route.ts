@@ -86,10 +86,8 @@ export async function POST(req: NextRequest) {
       if (!jsonMatch) {
         return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
       }
-      // JSON 문자열 내 실제 개행문자 → \n 이스케이프 처리
-      const sanitized = jsonMatch[0].replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match: string) =>
-        match.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t")
-      );
+      // JSON 문자열 내 실제 개행문자 → 이스케이프 처리 (JSON.parse는 토큰 사이 공백 무시)
+      const sanitized = jsonMatch[0].replace(/\r\n/g, "\\n").replace(/\n/g, "\\n").replace(/\r/g, "\\n");
       parsed = JSON.parse(sanitized);
     } catch {
       return NextResponse.json({ success: false, error: "답글 JSON 파싱 실패" }, { status: 500 });
@@ -174,7 +172,7 @@ ${ts.sampleReplies?.length ? `- 기존 답글 스타일 참고:\n${ts.sampleRepl
 
 작성 규칙:
 1. 각 블록은 반드시 3~5문장으로 작성 (한 줄짜리 답변 절대 금지)
-2. 블록 내부에서 문장마다 줄바꿈(\\n)을 넣어 가독성을 높여주세요
+2. 블록 내부에서 문장마다 줄바꿈을 넣어 가독성을 높여주세요 (JSON 이스케이프: \\n 사용)
 3. 전체 답글이 최소 20줄 이상이 되어야 합니다 (7블록 × 3줄 이상)
 4. 리뷰에서 언급된 구체적인 내용(메뉴명, 상황 등)을 반드시 답글에 포함
 5. 매장의 대표 메뉴나 특징을 자연스럽게 1~2회 언급
@@ -219,7 +217,7 @@ function buildBlockPrompt(body: GenerateRequest): string {
 다른 블록 내용: ${rb?.context}
 ${adjText ? `톤 조절 요청: ${adjText}` : ""}
 
-규칙: 최소 3~4문장, 문장마다 줄바꿈(\\n) 삽입, 리뷰 내용에 맞춤 작성, 기계적 표현 지양
+규칙: 최소 3~4문장, 문장 사이 줄바꿈(JSON \\n 이스케이프), 리뷰 내용에 맞춤 작성, 기계적 표현 지양
 
 반드시 JSON으로만 응답: {"text": "새로운 블록 텍스트"}`;
 }
