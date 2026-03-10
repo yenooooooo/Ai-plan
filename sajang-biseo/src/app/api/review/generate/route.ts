@@ -86,13 +86,7 @@ export async function POST(req: NextRequest) {
       if (!jsonMatch) {
         return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
       }
-      // JSON 문자열 값 안의 실제 개행만 이스케이프 (구조적 개행은 유지)
-      const sanitized = jsonMatch[0].replace(
-        /"((?:[^"\\]|\\.)*)"/g,
-        (_: string, content: string) =>
-          `"${content.replace(/\r\n/g, "\\n").replace(/\n/g, "\\n").replace(/\r/g, "\\n")}"`
-      );
-      parsed = JSON.parse(sanitized);
+      parsed = JSON.parse(escapeJsonStrings(jsonMatch[0]));
     } catch {
       return NextResponse.json({ success: false, error: "답글 JSON 파싱 실패" }, { status: 500 });
     }
@@ -226,3 +220,44 @@ ${adjText ? `톤 조절 요청: ${adjText}` : ""}
 반드시 JSON으로만 응답: {"text": "새로운 블록 텍스트"}`;
 }
 
+/**
+ * JSON 문자열 값 안의 실제 개행/탭 문자를 이스케이프 처리.
+ * 문자 단위로 파싱하여 문자열 안/밖을 정확히 구분.
+ */
+function escapeJsonStrings(raw: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+
+    if (escaped) {
+      result += ch;
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\" && inString) {
+      result += ch;
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+
+    if (inString) {
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+    }
+
+    result += ch;
+  }
+
+  return result;
+}
