@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
       }
       // JSON 문자열 내 실제 개행문자 → \n 이스케이프 처리
-      const sanitized = jsonMatch[0].replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match) =>
+      const sanitized = jsonMatch[0].replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match: string) =>
         match.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t")
       );
       parsed = JSON.parse(sanitized);
