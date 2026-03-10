@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Minus, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -10,6 +10,7 @@ interface UsageStepperProps {
   unit: string;
   value: number;
   remainingStock?: number;
+  prevValue?: number;
   onChange: (itemId: string, value: number) => void;
   step?: number;
 }
@@ -20,9 +21,13 @@ export function UsageStepper({
   unit,
   value,
   remainingStock,
+  prevValue,
   onChange,
   step = 0.5,
 }: UsageStepperProps) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -35,7 +40,6 @@ export function UsageStepper({
 
   const startLongPress = useCallback(
     (direction: 1 | -1) => {
-      // 길게 누르면 빠르게 증가
       timeoutRef.current = setTimeout(() => {
         intervalRef.current = setInterval(() => {
           onChange(itemId, Math.max(0, value + step * direction));
@@ -50,22 +54,51 @@ export function UsageStepper({
     onChange(itemId, newVal);
   };
 
+  const startEditing = () => {
+    setEditValue(value > 0 ? String(value) : "");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  const commitEdit = () => {
+    const parsed = parseFloat(editValue);
+    if (!isNaN(parsed) && parsed >= 0) {
+      onChange(itemId, +parsed.toFixed(1));
+    }
+    setEditing(false);
+  };
+
+  const applyPrev = () => {
+    if (prevValue !== undefined && prevValue > 0) {
+      onChange(itemId, prevValue);
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between py-2.5">
+    <div className="flex items-center justify-between py-2.5 gap-2">
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="text-body-small text-[var(--text-primary)] font-medium">
+          <span className="text-body-small text-[var(--text-primary)] font-medium truncate">
             {itemName}
           </span>
           {remainingStock !== undefined && (
-            <span className="text-caption text-[var(--text-tertiary)]">
+            <span className="text-caption text-[var(--text-tertiary)] shrink-0">
               (재고 {remainingStock}{unit})
             </span>
           )}
         </div>
+        {/* 어제 사용량 참고 — 탭하면 적용 */}
+        {prevValue !== undefined && prevValue > 0 && value === 0 && (
+          <button
+            onClick={applyPrev}
+            className="text-[11px] text-primary-500/70 hover:text-primary-500 transition-colors mt-0.5"
+          >
+            어제 {prevValue}{unit} →적용
+          </button>
+        )}
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 shrink-0">
         {/* 마이너스 */}
         <motion.button
           whileTap={{ scale: 0.88 }}
@@ -79,14 +112,34 @@ export function UsageStepper({
           <Minus size={16} />
         </motion.button>
 
-        {/* 값 표시 */}
+        {/* 값 표시 — 탭하면 직접 입력 */}
         <div className="w-20 text-center">
-          <span className="text-body-small font-display font-semibold text-[var(--text-primary)]">
-            {value}
-          </span>
-          <span className="text-caption text-[var(--text-tertiary)] ml-0.5">
-            {unit}
-          </span>
+          {editing ? (
+            <input
+              ref={inputRef}
+              type="text"
+              inputMode="decimal"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value.replace(/[^0-9.]/g, ""))}
+              onBlur={commitEdit}
+              onKeyDown={(e) => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditing(false); }}
+              className="w-full h-8 text-center rounded-lg bg-[var(--bg-tertiary)] border border-primary-500
+                text-body-small font-display font-semibold text-[var(--text-primary)] outline-none"
+              autoFocus
+            />
+          ) : (
+            <button
+              onClick={startEditing}
+              className="w-full h-8 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors flex items-center justify-center"
+            >
+              <span className="text-body-small font-display font-semibold text-[var(--text-primary)]">
+                {value}
+              </span>
+              <span className="text-caption text-[var(--text-tertiary)] ml-0.5">
+                {unit}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* 플러스 */}

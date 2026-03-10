@@ -29,6 +29,7 @@ export function useOrderData() {
   const [stockMap, setStockMap] = useState<Record<string, number>>({});
   const [usageSaving, setUsageSaving] = useState(false);
   const [usageSaved, setUsageSaved] = useState(false);
+  const [prevUsageMap, setPrevUsageMap] = useState<Record<string, number>>({});
 
   // 품목 편집 모달
   const [editModal, setEditModal] = useState<{
@@ -84,6 +85,22 @@ export function useOrderData() {
       .eq("store_id", storeId)
       .eq("date", selectedDate);
 
+    // 어제 사용량 로드 (참고값)
+    const yesterday = toDateString(addDays(parseDate(selectedDate), -1));
+    const { data: prevData } = await supabase
+      .from("sb_daily_usage")
+      .select("item_id, used_qty, remaining_stock")
+      .eq("store_id", storeId)
+      .eq("date", yesterday);
+
+    const prevUMap: Record<string, number> = {};
+    if (prevData) {
+      for (const row of prevData) {
+        prevUMap[row.item_id] = row.used_qty;
+      }
+    }
+    setPrevUsageMap(prevUMap);
+
     if (data && data.length > 0) {
       const uMap: Record<string, number> = {};
       const wMap: Record<string, number> = {};
@@ -98,13 +115,6 @@ export function useOrderData() {
       setStockMap(sMap);
       setUsageSaved(true);
     } else {
-      const yesterday = toDateString(addDays(parseDate(selectedDate), -1));
-      const { data: prevData } = await supabase
-        .from("sb_daily_usage")
-        .select("item_id, remaining_stock")
-        .eq("store_id", storeId)
-        .eq("date", yesterday);
-
       const sMap: Record<string, number> = {};
       if (prevData) {
         for (const row of prevData) {
@@ -468,7 +478,7 @@ export function useOrderData() {
   return {
     groups, items, loading, activeItems, itemsMap,
     selectedDate, setSelectedDate,
-    usageMap, setUsageMap, wasteMap, stockMap,
+    usageMap, setUsageMap, wasteMap, stockMap, prevUsageMap,
     usageSaving, usageSaved,
     editModal, setEditModal,
     recommendations, confirmedItems, confirmedList, recLoading,

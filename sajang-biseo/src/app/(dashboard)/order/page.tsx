@@ -73,11 +73,12 @@ export default function OrderPage() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [addingGroup, setAddingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
   const {
     groups, loading, activeItems, itemsMap,
     selectedDate, setSelectedDate,
-    usageMap, setUsageMap, wasteMap, stockMap,
+    usageMap, setUsageMap, wasteMap, stockMap, prevUsageMap,
     usageSaving, usageSaved, hasUsageData,
     editModal, setEditModal,
     confirmedItems, confirmedList, recLoading,
@@ -196,7 +197,7 @@ export default function OrderPage() {
                   </div>
                   <div className="divide-y divide-[var(--border-subtle)]">
                     {groupItems.map((item) => (
-                      <UsageStepper key={item.id} itemId={item.id} itemName={item.item_name} unit={item.unit} value={usageMap[item.id] ?? 0} remainingStock={stockMap[item.id]} onChange={handleUsageChange} />
+                      <UsageStepper key={item.id} itemId={item.id} itemName={item.item_name} unit={item.unit} value={usageMap[item.id] ?? 0} remainingStock={stockMap[item.id]} prevValue={prevUsageMap[item.id]} onChange={handleUsageChange} />
                     ))}
                   </div>
                 </div>
@@ -410,8 +411,11 @@ export default function OrderPage() {
                     items={items.filter((i) => i.group_id === group.id)}
                     onAddItem={(groupId) => setEditModal({ open: true, item: null, groupId })}
                     onEditItem={(item) => setEditModal({ open: true, item, groupId: item.group_id ?? "" })}
+                    onSaveItem={handleSaveItem}
                     onDeleteItem={handleDeleteItem}
                     onToggleItem={handleToggleItem}
+                    editingItemId={editingItemId}
+                    onSetEditingItemId={setEditingItemId}
                   />
                 ))}
                 <AddGroupInline

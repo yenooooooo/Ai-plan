@@ -21,8 +21,6 @@ export function TodayExpenses({ expenses, onChange }: TodayExpensesProps) {
   const [nameError, setNameError] = useState(false);
   const [amountError, setAmountError] = useState(false);
 
-  const total = expenses.reduce((s, e) => s + e.amount, 0);
-
   const handleAdd = () => {
     const amount = parseInt(newAmount, 10);
     const isNameEmpty = !newName.trim();
@@ -48,16 +46,7 @@ export function TodayExpenses({ expenses, onChange }: TodayExpensesProps) {
   };
 
   return (
-    <div className="glass-card p-5 space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-body-small font-medium text-[var(--text-secondary)]">오늘 지출</h3>
-        {total > 0 && (
-          <span className="text-body-small font-display text-[var(--fee-deducted)] tabular-nums">
-            -{formatCurrency(total, { showSymbol: false })}
-          </span>
-        )}
-      </div>
-
+    <div className="space-y-3">
       {/* 지출 목록 */}
       {expenses.length > 0 && (
         <div className="space-y-1.5">
@@ -81,50 +70,54 @@ export function TodayExpenses({ expenses, onChange }: TodayExpensesProps) {
         </div>
       )}
 
-      {/* 추가 입력 폼 */}
+      {/* 추가 입력 폼 — 모바일에서 세로 배치 */}
       <div
-        className={`flex items-center gap-2 ${shake ? "animate-shake" : ""}`}
+        className={shake ? "animate-shake" : ""}
         style={shake ? { animation: "shake 0.4s ease-in-out" } : {}}
       >
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => { setNewName(e.target.value); setNameError(false); }}
-          onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-          placeholder="지출 항목 (예: 삼겹살 추가구매)"
-          className={`flex-1 h-9 px-3 rounded-xl transition-colors
-            bg-[var(--bg-tertiary)] text-body-small text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]
-            focus:outline-none
-            ${nameError
-              ? "border-2 border-[var(--danger)]"
-              : "border border-[var(--border-default)] focus:border-primary-500"
-            }`}
-        />
-        <div className="flex items-center gap-1 shrink-0">
-          <span className="text-caption text-[var(--text-tertiary)]">₩</span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
             type="text"
-            inputMode="numeric"
-            value={newAmount}
-            onChange={(e) => { setNewAmount(e.target.value.replace(/[^0-9]/g, "")); setAmountError(false); }}
+            value={newName}
+            onChange={(e) => { setNewName(e.target.value); setNameError(false); }}
             onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            placeholder="금액"
-            className={`w-20 h-9 px-2 rounded-xl text-right transition-colors
-              bg-[var(--bg-tertiary)] text-body-small font-display text-[var(--text-primary)]
+            placeholder="지출 항목 (예: 삼겹살 추가구매)"
+            className={`w-full h-9 px-3 rounded-xl transition-colors
+              bg-[var(--bg-tertiary)] text-body-small text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]
               focus:outline-none
-              ${amountError
+              ${nameError
                 ? "border-2 border-[var(--danger)]"
                 : "border border-[var(--border-default)] focus:border-primary-500"
               }`}
           />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <span className="text-caption text-[var(--text-tertiary)]">₩</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={newAmount}
+                onChange={(e) => { setNewAmount(e.target.value.replace(/[^0-9]/g, "")); setAmountError(false); }}
+                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                placeholder="금액"
+                className={`w-full sm:w-24 h-9 px-2 rounded-xl text-right transition-colors
+                  bg-[var(--bg-tertiary)] text-body-small font-display text-[var(--text-primary)]
+                  focus:outline-none
+                  ${amountError
+                    ? "border-2 border-[var(--danger)]"
+                    : "border border-[var(--border-default)] focus:border-primary-500"
+                  }`}
+              />
+            </div>
+            <button
+              onClick={handleAdd}
+              className="h-9 w-9 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0
+                hover:bg-primary-600 active:scale-95 transition-all"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleAdd}
-          className="h-9 w-9 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0
-            hover:bg-primary-600 active:scale-95 transition-all"
-        >
-          <Plus size={16} />
-        </button>
       </div>
 
       {(nameError || amountError) && (
