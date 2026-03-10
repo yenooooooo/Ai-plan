@@ -84,15 +84,15 @@ export async function POST(req: NextRequest) {
       const candidate = codeBlockMatch?.[1]?.trim() ?? text;
       const jsonMatch = candidate.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        return NextResponse.json({ success: false, error: `파싱 실패: ${text.slice(0, 200)}` }, { status: 500 });
+        return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
       }
-      parsed = JSON.parse(jsonMatch[0]);
+      // JSON 문자열 내 실제 개행문자 → \n 이스케이프 처리
+      const sanitized = jsonMatch[0].replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match) =>
+        match.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t")
+      );
+      parsed = JSON.parse(sanitized);
     } catch {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      return NextResponse.json({
-        success: false,
-        error: `JSON 파싱 실패 (raw ${text.length}자): ${(jsonMatch?.[0] ?? text).slice(0, 200)}`,
-      }, { status: 500 });
+      return NextResponse.json({ success: false, error: "답글 JSON 파싱 실패" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, data: parsed });
