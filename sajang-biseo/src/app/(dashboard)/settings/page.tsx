@@ -14,6 +14,7 @@ import { AccountSection } from "@/components/settings/AccountSection";
 import { AppInfoSection } from "@/components/settings/AppInfoSection";
 import { TeamSection } from "@/components/settings/TeamSection";
 import { CouponSection } from "@/components/settings/CouponSection";
+import { NotificationSection } from "@/components/settings/NotificationSection";
 
 export default function SettingsPage() {
   const {
@@ -119,6 +120,8 @@ export default function SettingsPage() {
       <MonthlyGoalSection />
 
       <PresetsSection />
+
+      <NotificationSection />
 
       {/* #8 다크모드 토글 */}
       <ThemeSection />

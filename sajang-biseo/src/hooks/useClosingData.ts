@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { calculateFees, type ChannelSales, type CardFeeConfig } from "@/lib/fees/calculator";
 import { toDateString, parseDate, addDays, formatDateShort } from "@/lib/utils/date";
 import { useCountUp } from "@/hooks/useCountUp";
@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { usePresetsStore, DEFAULT_PRESETS, type Preset } from "@/stores/usePresetsStore";
 import type { ChannelRatio } from "@/components/closing/ChannelSlider";
+
+const DRAFT_KEY = "sajang-closing-draft";
 
 export type { ChannelRatio };
 export type { Preset } from "@/stores/usePresetsStore";
@@ -175,6 +177,53 @@ export function useClosingData() {
   const displayAmount = mode === "net" ? feeResult.netSales : totalSales;
   const animatedAmount = useCountUp(displayAmount);
 
+  // ── 오프라인: 임시저장 (localStorage) ──
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (saved || totalSales === 0) return;
+    clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          date: selectedDate, totalSales, channels, cardRatio,
+          memo, tags, todayExpenses, customFees, ts: Date.now(),
+        }));
+      } catch { /* quota exceeded 등 무시 */ }
+    }, 1000);
+    return () => clearTimeout(draftTimerRef.current);
+  }, [selectedDate, totalSales, channels, cardRatio, memo, tags, todayExpenses, customFees, saved]);
+
+  // 드래프트 복원 (DB 데이터 없을 때만)
+  const draftRestored = useRef(false);
+  useEffect(() => {
+    if (draftRestored.current || saved) return;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      // 같은 날짜 + 1시간 이내 드래프트만 복원
+      if (draft.date === selectedDate && Date.now() - draft.ts < 3600_000) {
+        setTotalSales(draft.totalSales);
+        setChannels(draft.channels);
+        setCardRatio(draft.cardRatio);
+        setMemo(draft.memo ?? "");
+        setTags(draft.tags ?? []);
+        setTodayExpenses(draft.todayExpenses ?? []);
+        setCustomFees(draft.customFees ?? []);
+        toast("이전에 작성 중이던 마감 데이터를 복원했습니다", "info");
+        draftRestored.current = true;
+      }
+    } catch { /* 파싱 실패 무시 */ }
+  }, [selectedDate, saved, toast]);
+
+  // 저장 성공 시 드래프트 삭제
+  useEffect(() => {
+    if (saved) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    }
+  }, [saved]);
+
   // ── 날짜 이동 ──
   function moveDate(days: number) {
     const d = parseDate(selectedDate);
@@ -263,7 +312,12 @@ export function useClosingData() {
       toast("마감이 저장되었습니다", "success");
     } catch (err) {
       console.error("마감 저장 실패:", err);
-      toast("마감 저장에 실패했습니다. 다시 시도해주세요.", "error");
+      // 오프라인이면 드래프트가 이미 localStorage에 있으므로 안내만
+      if (!navigator.onLine) {
+        toast("오프라인 상태입니다. 인터넷 연결 후 다시 저장해주세요.", "error");
+      } else {
+        toast("마감 저장에 실패했습니다. 다시 시도해주세요.", "error");
+      }
     } finally {
       setSaving(false);
     }

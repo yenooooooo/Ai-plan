@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { ImageIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
+import { StorageImage } from "./StorageImage";
 import type { Receipt } from "@/lib/supabase/types";
 
 interface ReceiptGalleryProps {
@@ -34,9 +35,8 @@ export function ReceiptGallery({ receipts, onItemClick }: ReceiptGalleryProps) {
           onClick={() => onItemClick(receipt)}
           className="relative aspect-square rounded-xl overflow-hidden bg-[var(--bg-tertiary)] press-effect group"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={receipt.image_url!}
+          <StorageImage
+            url={receipt.image_url!}
             alt={receipt.merchant_name}
             className="w-full h-full object-cover"
           />

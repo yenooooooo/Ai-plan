@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Save,
   BarChart3, Keyboard, BookmarkPlus, BookmarkCheck, Copy, CopyCheck,
-  LayoutGrid, CreditCard, Receipt, Tag, Wallet, Edit3,
+  LayoutGrid, CreditCard, Receipt, Tag, Wallet, Edit3, MessageSquare,
 } from "lucide-react";
 import { NumericKeypad } from "@/components/shared/NumericKeypad";
 import { ChannelSlider } from "@/components/closing/ChannelSlider";
@@ -21,6 +21,7 @@ import { ClosingExport } from "@/components/closing/ClosingExport";
 import { RecurringExpenses } from "@/components/closing/RecurringExpenses";
 import { ClosingAnalyticsTab } from "@/components/closing/ClosingAnalyticsTab";
 import { VoiceInput } from "@/components/closing/VoiceInput";
+import { ChatInput } from "@/components/closing/ChatInput";
 import { WeekdayInsight } from "@/components/closing/WeekdayInsight";
 import { MonthEndSummary } from "@/components/closing/MonthEndSummary";
 import { useUnsavedGuard } from "@/hooks/useUnsavedGuard";
@@ -64,6 +65,7 @@ export default function ClosingPage() {
   const setTab = setClosingTab;
   const [reportCopied, setReportCopied] = useState(false);
   const [showMonthSummary, setShowMonthSummary] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   // 미저장 경고
   const isDirty = !saved && (totalSales > 0 || memo !== "" || tags.length > 0 || todayExpenses.length > 0);
@@ -195,9 +197,23 @@ export default function ClosingPage() {
               )}
             </div>
 
-            {/* 키패드 + 음성 입력 */}
+            {/* 키패드 + 음성/대화 입력 */}
             <NumericKeypad value={totalSales} onChange={setTotalSales} />
-            <VoiceInput onResult={setTotalSales} />
+            <div className="flex gap-2">
+              <VoiceInput onResult={setTotalSales} />
+              <button onClick={() => setShowChat((v) => !v)}
+                className={`h-10 px-4 rounded-xl text-body-small font-medium flex items-center gap-2 press-effect transition-all ${showChat ? "bg-primary-500/10 text-primary-500 border border-primary-500/30" : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-transparent hover:text-primary-500"}`}>
+                <MessageSquare size={16} />대화 입력
+              </button>
+            </div>
+            {showChat && (
+              <ChatInput onApply={({ totalSales: sales, channels: chs, memo: m }) => {
+                setTotalSales(sales);
+                if (chs.length > 0) { setChannels(chs); setActivePreset(null); }
+                if (m) setMemo(m);
+                setShowChat(false);
+              }} />
+            )}
 
             {/* ── 아코디언 섹션들 ── */}
 

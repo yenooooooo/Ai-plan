@@ -19,6 +19,7 @@ import { SummaryCards } from "@/components/receipt/SummaryCards";
 import { ReceiptGallery } from "@/components/receipt/ReceiptGallery";
 import { MonthlyExpenseReport } from "@/components/receipt/MonthlyExpenseReport";
 import CategoryBudget from "@/components/receipt/CategoryBudget";
+import { ReceiptExport } from "@/components/receipt/ReceiptExport";
 import { useReceiptData } from "@/hooks/useReceiptData";
 import { useToast } from "@/stores/useToast";
 import { receiptsToCsv, downloadCsv } from "@/lib/receipt/csvExport";
@@ -291,6 +292,7 @@ export default function ReceiptPage() {
             {/* 월별 경비 리포트 & 예산 */}
             <MonthlyExpenseReport receipts={receipts} categories={categories} />
             <CategoryBudget receipts={receipts} categories={categories} />
+            <ReceiptExport receipts={receipts} categories={categories} dateFrom={filter.dateFrom} dateTo={filter.dateTo} />
           </motion.div>
         )}
 

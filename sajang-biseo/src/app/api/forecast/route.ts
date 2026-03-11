@@ -67,7 +67,11 @@ export async function POST(req: NextRequest) {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return NextResponse.json({ error: "예측 결과 파싱 실패" }, { status: 500 });
 
-    return NextResponse.json({ success: true, data: JSON.parse(jsonMatch[0]) });
+    try {
+      return NextResponse.json({ success: true, data: JSON.parse(jsonMatch[0]) });
+    } catch {
+      return NextResponse.json({ error: "JSON 파싱 실패" }, { status: 500 });
+    }
   } catch (err) {
     console.error("Forecast error:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });

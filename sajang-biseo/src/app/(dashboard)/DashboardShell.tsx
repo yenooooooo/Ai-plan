@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ScrollToTop } from "@/components/shared/ScrollToTop";
 import { ToastContainer } from "@/components/shared/ToastContainer";
 import { IOSInstallPrompt } from "@/components/shared/IOSInstallPrompt";
+import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { createClient } from "@/lib/supabase/client";
 
@@ -65,6 +66,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* iOS 홈 화면 추가 안내 */}
       <IOSInstallPrompt />
+
+      {/* 오프라인 표시 */}
+      <OfflineIndicator />
     </div>
   );
 }

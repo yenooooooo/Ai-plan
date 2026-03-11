@@ -94,10 +94,12 @@ export function useReceiptData() {
       query = query.in("payment_method", filter.paymentMethods as ("카드" | "현금" | "이체")[]);
     }
     if (filter.amountMin) {
-      query = query.gte("total_amount", parseInt(filter.amountMin));
+      const min = parseInt(filter.amountMin, 10);
+      if (!isNaN(min)) query = query.gte("total_amount", min);
     }
     if (filter.amountMax) {
-      query = query.lte("total_amount", parseInt(filter.amountMax));
+      const max = parseInt(filter.amountMax, 10);
+      if (!isNaN(max)) query = query.lte("total_amount", max);
     }
 
     const { data, error: queryError } = await query;
