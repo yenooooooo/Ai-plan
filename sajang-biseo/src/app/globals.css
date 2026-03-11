@@ -304,6 +304,16 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  /* BottomNav 위 고정 요소용 */
+  .bottom-above-nav {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 1024px) {
+    .bottom-above-nav {
+      bottom: 0;
+    }
+  }
+
   /* ── 스크롤바 숨기기 (모바일) ── */
   .scrollbar-hide {
     -ms-overflow-style: none;
