@@ -38,7 +38,7 @@ export function IOSInstallPrompt() {
   };
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300 lg:hidden">
+    <div className="fixed bottom-[5.5rem] left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300 lg:hidden">
       <div className="bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-2xl p-4 shadow-xl">
         <button
           onClick={dismiss}

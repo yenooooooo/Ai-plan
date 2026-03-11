@@ -25,7 +25,7 @@ export function ReceiptGallery({ receipts, onItemClick }: ReceiptGalleryProps) {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
       {withImages.map((receipt, i) => (
         <motion.button
           key={receipt.id}

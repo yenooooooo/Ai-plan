@@ -80,7 +80,7 @@ export function MultiStoreCompare() {
               <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                 <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
               </div>
-              <div className="flex justify-between text-[11px] text-[var(--text-tertiary)]">
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[var(--text-tertiary)]">
                 <span>매출 {s.totalSales.toLocaleString()}원</span>
                 <span>수수료 {s.totalFees.toLocaleString()}원</span>
                 <span>순매출 {s.netSales.toLocaleString()}원</span>

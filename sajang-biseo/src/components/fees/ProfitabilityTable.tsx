@@ -36,7 +36,8 @@ export function ProfitabilityTable({ data, prevData = [] }: ProfitabilityTablePr
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-1 text-[11px] text-[var(--text-tertiary)] font-medium px-1">
+      <div className="overflow-x-auto -mx-5 px-5">
+      <div className="grid grid-cols-5 gap-1 text-[11px] text-[var(--text-tertiary)] font-medium px-1 min-w-[340px]">
         <span>채널</span>
         <span className="text-right">매출</span>
         <span className="text-right">수수료</span>
@@ -53,14 +54,14 @@ export function ProfitabilityTable({ data, prevData = [] }: ProfitabilityTablePr
           return (
             <motion.div key={ch.channel} initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              className={`px-2 py-2.5 rounded-xl ${
+              className={`px-2 py-2.5 rounded-xl min-w-[340px] ${
                 isBest ? "bg-success/10 border border-success/20" : "bg-[var(--bg-tertiary)]"
               }`}
             >
               <div className="grid grid-cols-5 gap-1 items-center">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 min-w-0">
                   {isBest && <Trophy size={11} className="text-success flex-shrink-0" />}
-                  <span className={`text-caption font-medium ${isBest ? "text-success" : "text-[var(--text-primary)]"}`}>
+                  <span className={`text-caption font-medium truncate ${isBest ? "text-success" : "text-[var(--text-primary)]"}`}>
                     {ch.channel}
                   </span>
                 </div>
@@ -91,6 +92,7 @@ export function ProfitabilityTable({ data, prevData = [] }: ProfitabilityTablePr
             </motion.div>
           );
         })}
+      </div>
       </div>
     </div>
   );

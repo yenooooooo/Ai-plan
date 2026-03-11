@@ -71,7 +71,7 @@ export function StoreSwitcher() {
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-56 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-lg z-50 overflow-hidden">
+        <div className="absolute top-full left-0 mt-1 w-52 sm:w-56 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-xl shadow-lg z-50 overflow-hidden">
           {stores.map((s) => (
             <button key={s.id} onClick={() => switchStore(s)}
               className={`w-full px-3 py-2.5 text-left text-body-small hover:bg-[var(--bg-tertiary)] transition-colors ${s.id === storeId ? "bg-primary-500/10 text-primary-500 font-medium" : "text-[var(--text-primary)]"}`}>

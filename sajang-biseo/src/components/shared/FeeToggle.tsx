@@ -7,7 +7,7 @@ export function FeeToggle() {
   const { mode, setMode } = useFeeToggle();
 
   return (
-    <div className="relative flex h-9 w-[180px] rounded-xl bg-[var(--bg-tertiary)] p-0.5">
+    <div className="relative flex h-9 w-[140px] sm:w-[180px] rounded-xl bg-[var(--bg-tertiary)] p-0.5">
       {/* 슬라이딩 배경 */}
       <motion.div
         className={`absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-[10px] ${
