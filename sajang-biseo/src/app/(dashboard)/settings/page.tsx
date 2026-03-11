@@ -13,6 +13,7 @@ import { ThemeSection } from "@/components/settings/ThemeSection";
 import { AccountSection } from "@/components/settings/AccountSection";
 import { AppInfoSection } from "@/components/settings/AppInfoSection";
 import { TeamSection } from "@/components/settings/TeamSection";
+import { CouponSection } from "@/components/settings/CouponSection";
 
 export default function SettingsPage() {
   const {
@@ -123,6 +124,8 @@ export default function SettingsPage() {
       <ThemeSection />
 
       <TeamSection />
+
+      <CouponSection />
 
       <AccountSection email={email} onLogout={logout} />
 

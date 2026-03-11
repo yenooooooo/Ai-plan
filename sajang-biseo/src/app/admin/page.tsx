@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, Users, Bell } from "lucide-react";
+import { BarChart3, Users, Bell, Ticket } from "lucide-react";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminNotices } from "@/components/admin/AdminNotices";
+import { AdminCoupons } from "@/components/admin/AdminCoupons";
 
-type Tab = "dashboard" | "users" | "notices";
+type Tab = "dashboard" | "users" | "notices" | "coupons";
 const TABS: { key: Tab; label: string; icon: typeof BarChart3 }[] = [
   { key: "dashboard", label: "대시보드", icon: BarChart3 },
   { key: "users", label: "사용자", icon: Users },
   { key: "notices", label: "공지사항", icon: Bell },
+  { key: "coupons", label: "쿠폰", icon: Ticket },
 ];
 
 export default function AdminPage() {
@@ -33,6 +35,7 @@ export default function AdminPage() {
       {tab === "dashboard" && <AdminDashboard />}
       {tab === "users" && <AdminUsers />}
       {tab === "notices" && <AdminNotices />}
+      {tab === "coupons" && <AdminCoupons />}
     </div>
   );
 }

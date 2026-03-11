@@ -25,6 +25,7 @@ export interface Database {
           agreed_terms: boolean;
           onboarding_complete: boolean;
           plan: "free" | "pro" | "pro_plus";
+          plan_expires_at: string | null;
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
@@ -36,6 +37,7 @@ export interface Database {
           agreed_terms?: boolean;
           onboarding_complete?: boolean;
           plan?: "free" | "pro" | "pro_plus";
+          plan_expires_at?: string | null;
           created_at?: string;
           updated_at?: string;
           deleted_at?: string | null;
@@ -47,6 +49,7 @@ export interface Database {
           agreed_terms?: boolean;
           onboarding_complete?: boolean;
           plan?: "free" | "pro" | "pro_plus";
+          plan_expires_at?: string | null;
           updated_at?: string;
           deleted_at?: string | null;
         };
@@ -775,6 +778,65 @@ export interface Database {
           email?: string;
           role?: "viewer" | "editor";
           accepted_at?: string | null;
+        };
+        Relationships: [];
+      };
+
+      sb_coupons: {
+        Row: {
+          id: string;
+          code: string;
+          plan: "pro" | "pro_plus";
+          duration_days: number;
+          max_uses: number;
+          used_count: number;
+          is_active: boolean;
+          expires_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          plan: "pro" | "pro_plus";
+          duration_days: number;
+          max_uses?: number;
+          used_count?: number;
+          is_active?: boolean;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          plan?: "pro" | "pro_plus";
+          duration_days?: number;
+          max_uses?: number;
+          used_count?: number;
+          is_active?: boolean;
+          expires_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      sb_coupon_uses: {
+        Row: {
+          id: string;
+          coupon_id: string;
+          user_id: string;
+          used_at: string;
+          plan_expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          coupon_id: string;
+          user_id: string;
+          used_at?: string;
+          plan_expires_at: string;
+        };
+        Update: {
+          plan_expires_at?: string;
         };
         Relationships: [];
       };

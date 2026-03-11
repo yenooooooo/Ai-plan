@@ -9,15 +9,28 @@ function getCurrentMonth(): string {
   return new Date().toISOString().slice(0, 7); // "2026-03"
 }
 
-/** 사용자 플랜 조회 */
+/** 사용자 플랜 조회 (쿠폰 만료 자동 처리 포함) */
 export async function getUserPlan(userId: string): Promise<string> {
   const sb = createAdminClient();
   const { data } = await sb
     .from("sb_user_profiles")
-    .select("plan")
+    .select("plan, plan_expires_at")
     .eq("id", userId)
     .single();
-  return (data as { plan?: string } | null)?.plan ?? "free";
+
+  if (!data) return "free";
+
+  const row = data as { plan?: string; plan_expires_at?: string | null };
+
+  // 쿠폰 플랜 만료 체크
+  if (row.plan_expires_at && new Date(row.plan_expires_at) < new Date()) {
+    await sb.from("sb_user_profiles")
+      .update({ plan: "free", plan_expires_at: null })
+      .eq("id", userId);
+    return "free";
+  }
+
+  return row.plan ?? "free";
 }
 
 /** 현재 월 사용량 조회 */
