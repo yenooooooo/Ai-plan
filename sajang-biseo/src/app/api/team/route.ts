@@ -14,7 +14,7 @@ async function verifyStoreOwner(supabase: Awaited<ReturnType<typeof createServer
     .from("sb_stores")
     .select("id")
     .eq("id", storeId)
-    .eq("owner_id", userId)
+    .eq("user_id", userId)
     .maybeSingle();
   return !!data;
 }

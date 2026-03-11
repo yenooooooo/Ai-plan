@@ -9,16 +9,21 @@ export async function signUp(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sajangbiseo.com";
+
   const { error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: `${siteUrl}/auth/confirm?next=/onboarding`,
+    },
   });
 
   if (error) {
     return { error: error.message };
   }
 
-  redirect("/onboarding");
+  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
 }
 
 export async function signIn(formData: FormData) {
@@ -69,8 +74,10 @@ export async function resetPassword(formData: FormData) {
 
   if (!email) return { error: "이메일을 입력해주세요." };
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sajangbiseo.com";
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "https://sajangbiseo.com"}/reset-password/confirm`,
+    redirectTo: `${siteUrl}/auth/confirm?next=/reset-password/confirm`,
   });
 
   if (error) return { error: error.message };

@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/expire-plans?secret=cron_sajang_mvp_2024_s3cr3t",
+      "path": "/api/cron/expire-plans",
       "schedule": "0 15 * * *"
     }
   ]

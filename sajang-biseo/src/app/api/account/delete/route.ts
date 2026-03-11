@@ -25,7 +25,7 @@ export async function DELETE() {
     const { data: stores } = await admin
       .from("sb_stores")
       .select("id")
-      .eq("owner_id", userId);
+      .eq("user_id", userId);
 
     if (stores && stores.length > 0) {
       const storeIds = stores.map((s) => s.id);
