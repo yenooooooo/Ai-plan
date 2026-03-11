@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, Trash2, Edit3, Check, ChevronDown } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/format";
 import { CATEGORY_COLORS } from "@/lib/receipt/categories";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { createClient } from "@/lib/supabase/client";
 import type { Receipt, ReceiptCategory } from "@/lib/supabase/types";
 
 interface ReceiptDetailModalProps {
@@ -50,6 +51,17 @@ export function ReceiptDetailModal({
 
   const confidenceLevel = receipt.ocr_confidence >= 0.8 ? "높음" : receipt.ocr_confidence >= 0.5 ? "보통" : "낮음";
   const confidenceDots = receipt.ocr_confidence >= 0.8 ? 3 : receipt.ocr_confidence >= 0.5 ? 2 : 1;
+
+  // Supabase Storage signed URL로 이미지 로드
+  const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!receipt.image_url) return;
+    const match = receipt.image_url.match(/\/sajang-receipts\/(.+)$/);
+    if (!match) return;
+    const supabase = createClient();
+    supabase.storage.from("sajang-receipts").createSignedUrl(match[1], 3600)
+      .then(({ data }) => { if (data?.signedUrl) setSignedImageUrl(data.signedUrl); });
+  }, [receipt.image_url]);
 
   function handleSaveEdit() {
     if (!onUpdate || !editMerchant.trim() || !editAmount) return;
@@ -101,10 +113,10 @@ export function ReceiptDetailModal({
         </div>
 
         {/* 영수증 이미지 */}
-        {receipt.image_url && (
+        {receipt.image_url && signedImageUrl && (
           <div className="h-48 rounded-xl overflow-hidden bg-[var(--bg-tertiary)] mb-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={receipt.image_url} alt="영수증" className="w-full h-full object-contain" />
+            <img src={signedImageUrl} alt="영수증" className="w-full h-full object-contain" />
           </div>
         )}
 

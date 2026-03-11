@@ -101,7 +101,6 @@ export function useReceiptData() {
     }
 
     const { data, error: queryError } = await query;
-    console.log("[loadReceipts]", { storeId, dateFrom: filter.dateFrom, dateTo: filter.dateTo, rows: data?.length ?? 0, error: queryError });
     if (queryError) {
       setError("영수증 데이터를 불러오지 못했습니다");
       toast("영수증 데이터를 불러오지 못했습니다", "error");
@@ -164,7 +163,6 @@ export function useReceiptData() {
         image_url: data.imageUrl,
         ocr_confidence: data.confidence,
       });
-      console.log("[saveReceipt]", { storeId, insertErr, date: data.date });
       if (insertErr) { console.error("영수증 저장 실패:", insertErr); return; }
 
       await loadReceipts();
