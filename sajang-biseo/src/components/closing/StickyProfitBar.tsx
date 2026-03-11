@@ -24,7 +24,7 @@ export function StickyProfitBar({ totalSales, totalFees, totalExpenses }: Sticky
   return (
     <div className="fixed bottom-above-nav left-0 right-0 z-30 pointer-events-none">
       <div className="max-w-screen-lg mx-auto px-4 pb-2 pointer-events-auto">
-        <div className="bg-[var(--bg-elevated)]/95 backdrop-blur-md border border-[var(--border-default)] rounded-2xl px-4 py-2.5 shadow-lg flex items-center justify-between">
+        <div className="bg-[var(--bg-elevated)] backdrop-blur-md border border-[var(--border-default)] rounded-2xl px-4 py-2.5 shadow-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div>
               <p className="text-[10px] text-[var(--text-tertiary)]">매출</p>
