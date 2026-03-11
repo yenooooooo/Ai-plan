@@ -40,6 +40,7 @@ export default function ReceiptPage() {
     deleteReceipt,
     hasMore,
     loadMore,
+    reload,
   } = useReceiptData();
   const toast = useToast((s) => s.show);
 
@@ -122,7 +123,9 @@ export default function ReceiptPage() {
     confidence: number;
   }) {
     await saveReceipt({ ...data, imageUrl: capturedImageUrl! });
+    toast("영수증이 저장되었습니다", "success");
     resetCapture();
+    await reload();
   }
 
   function resetCapture() {
