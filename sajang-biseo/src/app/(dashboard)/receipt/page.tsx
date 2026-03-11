@@ -40,7 +40,6 @@ export default function ReceiptPage() {
     deleteReceipt,
     hasMore,
     loadMore,
-    reload,
   } = useReceiptData();
   const toast = useToast((s) => s.show);
 
