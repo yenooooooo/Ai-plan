@@ -79,7 +79,7 @@ export function OcrResultCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-card p-5 space-y-4"
+      className="glass-card p-5 space-y-4 overflow-hidden"
     >
       <h3 className="text-heading-md text-[var(--text-primary)]">인식 결과</h3>
 
