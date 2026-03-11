@@ -50,6 +50,7 @@ export default function ReceiptPage() {
 
   // 촬영 플로우
   const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [ocrData, setOcrData] = useState<{
     date: string | null;
     merchantName: string | null;
@@ -63,8 +64,10 @@ export default function ReceiptPage() {
   const [ocrLoading, setOcrLoading] = useState(false);
 
   // 이미지 촬영 완료 → OCR 호출
-  async function handleCaptured(imageUrl: string) {
-    setCapturedImageUrl(imageUrl);
+  async function handleCaptured(storageUrl: string, previewUrl: string) {
+    setCapturedImageUrl(storageUrl);
+    setPreviewImageUrl(previewUrl);
+    const imageUrl = storageUrl;
     setOcrLoading(true);
 
     try {
@@ -124,6 +127,7 @@ export default function ReceiptPage() {
 
   function resetCapture() {
     setCapturedImageUrl(null);
+    setPreviewImageUrl(null);
     setOcrData(null);
     setTab("list");
   }
@@ -298,7 +302,7 @@ export default function ReceiptPage() {
             {ocrData && capturedImageUrl && (
               <OcrResultCard
                 data={ocrData}
-                imageUrl={capturedImageUrl}
+                imageUrl={previewImageUrl ?? capturedImageUrl}
                 categories={categories}
                 onSave={handleOcrSave}
                 onSkip={resetCapture}

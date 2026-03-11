@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 
 interface ReceiptCaptureProps {
-  onCaptured: (imageUrl: string) => void;
+  onCaptured: (storageUrl: string, previewUrl: string) => void;
 }
 
 export function ReceiptCapture({ onCaptured }: ReceiptCaptureProps) {
@@ -50,7 +50,8 @@ export function ReceiptCapture({ onCaptured }: ReceiptCaptureProps) {
         .from("sajang-receipts")
         .getPublicUrl(path);
 
-      onCaptured(urlData.publicUrl);
+      const previewUrl = URL.createObjectURL(resized);
+      onCaptured(urlData.publicUrl, previewUrl);
     } catch {
       setError("이미지 처리에 실패했습니다");
     } finally {
