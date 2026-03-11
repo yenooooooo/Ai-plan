@@ -56,9 +56,8 @@ export function UsageChart({ data, itemName, unit }: UsageChartProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="h-[200px]"
       >
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={200} minWidth={0}>
           <LineChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <CartesianGrid
               strokeDasharray="3 3"

@@ -81,9 +81,8 @@ export function SalesChart({ data, mode = "daily", onModeChange }: SalesChartPro
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="h-[200px]"
       >
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={200} minWidth={0}>
           <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <CartesianGrid
               strokeDasharray="3 3"
