@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getUserPlan } from "@/lib/usage";
+import { getPlanLimits } from "@/lib/plan";
 import type {
   SalesSummaryData,
   FeeSummaryData,
@@ -6,6 +9,8 @@ import type {
   IngredientEfficiencyData,
   CustomerReputationData,
 } from "@/lib/briefing/types";
+
+export const dynamic = "force-dynamic";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -62,6 +67,22 @@ actions는 2~3개, goals는 3개로 제한하세요. 한국어로 작성하세�
 
 export async function POST(request: Request) {
   try {
+    // 인증 확인
+    const supabase = createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: "인증 필요" }, { status: 401 });
+    }
+
+    // 플랜 확인 (Pro 이상)
+    const plan = await getUserPlan(user.id);
+    if (!getPlanLimits(plan).aiCoaching) {
+      return NextResponse.json(
+        { success: false, error: "AI 코칭은 Pro 플랜부터 사용 가능합니다.", limitReached: true },
+        { status: 429 }
+      );
+    }
+
     const body = (await request.json()) as RequestBody;
 
     if (!ANTHROPIC_API_KEY) {

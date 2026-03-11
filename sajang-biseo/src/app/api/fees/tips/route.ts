@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient as createClient } from "@/lib/supabase/server";
+import { getUserPlan } from "@/lib/usage";
+import { getPlanLimits } from "@/lib/plan";
+
+export const dynamic = "force-dynamic";
 
 interface TipsRequest {
   profitability: { channel: string; totalSales: number; totalFees: number; feeRate: number }[];
@@ -14,6 +18,15 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ success: false, error: "인증 필요" }, { status: 401 });
+    }
+
+    // 플랜 확인 (Pro 이상)
+    const plan = await getUserPlan(user.id);
+    if (!getPlanLimits(plan).aiCoaching) {
+      return NextResponse.json(
+        { success: false, error: "AI 수수료 분석은 Pro 플랜부터 사용 가능합니다.", limitReached: true },
+        { status: 429 }
+      );
     }
 
     const body = (await request.json()) as TipsRequest;

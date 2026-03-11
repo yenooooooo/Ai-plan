@@ -8,15 +8,30 @@ import { getPlanLimits } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
 
+/** 요청한 유저가 해당 storeId의 소유자인지 확인 */
+async function verifyStoreOwner(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string, storeId: string) {
+  const { data } = await supabase
+    .from("sb_stores")
+    .select("id")
+    .eq("id", storeId)
+    .eq("owner_id", userId)
+    .maybeSingle();
+  return !!data;
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
     const storeId = searchParams.get("storeId");
     if (!storeId) return NextResponse.json({ error: "매장 ID 필요" }, { status: 400 });
+
+    // 매장 소유권 확인
+    const isOwner = await verifyStoreOwner(supabase, user.id, storeId);
+    if (!isOwner) return NextResponse.json({ error: "권한 없음" }, { status: 403 });
 
     const sb = createAdminClient();
     const { data, error } = await sb.from("sb_team_members")
@@ -31,7 +46,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
@@ -48,8 +63,11 @@ export async function POST(req: NextRequest) {
     const { storeId, email, role } = body;
     if (!storeId || !email) return NextResponse.json({ error: "매장 ID, 이메일 필요" }, { status: 400 });
 
+    // 매장 소유권 확인
+    const isOwner = await verifyStoreOwner(supabase, user.id, storeId);
+    if (!isOwner) return NextResponse.json({ error: "권한 없음" }, { status: 403 });
+
     const sb = createAdminClient();
-    // 현재 팀원 수 확인
     const { count } = await sb.from("sb_team_members")
       .select("id", { count: "exact", head: true })
       .eq("store_id", storeId);
@@ -80,7 +98,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "인증 필요" }, { status: 401 });
 
@@ -89,6 +107,15 @@ export async function DELETE(req: NextRequest) {
     if (!id) return NextResponse.json({ error: "ID 필요" }, { status: 400 });
 
     const sb = createAdminClient();
+
+    // 삭제 전 팀원이 본인 매장 소속인지 확인
+    const { data: member } = await sb.from("sb_team_members")
+      .select("store_id").eq("id", id).maybeSingle();
+    if (!member) return NextResponse.json({ error: "팀원 없음" }, { status: 404 });
+
+    const isOwner = await verifyStoreOwner(supabase, user.id, member.store_id);
+    if (!isOwner) return NextResponse.json({ error: "권한 없음" }, { status: 403 });
+
     const { error } = await sb.from("sb_team_members").delete().eq("id", id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
