@@ -63,6 +63,7 @@ export default function ReceiptPage() {
     confidence: number;
   } | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
 
   // 이미지 촬영 완료 → OCR 호출
   async function handleCaptured(storageUrl: string, previewUrl: string) {
@@ -70,6 +71,7 @@ export default function ReceiptPage() {
     setPreviewImageUrl(previewUrl);
     const imageUrl = storageUrl;
     setOcrLoading(true);
+    setLimitReached(false);
 
     try {
       const form = new FormData();
@@ -80,6 +82,8 @@ export default function ReceiptPage() {
 
       if (json.success && json.data) {
         setOcrData(json.data);
+      } else if (json.limitReached) {
+        setLimitReached(true);
       } else {
         toast(json.error || "영수증 인식에 실패했습니다. 직접 입력해주세요.", "error");
         setOcrData({
@@ -132,6 +136,7 @@ export default function ReceiptPage() {
     setCapturedImageUrl(null);
     setPreviewImageUrl(null);
     setOcrData(null);
+    setLimitReached(false);
     setTab("list");
   }
 
@@ -289,7 +294,7 @@ export default function ReceiptPage() {
             transition={{ duration: 0.2 }}
             className="space-y-4"
           >
-            {!capturedImageUrl && !ocrData && (
+            {!capturedImageUrl && !ocrData && !limitReached && (
               <ReceiptCapture onCaptured={handleCaptured} />
             )}
 
@@ -299,6 +304,35 @@ export default function ReceiptPage() {
                 <p className="text-body-small text-[var(--text-secondary)]">
                   AI가 영수증을 분석 중입니다...
                 </p>
+              </div>
+            )}
+
+            {limitReached && (
+              <div className="glass-card p-6 flex flex-col items-center gap-3 text-center">
+                <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center text-2xl">
+                  ⚡
+                </div>
+                <h3 className="text-heading-md text-[var(--text-primary)]">
+                  이번 달 무료 인식 횟수를 모두 사용했어요
+                </h3>
+                <p className="text-body-small text-[var(--text-secondary)]">
+                  무료 플랜은 월 5회까지 영수증 인식이 가능합니다.<br />
+                  Pro 플랜으로 업그레이드하면 월 100회까지 사용할 수 있어요.
+                </p>
+                <div className="flex gap-2 w-full mt-1">
+                  <button
+                    onClick={resetCapture}
+                    className="flex-1 py-3 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-body-small font-medium press-effect"
+                  >
+                    돌아가기
+                  </button>
+                  <button
+                    onClick={() => { window.location.href = "/settings"; }}
+                    className="flex-1 py-3 rounded-xl bg-primary-500 text-white text-body-small font-medium press-effect"
+                  >
+                    플랜 업그레이드
+                  </button>
+                </div>
               </div>
             )}
 
