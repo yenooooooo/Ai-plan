@@ -128,8 +128,19 @@ export default function ReceiptPage() {
   }) {
     await saveReceipt({ ...data, imageUrl: capturedImageUrl! });
     toast("영수증이 저장되었습니다", "success");
+
+    // 저장된 영수증 날짜가 현재 필터 범위 밖이면 해당 월로 필터 이동
+    const savedDate = data.date;
+    const savedMonth = savedDate.slice(0, 7); // "2020-09"
+    const filterMonth = filter.dateFrom.slice(0, 7); // "2026-03"
+    if (savedMonth !== filterMonth) {
+      const monthStart = `${savedMonth}-01`;
+      const lastDay = new Date(parseInt(savedMonth.slice(0, 4)), parseInt(savedMonth.slice(5, 7)), 0).getDate();
+      const monthEnd = `${savedMonth}-${String(lastDay).padStart(2, "0")}`;
+      setFilter((prev) => ({ ...prev, dateFrom: monthStart, dateTo: monthEnd }));
+    }
+
     resetCapture();
-    await reload();
   }
 
   function resetCapture() {
