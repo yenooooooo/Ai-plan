@@ -343,6 +343,15 @@ export default function ClosingPage() {
               </motion.button>
             )}
 
+            {/* 순이익 요약 바 (저장 버튼 아래) */}
+            {!saved && totalSales > 0 && (
+              <StickyProfitBar
+                totalSales={totalSales}
+                totalFees={totalFeesAll}
+                totalExpenses={totalExp}
+              />
+            )}
+
             {saved && (
               <>
                 <WeekdayInsight
@@ -398,15 +407,6 @@ export default function ClosingPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Sticky 순이익 바 (매출 입력 시) */}
-      {tab === "input" && !saved && (
-        <StickyProfitBar
-          totalSales={totalSales}
-          totalFees={totalFeesAll}
-          totalExpenses={totalExp}
-        />
-      )}
 
       {/* 월간 요약 팝업 */}
       {showMonthSummary && (

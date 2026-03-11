@@ -22,8 +22,8 @@ export function StickyProfitBar({ totalSales, totalFees, totalExpenses }: Sticky
   const profitRate = Math.round((profit / totalSales) * 1000) / 10;
 
   return (
-    <div className="fixed bottom-above-nav left-0 right-0 z-30 pointer-events-none">
-      <div className="max-w-screen-lg mx-auto px-4 pb-2 pointer-events-auto">
+    <div className="lg:fixed lg:bottom-0 lg:left-0 lg:right-0 lg:z-30 lg:pointer-events-none">
+      <div className="lg:max-w-screen-lg lg:mx-auto lg:px-4 lg:pb-2 lg:pointer-events-auto">
         <div className="bg-[var(--bg-elevated)] backdrop-blur-md border border-[var(--border-default)] rounded-2xl px-4 py-2.5 shadow-lg flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div>
