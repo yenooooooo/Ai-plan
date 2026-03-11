@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient as createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { checkUsageLimit, incrementUsage } from "@/lib/usage";
 
 interface OcrResult {
@@ -49,6 +50,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Supabase Storage에서 이미지를 직접 다운로드 → base64 변환
+    const pathMatch = imageUrl.match(/\/sajang-receipts\/(.+)$/);
+    if (!pathMatch) {
+      return NextResponse.json({ success: false, error: "이미지 경로 오류" }, { status: 400 });
+    }
+    const filePath = pathMatch[1];
+    const adminSb = createAdminClient();
+    const { data: fileBlob, error: dlError } = await adminSb.storage
+      .from("sajang-receipts")
+      .download(filePath);
+    if (dlError || !fileBlob) {
+      return NextResponse.json({ success: false, error: "이미지 다운로드 실패" }, { status: 500 });
+    }
+    const arrayBuffer = await fileBlob.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+
     // Claude Vision API 호출
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -66,7 +83,7 @@ export async function POST(req: NextRequest) {
             content: [
               {
                 type: "image",
-                source: { type: "url", url: imageUrl },
+                source: { type: "base64", media_type: "image/jpeg", data: base64 },
               },
               {
                 type: "text",
