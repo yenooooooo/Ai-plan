@@ -48,6 +48,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "사장님비서",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
   openGraph: {
     title: "사장님비서 — AI 매장 운영 비서",
     description: "매일 밤 1시간 걸리던 마감 업무를 5분으로. 외식업 사장님을 위한 올인원 AI 운영 비서.",
