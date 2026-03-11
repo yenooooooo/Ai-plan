@@ -145,7 +145,7 @@ export default function ClosingPage() {
 
       <AnimatePresence mode="wait">
         {tab === "input" ? (
-          <motion.div key="input" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-3 pb-28">
+          <motion.div key="input" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-3 pb-20">
             {/* 날짜 선택 */}
             <div className="flex items-center justify-center gap-4">
               <button onClick={() => moveDate(-1)} className="p-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
