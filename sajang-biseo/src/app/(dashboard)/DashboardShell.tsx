@@ -8,6 +8,7 @@ import { ScrollToTop } from "@/components/shared/ScrollToTop";
 import { ToastContainer } from "@/components/shared/ToastContainer";
 import { IOSInstallPrompt } from "@/components/shared/IOSInstallPrompt";
 import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
+import { PullToRefresh } from "@/components/shared/PullToRefresh";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { createClient } from "@/lib/supabase/client";
 
@@ -51,7 +52,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* 콘텐츠 */}
         <main className="flex-1 px-4 py-5 pb-24 lg:pb-5 max-w-screen-lg mx-auto w-full">
-          {children}
+          <PullToRefresh>{children}</PullToRefresh>
         </main>
 
         {/* 모바일: 하단 네비 */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info, Download, ExternalLink, MessageCircle } from "lucide-react";
+import { Info, Download, ExternalLink, MessageCircle, RefreshCw } from "lucide-react";
 
 interface AppInfoSectionProps {
   onExportData: () => Promise<void>;
@@ -59,6 +59,18 @@ export function AppInfoSection({ onExportData }: AppInfoSectionProps) {
       >
         <Download size={15} />
         {exporting ? "내보내는 중..." : "매출 데이터 CSV 내보내기"}
+      </button>
+
+      <button
+        onClick={() => {
+          if ("caches" in window) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+          window.location.reload();
+        }}
+        className="w-full h-10 rounded-xl bg-[var(--bg-tertiary)] text-body-small font-medium text-[var(--text-secondary)]
+          flex items-center justify-center gap-2 hover:text-primary-500 transition-colors press-effect"
+      >
+        <RefreshCw size={15} />
+        캐시 초기화 및 새로고침
       </button>
     </section>
   );
