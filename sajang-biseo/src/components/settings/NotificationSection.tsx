@@ -1,10 +1,24 @@
 "use client";
 
-import { Bell, BellOff } from "lucide-react";
+import { useState } from "react";
+import { Bell, BellOff, Send } from "lucide-react";
 import { usePushNotification } from "@/hooks/usePushNotification";
+import { useToast } from "@/stores/useToast";
 
 export function NotificationSection() {
   const { supported, subscribed, loading, subscribe, unsubscribe } = usePushNotification();
+  const [testing, setTesting] = useState(false);
+  const toast = useToast((s) => s.show);
+
+  const sendTestPush = async () => {
+    setTesting(true);
+    try {
+      const res = await fetch("/api/push/test", { method: "POST" });
+      if (res.ok) toast("테스트 알림을 발송했습니다", "success");
+      else toast("테스트 발송 실패", "error");
+    } catch { toast("테스트 발송 실패", "error"); }
+    finally { setTesting(false); }
+  };
 
   if (!supported) {
     return (
@@ -48,6 +62,19 @@ export function NotificationSection() {
           {loading ? "..." : subscribed ? "끄기" : "켜기"}
         </button>
       </div>
+
+      {subscribed && (
+        <button
+          onClick={sendTestPush}
+          disabled={testing}
+          className="mt-3 w-full py-2 rounded-xl text-caption font-medium flex items-center justify-center gap-1.5
+            bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500 transition-colors press-effect
+            disabled:opacity-50"
+        >
+          <Send size={13} />
+          {testing ? "발송 중..." : "테스트 알림 보내기"}
+        </button>
+      )}
     </div>
   );
 }
