@@ -16,6 +16,8 @@ import { TeamSection } from "@/components/settings/TeamSection";
 import { CouponSection } from "@/components/settings/CouponSection";
 import { NotificationSection } from "@/components/settings/NotificationSection";
 import { PlanUsageSection } from "@/components/settings/PlanUsageSection";
+import { LeaveStoreSection } from "@/components/settings/LeaveStoreSection";
+import { useTeamRole } from "@/hooks/useTeamRole";
 
 export default function SettingsPage() {
   const {
@@ -35,6 +37,7 @@ export default function SettingsPage() {
 
   const { storeId } = useStoreSettings();
   const toast = useToast((s) => s.show);
+  const { isOwner } = useTeamRole();
 
   const handleChannelRateChange = (id: string, rate: number) => {
     setDeliveryChannels((prev) => prev.map((ch) => ch.id === id ? { ...ch, rate } : ch));
@@ -89,49 +92,55 @@ export default function SettingsPage() {
         <p className="text-caption text-[var(--text-tertiary)] mt-0.5">매장 정보와 수수료를 관리하세요</p>
       </div>
 
-      <StoreInfoSection
-        storeName={storeName}
-        businessType={businessType}
-        address={address}
-        phone={phone}
-        saving={storeInfoSaving}
-        saved={storeInfoSaved}
-        onStoreNameChange={setStoreName}
-        onBusinessTypeChange={setBusinessType}
-        onAddressChange={setAddress}
-        onPhoneChange={setPhone}
-        onSave={saveStoreInfo}
-      />
+      {isOwner && (
+        <>
+          <StoreInfoSection
+            storeName={storeName}
+            businessType={businessType}
+            address={address}
+            phone={phone}
+            saving={storeInfoSaving}
+            saved={storeInfoSaved}
+            onStoreNameChange={setStoreName}
+            onBusinessTypeChange={setBusinessType}
+            onAddressChange={setAddress}
+            onPhoneChange={setPhone}
+            onSave={saveStoreInfo}
+          />
 
-      <FeeDefaultsSection
-        deliveryChannels={deliveryChannels}
-        deliveryFeePerOrder={deliveryFeePerOrder}
-        cardTierIndex={cardTierIndex}
-        saving={feeSaving}
-        saved={feeSaved}
-        onChannelRateChange={handleChannelRateChange}
-        onChannelActiveToggle={handleChannelActiveToggle}
-        onDeliveryFeeChange={setDeliveryFeePerOrder}
-        onCardTierChange={setCardTierIndex}
-        onAddChannel={addDeliveryChannel}
-        onRemoveChannel={removeDeliveryChannel}
-        onSave={saveFeeSettings}
-      />
+          <FeeDefaultsSection
+            deliveryChannels={deliveryChannels}
+            deliveryFeePerOrder={deliveryFeePerOrder}
+            cardTierIndex={cardTierIndex}
+            saving={feeSaving}
+            saved={feeSaved}
+            onChannelRateChange={handleChannelRateChange}
+            onChannelActiveToggle={handleChannelActiveToggle}
+            onDeliveryFeeChange={setDeliveryFeePerOrder}
+            onCardTierChange={setCardTierIndex}
+            onAddChannel={addDeliveryChannel}
+            onRemoveChannel={removeDeliveryChannel}
+            onSave={saveFeeSettings}
+          />
+        </>
+      )}
 
       <MonthlyGoalSection />
 
-      <PresetsSection />
+      {isOwner && <PresetsSection />}
 
       <NotificationSection />
 
       {/* #8 다크모드 토글 */}
       <ThemeSection />
 
-      <PlanUsageSection />
+      {isOwner && <PlanUsageSection />}
 
-      <TeamSection />
+      {isOwner && <TeamSection />}
 
-      <CouponSection />
+      {!isOwner && <LeaveStoreSection />}
+
+      {isOwner && <CouponSection />}
 
       <AccountSection email={email} onLogout={logout} />
 

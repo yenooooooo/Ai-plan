@@ -34,6 +34,7 @@ import { useRecurringExpenses } from "@/stores/useRecurringExpenses";
 import { useUIState } from "@/stores/useUIState";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/stores/useToast";
+import { useTeamRole } from "@/hooks/useTeamRole";
 
 type Tab = "input" | "analytics";
 
@@ -58,6 +59,7 @@ export default function ClosingPage() {
   const { expenses: recurringExpenses, setExpenses: setRecurringExpenses } = useRecurringExpenses();
   const { storeId } = useStoreSettings();
   const toast = useToast((s) => s.show);
+  const { canEdit, isViewer } = useTeamRole();
 
   const closingTab = useUIState((s) => s.closingTab);
   const setClosingTab = useUIState((s) => s.setClosingTab);
@@ -327,16 +329,20 @@ export default function ClosingPage() {
             )}
 
             {/* 저장 / 수정 버튼 */}
+            {isViewer && (
+              <p className="text-caption text-center text-[var(--text-tertiary)] py-2">조회 전용 권한입니다</p>
+            )}
             {saved ? (
               <button
                 onClick={() => setSaved(false)}
+                disabled={isViewer}
                 className="w-full h-14 rounded-[14px] font-body font-semibold text-[1rem] flex items-center justify-center gap-2 transition-all
-                  bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500 hover:border-primary-500/30 border border-transparent press-effect"
+                  bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500 hover:border-primary-500/30 border border-transparent press-effect disabled:opacity-50"
               >
                 <Edit3 size={18} />수정하기
               </button>
             ) : (
-              <motion.button whileTap={{ scale: 0.97 }} onClick={async () => { await handleSave(); analytics.reload(); }} disabled={totalSales === 0 || saving} className="w-full h-14 rounded-[14px] font-body font-semibold text-[1rem] flex items-center justify-center gap-2 transition-all duration-300 ease-smooth bg-primary-500 text-white hover:bg-primary-600 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+              <motion.button whileTap={{ scale: 0.97 }} onClick={async () => { await handleSave(); analytics.reload(); }} disabled={totalSales === 0 || saving || !canEdit} className="w-full h-14 rounded-[14px] font-body font-semibold text-[1rem] flex items-center justify-center gap-2 transition-all duration-300 ease-smooth bg-primary-500 text-white hover:bg-primary-600 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
                 {saving ? (
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
                 ) : (<><Save size={18} />마감 저장</>)}
