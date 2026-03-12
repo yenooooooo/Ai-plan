@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Brain, Target, Lightbulb, Sparkles, CheckCircle2, Circle, ChevronDown, History } from "lucide-react";
+import { Brain, Target, Lightbulb, Sparkles, CheckCircle2, Circle, ChevronDown, History, Lock } from "lucide-react";
+import { usePlan } from "@/hooks/usePlan";
 import { useBriefingGoals } from "@/stores/useBriefingGoals";
 import type { AiCoachingData } from "@/lib/briefing/types";
 
@@ -16,6 +17,7 @@ interface CoachingCardProps {
 
 export function CoachingCard({ data, generating, onGenerate, weekStart, prevCoaching }: CoachingCardProps) {
   const hasContent = data.actions.length > 0;
+  const { limits } = usePlan();
   const { completed, toggle, getProgress } = useBriefingGoals();
   const [showPrev, setShowPrev] = useState(false);
 
@@ -150,21 +152,27 @@ export function CoachingCard({ data, generating, onGenerate, weekStart, prevCoac
       )}
 
       {/* AI 생성 버튼 */}
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={onGenerate}
-        disabled={generating}
-        className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-body-small flex items-center justify-center gap-2 press-effect disabled:opacity-50"
-      >
-        {generating ? (
-          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-        ) : (
-          <>
-            <Sparkles size={16} />
-            AI 경영 코칭 {hasContent ? "재생성" : "생성"}
-          </>
-        )}
-      </motion.button>
+      {limits.aiCoaching ? (
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={onGenerate}
+          disabled={generating}
+          className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-body-small flex items-center justify-center gap-2 press-effect disabled:opacity-50"
+        >
+          {generating ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <>
+              <Sparkles size={16} />
+              AI 경영 코칭 {hasContent ? "재생성" : "생성"}
+            </>
+          )}
+        </motion.button>
+      ) : (
+        <div className="w-full py-3 rounded-2xl bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] text-body-small font-medium flex items-center justify-center gap-2">
+          <Lock size={14} /> Pro 플랜부터 사용 가능
+        </div>
+      )}
     </div>
   );
 }

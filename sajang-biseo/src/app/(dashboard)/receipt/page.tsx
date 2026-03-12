@@ -20,6 +20,7 @@ import CategoryBudget from "@/components/receipt/CategoryBudget";
 import { ReceiptExport } from "@/components/receipt/ReceiptExport";
 import { useReceiptData } from "@/hooks/useReceiptData";
 import { useToast } from "@/stores/useToast";
+import { usePlan } from "@/hooks/usePlan";
 import { receiptsToCsv, downloadCsv } from "@/lib/receipt/csvExport";
 import type { Receipt } from "@/lib/supabase/types";
 
@@ -41,6 +42,7 @@ export default function ReceiptPage() {
     loadMore,
   } = useReceiptData();
   const toast = useToast((s) => s.show);
+  const { limits } = usePlan();
 
   const [tab, setTab] = useState<Tab>("list");
   const [groupBy, setGroupBy] = useState<GroupBy>("date");
@@ -97,7 +99,7 @@ export default function ReceiptPage() {
             경비를 카테고리별로 관리하세요
           </p>
         </div>
-        {tab === "list" && receipts.length > 0 && (
+        {tab === "list" && receipts.length > 0 && limits.csvExport && (
           <button
             onClick={handleDownloadCsv}
             className="p-2.5 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] press-effect"

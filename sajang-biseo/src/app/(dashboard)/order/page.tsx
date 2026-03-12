@@ -22,6 +22,7 @@ import { OrderUsageTab } from "@/components/order/OrderUsageTab";
 import { OrderRecommendTab } from "@/components/order/OrderRecommendTab";
 import { AccordionSection } from "@/components/closing/AccordionSection";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { PlanGate } from "@/components/shared/PlanGate";
 import { useOrderData } from "@/hooks/useOrderData";
 import { useOrderAnalytics } from "@/hooks/useOrderAnalytics";
 import { useStoreSettings } from "@/stores/useStoreSettings";
@@ -273,21 +274,23 @@ export default function OrderPage() {
 
         {/* ── 발주 추천 탭 ── */}
         {tab === "recommend" && (
-          <OrderRecommendTab
-            recLoading={recLoading} recommendations={recommendations}
-            needOrderRecs={needOrderRecs} sufficientRecs={sufficientRecs}
-            confirmedItems={confirmedItems} confirmedList={confirmedList}
-            orderDateLabel={orderDateLabel} handleConfirm={handleConfirm}
-            handleRemoveConfirmed={handleRemoveConfirmed}
-            handleUpdateConfirmedQty={handleUpdateConfirmedQty}
-            handleClearAllConfirmed={handleClearAllConfirmed}
-            orderMap={orderMap} setOrderMap={setOrderMap}
-            orderSaving={orderSaving} orderSaved={orderSaved} saveOrders={saveOrders}
-            applyConfirmedToOrders={applyConfirmedToOrders}
-            activeItems={activeItems} stockMap={stockMap} usageMap={usageMap} wasteMap={wasteMap}
-            itemsMap={itemsMap} items={items}
-            onGoToUsage={() => setTab("usage")}
-          />
+          <PlanGate requiredPlan="pro" featureName="AI 발주 추천">
+            <OrderRecommendTab
+              recLoading={recLoading} recommendations={recommendations}
+              needOrderRecs={needOrderRecs} sufficientRecs={sufficientRecs}
+              confirmedItems={confirmedItems} confirmedList={confirmedList}
+              orderDateLabel={orderDateLabel} handleConfirm={handleConfirm}
+              handleRemoveConfirmed={handleRemoveConfirmed}
+              handleUpdateConfirmedQty={handleUpdateConfirmedQty}
+              handleClearAllConfirmed={handleClearAllConfirmed}
+              orderMap={orderMap} setOrderMap={setOrderMap}
+              orderSaving={orderSaving} orderSaved={orderSaved} saveOrders={saveOrders}
+              applyConfirmedToOrders={applyConfirmedToOrders}
+              activeItems={activeItems} stockMap={stockMap} usageMap={usageMap} wasteMap={wasteMap}
+              itemsMap={itemsMap} items={items}
+              onGoToUsage={() => setTab("usage")}
+            />
+          </PlanGate>
         )}
 
         {/* ── 분석 탭 ── */}
