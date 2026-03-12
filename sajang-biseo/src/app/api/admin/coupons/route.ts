@@ -17,7 +17,7 @@ export async function GET() {
     .select("*, sb_coupon_uses(count)")
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   return NextResponse.json({ coupons: data ?? [] });
 }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     if (error.code === "23505") return NextResponse.json({ error: "이미 존재하는 쿠폰 코드입니다." }, { status: 409 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
   return NextResponse.json({ coupon: data });
 }
@@ -70,11 +70,11 @@ export async function DELETE(req: NextRequest) {
 
   if ((count ?? 0) > 0) {
     const { error } = await sb.from("sb_coupons").update({ is_active: false }).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ success: true, action: "deactivated" });
   } else {
     const { error } = await sb.from("sb_coupons").delete().eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ success: true, action: "deleted" });
   }
 }

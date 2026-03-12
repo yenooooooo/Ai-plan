@@ -65,8 +65,8 @@ export async function GET(request: Request) {
         });
         totalSent += sent;
       }
-    } catch (err) {
-      console.error(`마감 리마인더 실패 (user: ${userId}):`, err);
+    } catch {
+      console.error("마감 리마인더 실패");
     }
   }
 
@@ -112,8 +112,8 @@ export async function GET(request: Request) {
         });
         totalSent += sent;
       }
-    } catch (err) {
-      console.error(`발주 알림 실패 (user: ${userId}):`, err);
+    } catch {
+      console.error("발주 알림 실패");
     }
   }
 
@@ -153,8 +153,8 @@ export async function GET(request: Request) {
           });
           totalSent += sent;
         }
-      } catch (err) {
-        console.error(`브리핑 알림 실패 (user: ${userId}):`, err);
+      } catch {
+        console.error("브리핑 알림 실패");
       }
     }
   }

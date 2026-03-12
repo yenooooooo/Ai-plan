@@ -15,12 +15,12 @@ export async function GET() {
     // 테이블 미존재 시 빈 배열 반환
     if (error) {
       console.error("Notices load error:", error.message);
-      return NextResponse.json({ notices: [], tableError: error.message });
+      return NextResponse.json({ notices: [] });
     }
     return NextResponse.json({ notices: data });
   } catch (err) {
     console.error("Notices GET error:", err);
-    return NextResponse.json({ notices: [], error: String(err) });
+    return NextResponse.json({ notices: [], error: "서버 오류" });
   }
 }
 
@@ -41,11 +41,11 @@ export async function POST(request: Request) {
       starts_at: body.starts_at ?? new Date().toISOString(),
       ends_at: body.ends_at ?? null,
     }).select().single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ notice: data });
   } catch (err) {
     console.error("Notices POST error:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }
 
@@ -60,11 +60,11 @@ export async function PATCH(request: Request) {
     const { error } = await sb.from("sb_notices")
       .update({ ...body, updated_at: new Date().toISOString() })
       .eq("id", body.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Notices PATCH error:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }
 
@@ -78,10 +78,10 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ error: "ID 필요" }, { status: 400 });
     const sb = createAdminClient();
     const { error } = await sb.from("sb_notices").delete().eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Notices DELETE error:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

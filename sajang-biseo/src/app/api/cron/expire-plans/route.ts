@@ -30,6 +30,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, expired: expired?.length ?? 0 });
   } catch (err) {
     console.error("[Cron] expire-plans error:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

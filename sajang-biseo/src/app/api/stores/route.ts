@@ -28,9 +28,9 @@ export async function POST(req: NextRequest) {
       .select("id, store_name, business_type")
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ store });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

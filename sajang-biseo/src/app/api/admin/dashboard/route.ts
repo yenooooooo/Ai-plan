@@ -77,6 +77,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error("Admin dashboard error:", err);
-    return NextResponse.json({ error: "서버 오류", detail: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

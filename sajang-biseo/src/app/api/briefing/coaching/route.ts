@@ -119,8 +119,8 @@ export async function POST(request: Request) {
     });
 
     if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      console.error("Coaching API error:", res.status, errBody);
+      await res.text().catch(() => "");
+      console.error("Coaching API error:", res.status);
       return NextResponse.json({ success: false, error: "코칭 생성 실패" }, { status: 500 });
     }
 

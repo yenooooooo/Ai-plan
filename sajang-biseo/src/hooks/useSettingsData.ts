@@ -131,6 +131,14 @@ export function useSettingsData() {
   };
 
   const logout = async () => {
+    // 사용자 데이터 localStorage 정리
+    try {
+      const keysToRemove = Object.keys(localStorage).filter(
+        (k) => k.startsWith("closing-draft") || k.startsWith("closing-custom-tags")
+          || k === "cost-ratio-target" || k.startsWith("sajang-dismissed-notices")
+      );
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch { /* SSR guard */ }
     const supabase = createClient();
     await supabase.auth.signOut(); window.location.href = "/login";
   };

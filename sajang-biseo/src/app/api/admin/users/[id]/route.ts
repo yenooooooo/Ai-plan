@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/admin/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isValidUUID } from "@/lib/security/validate";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const admin = await verifyAdmin();
@@ -47,7 +48,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = await req.json();
   const { action, table, recordId } = body as { action: string; table: string; recordId: string };
 
-  if (action !== "restore" || !table || !recordId) {
+  if (action !== "restore" || !table || !isValidUUID(recordId)) {
     return NextResponse.json({ error: "잘못된 요청" }, { status: 400 });
   }
 
@@ -62,6 +63,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .update({ deleted_at: null } as Record<string, unknown>)
     .eq("id", recordId)
     .eq("store_id", storeId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   return NextResponse.json({ success: true });
 }

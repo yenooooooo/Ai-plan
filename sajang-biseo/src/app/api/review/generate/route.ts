@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient as createClient } from "@/lib/supabase/server";
 import { checkUsageLimit } from "@/lib/usage";
 import { checkApiRateLimit } from "@/lib/security/rateLimiter";
+import { sanitizeForPrompt } from "@/lib/security/validate";
 
 interface GenerateRequest {
   reviewContent: string;
@@ -99,7 +100,7 @@ async function handleNonStreaming(prompt: string, apiKey: string) {
 
   if (!response.ok) {
     const errBody = await response.text().catch(() => "");
-    console.error("Anthropic API error:", response.status, errBody);
+    console.error("Anthropic API error:", response.status);
     let detail = `API ${response.status}`;
     try { const e = JSON.parse(errBody); detail = e?.error?.message ?? detail; } catch {}
     return NextResponse.json(
@@ -276,7 +277,8 @@ function getBlockStructure(rating: number): { types: string; example: string } {
 }
 
 function buildFullPrompt(body: GenerateRequest): string {
-  const { reviewContent, rating, platform, toneSettings: ts, versionsCount = 3 } = body;
+  const { reviewContent: rawContent, rating, platform, toneSettings: ts, versionsCount = 3 } = body;
+  const reviewContent = sanitizeForPrompt(rawContent, 3000);
   const blockInfo = getBlockStructure(rating);
   const ratingContext = rating >= 4
     ? "긍정 리뷰입니다. 진심 어린 감사와 함께 메뉴/서비스를 자연스럽게 홍보하세요."
@@ -329,7 +331,8 @@ JSON만 응답하세요.`;
 }
 
 function buildBlockPrompt(body: GenerateRequest): string {
-  const { reviewContent, rating, toneSettings: ts, regenerateBlock: rb } = body;
+  const { reviewContent: rawContent, rating, toneSettings: ts, regenerateBlock: rb } = body;
+  const reviewContent = sanitizeForPrompt(rawContent, 3000);
   const adj = rb?.toneAdjustment;
   const adjMap: Record<string, string> = {
     polite: "더 정중하고 격식 있는 톤으로",

@@ -59,6 +59,6 @@ export async function DELETE() {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Account delete error:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류가 발생했습니다" }, { status: 500 });
   }
 }

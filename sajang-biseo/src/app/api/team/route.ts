@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserPlan } from "@/lib/usage";
 import { getPlanLimits } from "@/lib/plan";
+import { isValidUUID, isValidEmail } from "@/lib/security/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const storeId = searchParams.get("storeId");
-    if (!storeId) return NextResponse.json({ error: "매장 ID 필요" }, { status: 400 });
+    if (!isValidUUID(storeId)) return NextResponse.json({ error: "매장 ID 형식 오류" }, { status: 400 });
 
     // 매장 소유권 확인
     const isOwner = await verifyStoreOwner(supabase, user.id, storeId);
@@ -37,10 +38,10 @@ export async function GET(req: NextRequest) {
     const { data, error } = await sb.from("sb_team_members")
       .select("*").eq("store_id", storeId).order("created_at");
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ members: data ?? [] });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }
 
@@ -61,7 +62,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { storeId, email, role } = body;
-    if (!storeId || !email) return NextResponse.json({ error: "매장 ID, 이메일 필요" }, { status: 400 });
+    if (!isValidUUID(storeId)) return NextResponse.json({ error: "매장 ID 형식 오류" }, { status: 400 });
+    if (!isValidEmail(email)) return NextResponse.json({ error: "이메일 형식 오류" }, { status: 400 });
 
     // 매장 소유권 확인
     const isOwner = await verifyStoreOwner(supabase, user.id, storeId);
@@ -88,11 +90,11 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       if (error.code === "23505") return NextResponse.json({ error: "이미 초대된 이메일입니다." }, { status: 409 });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     }
     return NextResponse.json({ member: data });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }
 
@@ -104,7 +106,7 @@ export async function DELETE(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    if (!id) return NextResponse.json({ error: "ID 필요" }, { status: 400 });
+    if (!isValidUUID(id)) return NextResponse.json({ error: "ID 형식 오류" }, { status: 400 });
 
     const sb = createAdminClient();
 
@@ -117,9 +119,9 @@ export async function DELETE(req: NextRequest) {
     if (!isOwner) return NextResponse.json({ error: "권한 없음" }, { status: 403 });
 
     const { error } = await sb.from("sb_team_members").delete().eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

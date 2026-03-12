@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdmin } from "@/lib/admin/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isValidUUID } from "@/lib/security/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
     const sb = createAdminClient();
 
     const { data: { users }, error } = await sb.auth.admin.listUsers({ perPage: 100 });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
 
     let filtered = users ?? [];
     if (search) {
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ users: result });
   } catch (err) {
     console.error("Admin users error:", err);
-    return NextResponse.json({ error: "서버 오류", detail: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }
 
@@ -71,16 +72,16 @@ export async function PATCH(request: Request) {
 
     const body = await request.json();
     const { userId, plan } = body;
-    if (!userId || !plan) return NextResponse.json({ error: "userId, plan 필요" }, { status: 400 });
+    if (!isValidUUID(userId) || !plan) return NextResponse.json({ error: "userId, plan 필요" }, { status: 400 });
 
     const sb = createAdminClient();
     const { error } = await sb.from("sb_user_profiles")
       .update({ plan, updated_at: new Date().toISOString() })
       .eq("id", userId);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "서버 오류" }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Admin plan update error:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

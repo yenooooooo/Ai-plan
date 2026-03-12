@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUserPlan } from "@/lib/usage";
 import { getPlanLimits } from "@/lib/plan";
+import { isValidUUID } from "@/lib/security/validate";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { storeId } = await req.json();
-    if (!storeId) return NextResponse.json({ error: "매장 ID 필요" }, { status: 400 });
+    if (!isValidUUID(storeId)) return NextResponse.json({ error: "매장 ID 형식 오류" }, { status: 400 });
 
     // 최근 30일 매출 데이터 조회
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
@@ -74,6 +75,6 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.error("Forecast error:", err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }
