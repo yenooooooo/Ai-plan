@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Users, Store, TrendingUp, UserPlus, AlertTriangle, Activity } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Users, Store, TrendingUp, UserPlus, AlertTriangle, Activity, RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
+import { formatCurrency } from "@/lib/utils/format";
 
 interface DashboardData {
   stats: { totalUsers: number; totalStores: number; activeToday: number; newSignupsWeek: number };
@@ -10,31 +11,81 @@ interface DashboardData {
   featureUsage: Record<string, number>;
   uniqueFeature: Record<string, number>;
   totalStores: number;
+  todayRevenue: { todaySales: number; yesterdaySales: number; todaySignups: number; yesterdaySignups: number };
 }
 
 const FEATURE_LABELS: Record<string, string> = {
   closing: "마감", receipt: "영수증", review: "리뷰", order: "발주", briefing: "브리핑",
 };
 
+function Delta({ current, previous, suffix = "" }: { current: number; previous: number; suffix?: string }) {
+  if (previous === 0) return null;
+  const diff = current - previous;
+  const pct = Math.round((diff / previous) * 100);
+  const positive = diff >= 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[11px] ${positive ? "text-success" : "text-danger"}`}>
+      {positive ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
+      {Math.abs(pct)}%{suffix}
+    </span>
+  );
+}
+
 export function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     fetch("/api/admin/dashboard")
       .then((r) => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
-      .then(setData)
+      .then((d) => { setData(d); setLastRefresh(new Date()); })
       .catch((err) => console.error("Dashboard load failed:", err))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Auto-refresh every 60s
+  useEffect(() => {
+    const id = setInterval(fetchData, 60_000);
+    return () => clearInterval(id);
+  }, [fetchData]);
+
   if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-red-500/20 border-t-red-500 rounded-full animate-spin" /></div>;
   if (!data) return <p className="text-center text-[var(--text-tertiary)]">데이터 로드 실패</p>;
 
-  const { stats, funnel, retention, featureUsage, uniqueFeature, totalStores } = data;
+  const { stats, funnel, retention, featureUsage, uniqueFeature, totalStores, todayRevenue } = data;
+  const rev = todayRevenue ?? { todaySales: 0, yesterdaySales: 0, todaySignups: 0, yesterdaySignups: 0 };
 
   return (
     <div className="space-y-5">
+      {/* Refresh indicator */}
+      <div className="flex items-center justify-end gap-2">
+        {lastRefresh && (
+          <span className="text-[11px] text-[var(--text-tertiary)]">
+            {lastRefresh.toLocaleTimeString("ko")} 갱신
+          </span>
+        )}
+        <button onClick={fetchData} className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors">
+          <RefreshCw size={13} className="text-[var(--text-tertiary)]" />
+        </button>
+      </div>
+
+      {/* 오늘 매출/가입 비교 */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="glass-card p-4 space-y-1">
+          <span className="text-caption text-[var(--text-tertiary)]">오늘 총매출</span>
+          <p className="text-heading-lg font-display text-[var(--text-primary)]">{formatCurrency(rev.todaySales)}</p>
+          <Delta current={rev.todaySales} previous={rev.yesterdaySales} suffix=" 전일비" />
+        </div>
+        <div className="glass-card p-4 space-y-1">
+          <span className="text-caption text-[var(--text-tertiary)]">오늘 신규가입</span>
+          <p className="text-heading-lg font-display text-[var(--text-primary)]">{rev.todaySignups}명</p>
+          <Delta current={rev.todaySignups} previous={rev.yesterdaySignups} suffix=" 전일비" />
+        </div>
+      </div>
+
       {/* 핵심 지표 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[

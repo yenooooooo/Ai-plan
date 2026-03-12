@@ -17,6 +17,7 @@ import { CouponSection } from "@/components/settings/CouponSection";
 import { NotificationSection } from "@/components/settings/NotificationSection";
 import { PlanUsageSection } from "@/components/settings/PlanUsageSection";
 import { LeaveStoreSection } from "@/components/settings/LeaveStoreSection";
+import { SupportSection } from "@/components/settings/SupportSection";
 import { useTeamRole } from "@/hooks/useTeamRole";
 
 export default function SettingsPage() {
@@ -141,6 +142,8 @@ export default function SettingsPage() {
       {!isOwner && <LeaveStoreSection />}
 
       {isOwner && <CouponSection />}
+
+      <SupportSection />
 
       <AccountSection email={email} onLogout={logout} />
 

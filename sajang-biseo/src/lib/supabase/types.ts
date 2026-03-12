@@ -913,6 +913,94 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      sb_activity_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          action: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          action: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          action?: string;
+          metadata?: Json;
+        };
+        Relationships: [];
+      };
+
+      sb_support_tickets: {
+        Row: {
+          id: string;
+          user_id: string;
+          store_id: string | null;
+          category: string;
+          subject: string;
+          message: string;
+          status: string;
+          admin_reply: string | null;
+          admin_replied_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          store_id?: string | null;
+          category?: string;
+          subject: string;
+          message: string;
+          status?: string;
+          admin_reply?: string | null;
+          admin_replied_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          status?: string;
+          admin_reply?: string | null;
+          admin_replied_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      sb_push_history: {
+        Row: {
+          id: string;
+          title: string;
+          body: string;
+          target_type: string;
+          target_value: string | null;
+          sent_count: number;
+          failed_count: number;
+          sent_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          body: string;
+          target_type: string;
+          target_value?: string | null;
+          sent_count?: number;
+          failed_count?: number;
+          sent_by: string;
+          created_at?: string;
+        };
+        Update: {
+          sent_count?: number;
+          failed_count?: number;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -929,14 +1017,9 @@ export interface Database {
   };
 }
 
-/* ── 편의 타입 별칭 ── */
-
-export type Tables<T extends keyof Database["public"]["Tables"]> =
+/* ── 헬퍼 타입 ── */
+type Tables<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Row"];
-export type InsertTables<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Insert"];
-export type UpdateTables<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Update"];
 
 /* ── 자주 쓰는 Row 타입 ── */
 
@@ -961,3 +1044,6 @@ export type ItemPriceHistory = Tables<"sb_item_price_history">;
 export type Notice = Tables<"sb_notices">;
 export type UsageLog = Tables<"sb_usage_logs">;
 export type TeamMember = Tables<"sb_team_members">;
+export type ActivityLog = Tables<"sb_activity_logs">;
+export type SupportTicket = Tables<"sb_support_tickets">;
+export type PushHistory = Tables<"sb_push_history">;

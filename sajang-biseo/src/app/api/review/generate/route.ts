@@ -8,6 +8,7 @@ import { createServerSupabaseClient as createClient } from "@/lib/supabase/serve
 import { checkUsageLimit } from "@/lib/usage";
 import { checkApiRateLimit } from "@/lib/security/rateLimiter";
 import { sanitizeForPrompt } from "@/lib/security/validate";
+import { logActivity } from "@/lib/activityLog";
 
 interface GenerateRequest {
   reviewContent: string;
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
     const prompt = body.regenerateBlock
       ? buildBlockPrompt(body)
       : buildFullPrompt(body);
+
+    logActivity(user.id, "review_generate");
 
     // 블록 재생성: 비스트리밍 (빠름)
     if (body.regenerateBlock) {

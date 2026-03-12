@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUserPlan } from "@/lib/usage";
 import { getPlanLimits } from "@/lib/plan";
 import { checkApiRateLimit } from "@/lib/security/rateLimiter";
+import { logActivity } from "@/lib/activityLog";
 import type {
   SalesSummaryData,
   FeeSummaryData,
@@ -135,6 +136,7 @@ export async function POST(request: Request) {
     }
 
     const parsed = JSON.parse(escapeJsonStrings(jsonMatch[0]));
+    logActivity(user.id, "briefing_view");
     return NextResponse.json({ success: true, data: parsed });
   } catch {
     return NextResponse.json({ success: false, error: "서버 오류" }, { status: 500 });

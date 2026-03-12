@@ -41,9 +41,9 @@ export function ToneSetup({ settings, onSave }: ToneSetupProps) {
       tone_name: tone,
       sample_replies: samples,
       store_name_display: storeName.trim(),
-      signature_menus: menus.split(",").map((s) => s.trim()).filter(Boolean),
-      store_features: features.split(",").map((s) => s.trim()).filter(Boolean),
-      frequent_phrases: phrases.split(",").map((s) => s.trim()).filter(Boolean),
+      signature_menus: menus.split(",").map((s: string) => s.trim()).filter(Boolean),
+      store_features: features.split(",").map((s: string) => s.trim()).filter(Boolean),
+      frequent_phrases: phrases.split(",").map((s: string) => s.trim()).filter(Boolean),
       use_emoji: useEmoji,
     });
   }

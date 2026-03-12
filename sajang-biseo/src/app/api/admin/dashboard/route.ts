@@ -12,6 +12,7 @@ export async function GET() {
     const sb = createAdminClient();
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
+    const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10);
     const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
     const threeDaysAgo = new Date(now.getTime() - 3 * 86400000).toISOString().slice(0, 10);
 
@@ -38,6 +39,17 @@ export async function GET() {
 
     const allClosingStoreRes = await sb.from("sb_daily_closing").select("store_id");
     const closingStoreIds = new Set((allClosingStoreRes.data ?? []).map((c) => c.store_id));
+
+    // Today vs yesterday revenue
+    const [todaySalesRes, yesterdaySalesRes, yesterdaySignupsRes] = await Promise.all([
+      sb.from("sb_daily_closing").select("total_sales").eq("date", today),
+      sb.from("sb_daily_closing").select("total_sales").eq("date", yesterday),
+      sb.from("sb_user_profiles").select("id").gte("created_at", yesterday + "T00:00:00").lt("created_at", today + "T00:00:00"),
+    ]);
+    const todaySales = (todaySalesRes.data ?? []).reduce((s, r) => s + (r.total_sales ?? 0), 0);
+    const yesterdaySales = (yesterdaySalesRes.data ?? []).reduce((s, r) => s + (r.total_sales ?? 0), 0);
+    const todaySignups = newSignups.filter((u) => u.created_at >= today + "T00:00:00").length;
+    const yesterdaySignups = (yesterdaySignupsRes.data ?? []).length;
 
     const totalSignups = users.length;
     const onboardingDone = users.filter((u) => u.onboarding_complete).length;
@@ -74,6 +86,7 @@ export async function GET() {
       featureUsage,
       uniqueFeature,
       totalStores: storeCreated,
+      todayRevenue: { todaySales, yesterdaySales, todaySignups, yesterdaySignups },
     });
   } catch (err) {
     console.error("Admin dashboard error:", err);

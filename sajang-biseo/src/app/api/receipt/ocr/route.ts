@@ -8,6 +8,7 @@ import { createServerSupabaseClient as createClient } from "@/lib/supabase/serve
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkUsageLimit } from "@/lib/usage";
 import { checkApiRateLimit } from "@/lib/security/rateLimiter";
+import { logActivity } from "@/lib/activityLog";
 
 interface OcrResult {
   date: string | null;
@@ -191,6 +192,7 @@ JSON만 응답하세요. 설명 금지.`,
       });
     }
 
+    logActivity(user.id, "receipt_ocr", { mode });
     return NextResponse.json({ success: true, data: parsed });
   } catch (error) {
     console.error("OCR error:", error);
