@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TrendingUp, Loader2, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { TrendingUp, Loader2, ArrowUp, ArrowDown, Minus, CalendarDays } from "lucide-react";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { useToast } from "@/stores/useToast";
 
@@ -18,9 +18,11 @@ export function SalesForecast() {
   const toast = useToast((s) => s.show);
   const [data, setData] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [needMore, setNeedMore] = useState(false);
 
   const generateForecast = async () => {
     if (!storeId) return;
+    setNeedMore(false);
     setLoading(true);
     try {
       const res = await fetch("/api/forecast", {
@@ -29,7 +31,11 @@ export function SalesForecast() {
         body: JSON.stringify({ storeId }),
       });
       const result = await res.json();
-      if (!res.ok) { toast(result.error, "error"); return; }
+      if (!res.ok) {
+        if (res.status === 400) { setNeedMore(true); return; }
+        toast(result.error, "error");
+        return;
+      }
       setData(result.data);
     } catch { toast("예측 실패", "error"); }
     finally { setLoading(false); }
@@ -52,7 +58,21 @@ export function SalesForecast() {
         </button>
       </div>
 
-      {!data && !loading && (
+      {needMore && (
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 text-center space-y-2">
+          <CalendarDays size={24} className="mx-auto text-amber-500" />
+          <p className="text-body-small font-medium text-[var(--text-primary)]">
+            데이터가 아직 부족해요
+          </p>
+          <p className="text-caption text-[var(--text-secondary)] leading-relaxed">
+            매출 예측에는 최소 <span className="font-semibold text-amber-500">7일</span> 이상의
+            마감 데이터가 필요합니다.<br />
+            마감 리포트에서 매일 매출을 기록해주세요.
+          </p>
+        </div>
+      )}
+
+      {!data && !loading && !needMore && (
         <p className="text-body-small text-[var(--text-tertiary)] text-center py-4">
           최근 매출 데이터 기반으로 7일간 매출을 예측합니다
         </p>
