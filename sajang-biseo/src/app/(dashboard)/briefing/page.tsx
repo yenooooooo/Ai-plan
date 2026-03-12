@@ -83,7 +83,10 @@ export default function BriefingPage() {
   }, [briefing?.weekStart, toast]);
 
   const sendEmail = useCallback(async () => {
-    if (!briefingDbId) return;
+    if (!briefingDbId) {
+      toast("AI 코칭을 먼저 생성해주세요.", "error");
+      return;
+    }
     setEmailSending(true);
     try {
       const res = await fetch("/api/briefing/email", {

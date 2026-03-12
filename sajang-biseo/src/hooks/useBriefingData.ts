@@ -165,7 +165,7 @@ export function useBriefingData() {
 
         // DB 저장
         const { start, end } = getWeekRange(weekOffset);
-        const { error: upsertError } = await supabase.from("sb_weekly_briefings").upsert({
+        const { data: upserted, error: upsertError } = await supabase.from("sb_weekly_briefings").upsert({
           store_id: storeId,
           week_start: start,
           week_end: end,
@@ -175,8 +175,9 @@ export function useBriefingData() {
           ingredient_efficiency: briefing.ingredients as unknown as import("@/lib/supabase/types").Json,
           customer_reputation: briefing.reputation as unknown as import("@/lib/supabase/types").Json,
           ai_coaching: coaching as unknown as import("@/lib/supabase/types").Json,
-        }, { onConflict: "store_id,week_start" });
-        if (upsertError) console.error("브리핑 저장 실패:", upsertError);
+        }, { onConflict: "store_id,week_start" }).select("id").single();
+        if (upsertError) console.error("브리핑 저장 실패");
+        if (upserted?.id) setBriefingDbId(upserted.id);
         toast("AI 코칭이 생성되었습니다.", "success");
       }
     } catch (err) {
