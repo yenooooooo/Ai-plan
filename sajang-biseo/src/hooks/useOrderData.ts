@@ -15,6 +15,22 @@ import type { OrderItem as DBOrderItem, OrderItemGroup, DailyOrder } from "@/lib
 
 export type { DBOrderItem, OrderItemGroup, DailyOrder };
 
+const CONFIRMED_STORAGE_KEY = "sb_confirmed_items";
+
+function saveConfirmedToStorage(items: Map<string, number>) {
+  try {
+    sessionStorage.setItem(CONFIRMED_STORAGE_KEY, JSON.stringify(Array.from(items.entries())));
+  } catch { /* quota exceeded */ }
+}
+
+function loadConfirmedFromStorage(): Map<string, number> {
+  try {
+    const raw = sessionStorage.getItem(CONFIRMED_STORAGE_KEY);
+    if (!raw) return new Map();
+    return new Map(JSON.parse(raw));
+  } catch { return new Map(); }
+}
+
 export function useOrderData() {
   const supabase = useMemo(() => createClient(), []);
   const { storeId, businessType } = useStoreSettings();
@@ -42,7 +58,7 @@ export function useOrderData() {
 
   // 발주 추천
   const [recommendations, setRecommendations] = useState<RecommendationResult[]>([]);
-  const [confirmedItems, setConfirmedItems] = useState<Map<string, number>>(new Map());
+  const [confirmedItems, setConfirmedItems] = useState<Map<string, number>>(() => loadConfirmedFromStorage());
   const [recLoading, setRecLoading] = useState(false);
 
   // 발주 입력 (오늘 발주 → 내일 재고 반영)
@@ -424,7 +440,6 @@ export function useOrderData() {
 
       const recs = generateRecommendations(inputs);
       setRecommendations(recs);
-      setConfirmedItems(new Map());
     } catch (err) {
       console.error("발주 추천 생성 실패:", err);
       toast("발주 추천을 생성하지 못했습니다", "error");
@@ -438,6 +453,7 @@ export function useOrderData() {
     setConfirmedItems((prev) => {
       const next = new Map(prev);
       if (next.has(itemId)) { next.delete(itemId); } else { next.set(itemId, qty); }
+      saveConfirmedToStorage(next);
       return next;
     });
   };
