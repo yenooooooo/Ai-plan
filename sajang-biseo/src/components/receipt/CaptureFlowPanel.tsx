@@ -7,6 +7,7 @@ import { ReceiptCapture } from "./ReceiptCapture";
 import { OcrResultCard } from "./OcrResultCard";
 import { ManualEntryForm } from "./ManualEntryForm";
 import { useToast } from "@/stores/useToast";
+import { UsageBadge } from "@/components/shared/UsageBadge";
 import type { ReceiptCategory } from "@/lib/supabase/types";
 
 type CaptureMode = "receipt" | "manual" | "memo";
@@ -120,9 +121,12 @@ export function CaptureFlowPanel({ categories, onSave, onDone }: CaptureFlowPane
       {/* 모드 선택 */}
       {!captureMode && !ocrData && !limitReached && (
         <div className="space-y-3">
-          <p className="text-body-small text-[var(--text-secondary)]">
-            경비 등록 방법을 선택하세요
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-body-small text-[var(--text-secondary)]">
+              경비 등록 방법을 선택하세요
+            </p>
+            <UsageBadge feature="receipt_ocr" />
+          </div>
           {CAPTURE_MODES.map(({ key, label, icon: Icon, desc }) => (
             <motion.button
               key={key}

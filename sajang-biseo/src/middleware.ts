@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Supabase Auth 세션 리프레시 + 인증 가드 미들웨어
+ * Supabase Auth 세션 리프레시 + 인증 가드 + 이메일 인증 필수
  */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -52,11 +52,30 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute =
     pathname.startsWith("/login") || pathname.startsWith("/signup");
 
+  // 이메일 인증 대기 페이지
+  const isVerifyRoute =
+    pathname.startsWith("/verify-email") || pathname.startsWith("/auth/confirm");
+
   // 미로그인 + 보호된 경로 → 로그인으로
   if (!user && (isProtectedRoute || isAdminRoute)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // 이메일 미인증 + 보호된 경로 → 인증 페이지로
+  if (user && !user.email_confirmed_at && isProtectedRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/verify-email";
+    url.searchParams.set("email", user.email ?? "");
+    return NextResponse.redirect(url);
+  }
+
+  // 이메일 인증 완료 + verify-email 페이지 → 홈으로
+  if (user && user.email_confirmed_at && isVerifyRoute && pathname === "/verify-email") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/home";
     return NextResponse.redirect(url);
   }
 

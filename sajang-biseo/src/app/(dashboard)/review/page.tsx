@@ -19,6 +19,7 @@ import { ReplyHistory } from "@/components/review/ReplyHistory";
 import { ReplyTemplates } from "@/components/review/ReplyTemplates";
 import { useReviewData } from "@/hooks/useReviewData";
 import type { Review } from "@/lib/supabase/types";
+import { UsageBadge } from "@/components/shared/UsageBadge";
 import type { Platform, ToneAdjustment } from "@/lib/review/blocks";
 
 type Tab = "generate" | "dashboard" | "settings";
@@ -89,13 +90,16 @@ export default function ReviewPage() {
   return (
     <div className="animate-fade-in pb-8">
       {/* 헤더 */}
-      <div className="mb-5">
-        <h1 className="text-heading-lg text-[var(--text-primary)] mb-1">
-          리뷰 답글
-        </h1>
-        <p className="text-body-small text-[var(--text-secondary)]">
-          AI가 맞춤 답글을 작성해드려요
-        </p>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-heading-lg text-[var(--text-primary)] mb-1">
+            리뷰 답글
+          </h1>
+          <p className="text-body-small text-[var(--text-secondary)]">
+            AI가 맞춤 답글을 작성해드려요
+          </p>
+        </div>
+        <UsageBadge feature="review_generate" />
       </div>
 
       {/* 탭 */}

@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient as createClient } from "@/lib/supabase/server";
-import { checkUsageLimit, incrementUsage } from "@/lib/usage";
+import { checkUsageLimit } from "@/lib/usage";
+import { checkApiRateLimit } from "@/lib/security/rateLimiter";
 
 interface GenerateRequest {
   reviewContent: string;
@@ -39,6 +40,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "인증이 필요합니다" }, { status: 401 });
     }
 
+    // API Rate Limit (분당 5회)
+    const rateCheck = checkApiRateLimit(`review:${user.id}`, 5);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+        { status: 429 }
+      );
+    }
+
     const limitError = await checkUsageLimit(user.id, "review_generate");
     if (limitError) {
       return NextResponse.json({ success: false, error: limitError, limitReached: true }, { status: 429 });
@@ -60,11 +70,11 @@ export async function POST(req: NextRequest) {
 
     // 블록 재생성: 비스트리밍 (빠름)
     if (body.regenerateBlock) {
-      return handleNonStreaming(prompt, apiKey, user.id);
+      return handleNonStreaming(prompt, apiKey);
     }
 
     // 전체 생성: 스트리밍 SSE
-    return handleStreaming(prompt, apiKey, user.id);
+    return handleStreaming(prompt, apiKey);
   } catch (error) {
     console.error("Review generate error:", error);
     return NextResponse.json({ success: false, error: "서버 오류" }, { status: 500 });
@@ -72,7 +82,7 @@ export async function POST(req: NextRequest) {
 }
 
 /** 블록 재생성 — 비스트리밍 */
-async function handleNonStreaming(prompt: string, apiKey: string, userId: string) {
+async function handleNonStreaming(prompt: string, apiKey: string) {
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -106,12 +116,11 @@ async function handleNonStreaming(prompt: string, apiKey: string, userId: string
     return NextResponse.json({ success: false, error: "블록 파싱 실패" }, { status: 500 });
   }
 
-  await incrementUsage(userId, "review_generate");
   return NextResponse.json({ success: true, data: parsed });
 }
 
 /** 전체 생성 — 스트리밍 SSE */
-async function handleStreaming(prompt: string, apiKey: string, userId: string) {
+async function handleStreaming(prompt: string, apiKey: string) {
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -189,7 +198,6 @@ async function handleStreaming(prompt: string, apiKey: string, userId: string) {
         const parsed = parseResponseJSON(fullText);
 
         if (parsed) {
-          await incrementUsage(userId, "review_generate");
           send({ type: "done", data: parsed });
         } else {
           send({ type: "error", message: "답글 파싱 실패" });

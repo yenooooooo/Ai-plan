@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getUserPlan } from "@/lib/usage";
 import { getPlanLimits } from "@/lib/plan";
+import { checkApiRateLimit } from "@/lib/security/rateLimiter";
 import type {
   SalesSummaryData,
   FeeSummaryData,
@@ -72,6 +73,15 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ success: false, error: "인증 필요" }, { status: 401 });
+    }
+
+    // API Rate Limit (분당 3회)
+    const rateCheck = checkApiRateLimit(`coaching:${user.id}`, 3);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+        { status: 429 }
+      );
     }
 
     // 플랜 확인 (Pro 이상)

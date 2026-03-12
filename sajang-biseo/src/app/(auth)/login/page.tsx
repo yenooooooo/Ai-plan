@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { TurnstileWidget } from "@/components/shared/TurnstileWidget";
 import { signIn } from "../actions";
 
 export default function LoginPage() {
@@ -22,22 +23,24 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lockout, setLockout] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (lockout) return;
+
     setError("");
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
     if (redirectTo) formData.set("redirect", redirectTo);
+    if (turnstileToken) formData.set("cf-turnstile-response", turnstileToken);
 
     const result = await signIn(formData);
     if (result?.error) {
-      setError(
-        result.error === "Invalid login credentials"
-          ? "이메일 또는 비밀번호가 올바르지 않습니다."
-          : result.error
-      );
+      setError(result.error);
+      if ("lockout" in result && result.lockout) setLockout(true);
       setLoading(false);
     }
   }
@@ -125,12 +128,15 @@ function LoginForm() {
             </div>
           </div>
 
+          {/* Turnstile CAPTCHA */}
+          <TurnstileWidget onVerify={setTurnstileToken} />
+
           {/* 에러 메시지 */}
           {error && (
             <motion.p
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-body-small text-danger text-center py-2"
+              className={`text-body-small text-center py-2 ${lockout ? "text-warning" : "text-danger"}`}
             >
               {error}
             </motion.p>
@@ -139,7 +145,7 @@ function LoginForm() {
           {/* 로그인 버튼 */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || lockout}
             className="
               w-full h-14 rounded-[14px] mt-2
               bg-primary-500 text-white font-body font-semibold text-[1rem]
@@ -157,6 +163,8 @@ function LoginForm() {
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
               />
+            ) : lockout ? (
+              "잠금 상태"
             ) : (
               <>
                 로그인

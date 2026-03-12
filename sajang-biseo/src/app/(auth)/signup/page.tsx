@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Check } from "lucide-react";
+import { TurnstileWidget } from "@/components/shared/TurnstileWidget";
 import { signUp } from "../actions";
 
 export default function SignupPage() {
@@ -11,6 +12,7 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const passwordChecks = {
     length: password.length >= 8,
@@ -27,6 +29,8 @@ export default function SignupPage() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    if (turnstileToken) formData.set("cf-turnstile-response", turnstileToken);
+
     const result = await signUp(formData);
     if (result?.error) {
       setError(
@@ -158,6 +162,9 @@ export default function SignupPage() {
               </motion.div>
             )}
           </div>
+
+          {/* Turnstile CAPTCHA */}
+          <TurnstileWidget onVerify={setTurnstileToken} />
 
           {/* 에러 메시지 */}
           {error && (

@@ -69,7 +69,7 @@ export async function incrementUsage(userId: string, feature: Feature): Promise<
   }
 }
 
-/** 제한 체크: 초과 시 에러 메시지 반환, 통과 시 null */
+/** 제한 체크 + 사전 증가: 초과 시 에러 메시지 반환, 통과 시 null (사용량 미리 증가) */
 export async function checkUsageLimit(
   userId: string,
   feature: Feature
@@ -85,6 +85,9 @@ export async function checkUsageLimit(
     const label = feature === "receipt_ocr" ? "영수증 인식" : "리뷰 답글 생성";
     return `${label} 월간 한도 ${max}회를 초과했습니다. 플랜을 업그레이드해주세요.`;
   }
+
+  // Race condition 방지: 체크 통과 시 즉시 사용량 증가
+  await incrementUsage(userId, feature);
   return null;
 }
 

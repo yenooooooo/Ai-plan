@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient as createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkUsageLimit, incrementUsage } from "@/lib/usage";
+import { checkUsageLimit } from "@/lib/usage";
+import { checkApiRateLimit } from "@/lib/security/rateLimiter";
 
 interface OcrResult {
   date: string | null;
@@ -27,6 +28,15 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ success: false, error: "인증이 필요합니다" }, { status: 401 });
+    }
+
+    // API Rate Limit (분당 5회)
+    const rateCheck = checkApiRateLimit(`ocr:${user.id}`, 5);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." },
+        { status: 429 }
+      );
     }
 
     // 사용량 제한 체크
@@ -180,9 +190,6 @@ JSON만 응답하세요. 설명 금지.`,
         error: "영수증 인식 결과를 파싱할 수 없습니다",
       });
     }
-
-    // 성공 시 사용량 증가
-    await incrementUsage(user.id, "receipt_ocr");
 
     return NextResponse.json({ success: true, data: parsed });
   } catch (error) {
