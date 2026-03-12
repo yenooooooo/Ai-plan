@@ -44,13 +44,12 @@ export async function GET() {
 
     const actions = ["closing_save", "receipt_ocr", "review_generate", "order_save", "briefing_view"];
 
-    const heatmap = dates.map((date) => {
-      const row: Record<string, number> = { date: 0 };
-      // Store date as a separate field handled in client
+    const heatmap = dates.map((d) => {
+      const row: Record<string, number> = {};
       for (const action of actions) {
-        row[action] = matrix[date]?.[action] ?? 0;
+        row[action] = matrix[d]?.[action] ?? 0;
       }
-      return { date, ...row };
+      return { date: d, ...row };
     });
 
     return NextResponse.json({ heatmap, actions, dates });
