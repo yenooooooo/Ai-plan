@@ -107,11 +107,16 @@ export default function BriefingPage() {
         scale: 2,
         useCORS: true,
       });
-      const link = document.createElement("a");
-      link.download = `briefing-${briefing?.weekStart ?? "week"}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      toast("이미지가 저장되었습니다.", "success");
+      canvas.toBlob((blob) => {
+        if (!blob) { toast("이미지 생성 실패", "error"); return; }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = `briefing-${briefing?.weekStart ?? "week"}.png`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast("이미지가 저장되었습니다.", "success");
+      }, "image/png");
     } catch {
       toast("이미지 저장에 실패했습니다.", "error");
     }
