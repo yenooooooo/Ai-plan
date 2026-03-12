@@ -7,6 +7,8 @@ import { useToast } from "@/stores/useToast";
 import { genBlockId, type ReplyBlock, type Platform, type ToneAdjustment, blocksToFullText } from "@/lib/review/blocks";
 import type { Review, ReviewReply, StoreToneSettings } from "@/lib/supabase/types";
 
+export type GenerationStage = "analyzing" | "writing" | "formatting" | null;
+
 export function useReviewData() {
   const supabase = useMemo(() => createClient(), []);
   const { storeId } = useStoreSettings();
@@ -22,6 +24,10 @@ export function useReviewData() {
   const [generating, setGenerating] = useState(false);
   const [regeneratingBlockId, setRegeneratingBlockId] = useState<string | null>(null);
   const [replyHistory, setReplyHistory] = useState<ReviewReply[]>([]);
+
+  // 스트리밍 진행 상태
+  const [generationStage, setGenerationStage] = useState<GenerationStage>(null);
+  const [generationTokens, setGenerationTokens] = useState(0);
 
   // 리뷰 & 톤 설정 로드
   const loadData = useCallback(async () => {
@@ -92,13 +98,15 @@ export function useReviewData() {
     await loadData();
   }, [storeId, supabase, loadData, toast]);
 
-  // 답글 생성 (전체)
+  // 답글 생성 (전체 — SSE 스트리밍)
   const generateReply = useCallback(async (review: {
     content: string; rating: number; platform: Platform;
   }) => {
     if (!toneSettings) return;
     setGenerating(true);
     setVersions([]);
+    setGenerationStage("analyzing");
+    setGenerationTokens(0);
 
     try {
       const res = await fetch("/api/review/generate", {
@@ -119,19 +127,78 @@ export function useReviewData() {
           },
         }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "답글 생성 실패");
-      if (json.success && json.data?.versions) {
-        const vs: ReplyBlock[][] = json.data.versions.map(
-          (v: { blocks: { type: string; text: string }[] }) =>
-            v.blocks.map((b) => ({
-              id: genBlockId(),
-              type: b.type as ReplyBlock["type"],
-              label: b.type,
-              text: b.text,
-            }))
-        );
-        setVersions(vs);
+
+      const contentType = res.headers.get("Content-Type") || "";
+
+      if (contentType.includes("text/event-stream") && res.body) {
+        // SSE 스트리밍 소비
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split("\n\n");
+          buffer = events.pop() || "";
+
+          for (const event of events) {
+            const dataLine = event.split("\n").find((l) => l.startsWith("data: "));
+            if (!dataLine) continue;
+
+            try {
+              const data = JSON.parse(dataLine.slice(6));
+
+              switch (data.type) {
+                case "stage":
+                  setGenerationStage(data.stage);
+                  break;
+                case "progress":
+                  setGenerationTokens(data.tokens);
+                  break;
+                case "done":
+                  if (data.data?.versions) {
+                    const vs: ReplyBlock[][] = data.data.versions.map(
+                      (v: { blocks: { type: string; text: string }[] }) =>
+                        v.blocks.map((b) => ({
+                          id: genBlockId(),
+                          type: b.type as ReplyBlock["type"],
+                          label: b.type,
+                          text: b.text,
+                        }))
+                    );
+                    setVersions(vs);
+                  }
+                  break;
+                case "error":
+                  throw new Error(data.message);
+              }
+            } catch (parseErr) {
+              if (parseErr instanceof Error && parseErr.message.includes("답글")) {
+                throw parseErr;
+              }
+              // JSON parse error on SSE chunk — ignore
+            }
+          }
+        }
+      } else {
+        // 비스트리밍 fallback (에러 응답 또는 JSON)
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "답글 생성 실패");
+        if (json.success && json.data?.versions) {
+          const vs: ReplyBlock[][] = json.data.versions.map(
+            (v: { blocks: { type: string; text: string }[] }) =>
+              v.blocks.map((b) => ({
+                id: genBlockId(),
+                type: b.type as ReplyBlock["type"],
+                label: b.type,
+                text: b.text,
+              }))
+          );
+          setVersions(vs);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "답글 생성 실패";
@@ -139,6 +206,8 @@ export function useReviewData() {
       toast(msg, "error");
     }
     setGenerating(false);
+    setGenerationStage(null);
+    setGenerationTokens(0);
   }, [toneSettings, toast]);
 
   // 블록 직접 편집
@@ -246,6 +315,7 @@ export function useReviewData() {
   return {
     reviews, toneSettings, loading, error,
     versions, generating, regeneratingBlockId, replyHistory,
+    generationStage, generationTokens,
     saveToneSettings, addReview, generateReply,
     editBlock, regenerateBlock, saveReply, clearVersions,
     deleteReview, loadReplyHistory,

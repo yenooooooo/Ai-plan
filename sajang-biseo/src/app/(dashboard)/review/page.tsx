@@ -12,6 +12,7 @@ import {
 import { ToneSetup } from "@/components/review/ToneSetup";
 import { ReviewInput } from "@/components/review/ReviewInput";
 import { BlockEditor } from "@/components/review/BlockEditor";
+import { GenerationProgress } from "@/components/review/GenerationProgress";
 import { ReviewDashboard } from "@/components/review/ReviewDashboard";
 import { ReplyPreview } from "@/components/review/ReplyPreview";
 import { ReplyHistory } from "@/components/review/ReplyHistory";
@@ -32,6 +33,7 @@ export default function ReviewPage() {
   const {
     reviews, toneSettings, loading,
     versions, generating, regeneratingBlockId, replyHistory,
+    generationStage, generationTokens,
     saveToneSettings, addReview, generateReply,
     editBlock, regenerateBlock, saveReply, clearVersions,
     deleteReview, loadReplyHistory,
@@ -145,6 +147,11 @@ export default function ReviewPage() {
                   hasResult={versions.length > 0}
                   onReset={() => { setCurrentReviewData(null); setSelectedReview(null); clearVersions(); }}
                 />
+
+                {/* 생성 진행 상태 */}
+                {generating && versions.length === 0 && (
+                  <GenerationProgress stage={generationStage} tokens={generationTokens} />
+                )}
 
                 {/* 생성 결과 (블록 에디터) */}
                 {versions.length > 0 && (

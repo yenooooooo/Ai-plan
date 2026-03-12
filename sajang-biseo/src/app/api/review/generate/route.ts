@@ -1,6 +1,6 @@
 /**
  * 리뷰 답글 생성 API Route
- * Claude API로 블록형 답글 생성 (서버 사이드)
+ * Claude API로 블록형 답글 생성 (스트리밍 SSE + Haiku)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -24,10 +24,12 @@ interface GenerateRequest {
   regenerateBlock?: {
     type: string;
     toneAdjustment?: string;
-    context: string; // 다른 블록 텍스트
+    context: string;
   };
   versionsCount?: number;
 }
+
+const MODEL = "claude-haiku-4-5-20251001";
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,7 +39,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "인증이 필요합니다" }, { status: 401 });
     }
 
-    // 사용량 제한 체크
     const limitError = await checkUsageLimit(user.id, "review_generate");
     if (limitError) {
       return NextResponse.json({ success: false, error: limitError, limitReached: true }, { status: 429 });
@@ -57,54 +58,170 @@ export async function POST(req: NextRequest) {
       ? buildBlockPrompt(body)
       : buildFullPrompt(body);
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 8000,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      console.error("Anthropic API error:", response.status, errBody);
-      let detail = `API ${response.status}`;
-      try { const e = JSON.parse(errBody); detail = e?.error?.message ?? detail; } catch {}
-      return NextResponse.json(
-        { success: false, error: `답글 생성 실패: ${detail}` },
-        { status: 500 }
-      );
+    // 블록 재생성: 비스트리밍 (빠름)
+    if (body.regenerateBlock) {
+      return handleNonStreaming(prompt, apiKey, user.id);
     }
 
-    const result = await response.json();
-    const text = result.content?.[0]?.text ?? "";
-
-    let parsed;
-    try {
-      const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      const candidate = codeBlockMatch?.[1]?.trim() ?? text;
-      const jsonMatch = candidate.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        return NextResponse.json({ success: false, error: "답글 파싱 실패" }, { status: 500 });
-      }
-      parsed = JSON.parse(escapeJsonStrings(jsonMatch[0]));
-    } catch {
-      return NextResponse.json({ success: false, error: "답글 JSON 파싱 실패" }, { status: 500 });
-    }
-
-    // 성공 시 사용량 증가
-    await incrementUsage(user.id, "review_generate");
-
-    return NextResponse.json({ success: true, data: parsed });
+    // 전체 생성: 스트리밍 SSE
+    return handleStreaming(prompt, apiKey, user.id);
   } catch (error) {
     console.error("Review generate error:", error);
     return NextResponse.json({ success: false, error: "서버 오류" }, { status: 500 });
+  }
+}
+
+/** 블록 재생성 — 비스트리밍 */
+async function handleNonStreaming(prompt: string, apiKey: string, userId: string) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2000,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "");
+    console.error("Anthropic API error:", response.status, errBody);
+    let detail = `API ${response.status}`;
+    try { const e = JSON.parse(errBody); detail = e?.error?.message ?? detail; } catch {}
+    return NextResponse.json(
+      { success: false, error: `답글 생성 실패: ${detail}` },
+      { status: 500 }
+    );
+  }
+
+  const result = await response.json();
+  const text = result.content?.[0]?.text ?? "";
+  const parsed = parseResponseJSON(text);
+
+  if (!parsed) {
+    return NextResponse.json({ success: false, error: "블록 파싱 실패" }, { status: 500 });
+  }
+
+  await incrementUsage(userId, "review_generate");
+  return NextResponse.json({ success: true, data: parsed });
+}
+
+/** 전체 생성 — 스트리밍 SSE */
+async function handleStreaming(prompt: string, apiKey: string, userId: string) {
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (data: Record<string, unknown>) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        } catch { /* controller closed */ }
+      };
+
+      try {
+        send({ type: "stage", stage: "analyzing", message: "리뷰 분석 중..." });
+
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            max_tokens: 8000,
+            stream: true,
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+
+        if (!response.ok) {
+          const errBody = await response.text().catch(() => "");
+          let detail = `API ${response.status}`;
+          try { const e = JSON.parse(errBody); detail = e?.error?.message ?? detail; } catch {}
+          send({ type: "error", message: `답글 생성 실패: ${detail}` });
+          controller.close();
+          return;
+        }
+
+        send({ type: "stage", stage: "writing", message: "답글 작성 중..." });
+
+        let fullText = "";
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let sseBuffer = "";
+        let tokenCount = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          sseBuffer += decoder.decode(value, { stream: true });
+          const events = sseBuffer.split("\n\n");
+          sseBuffer = events.pop() || "";
+
+          for (const event of events) {
+            for (const line of event.split("\n")) {
+              if (!line.startsWith("data: ")) continue;
+              const raw = line.slice(6);
+              if (raw === "[DONE]") continue;
+              try {
+                const parsed = JSON.parse(raw);
+                if (parsed.type === "content_block_delta" && parsed.delta?.type === "text_delta") {
+                  fullText += parsed.delta.text;
+                  tokenCount++;
+                  if (tokenCount % 15 === 0) {
+                    send({ type: "progress", tokens: tokenCount });
+                  }
+                }
+              } catch { /* ignore malformed SSE */ }
+            }
+          }
+        }
+
+        send({ type: "stage", stage: "formatting", message: "답글 정리 중..." });
+
+        const parsed = parseResponseJSON(fullText);
+
+        if (parsed) {
+          await incrementUsage(userId, "review_generate");
+          send({ type: "done", data: parsed });
+        } else {
+          send({ type: "error", message: "답글 파싱 실패" });
+        }
+      } catch (err) {
+        console.error("Streaming error:", err);
+        send({ type: "error", message: "생성 중 오류가 발생했습니다" });
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
+}
+
+/** JSON 응답 파싱 (코드블록, 이스케이프 처리 포함) */
+function parseResponseJSON(text: string): Record<string, unknown> | null {
+  try {
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const candidate = codeBlockMatch?.[1]?.trim() ?? text;
+    const jsonMatch = candidate.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    return JSON.parse(escapeJsonStrings(jsonMatch[0]));
+  } catch {
+    return null;
   }
 }
 
@@ -232,7 +349,6 @@ ${adjText ? `톤 조절 요청: ${adjText}` : ""}
 
 /**
  * JSON 문자열 값 안의 실제 개행/탭 문자를 이스케이프 처리.
- * 문자 단위로 파싱하여 문자열 안/밖을 정확히 구분.
  */
 function escapeJsonStrings(raw: string): string {
   let result = "";

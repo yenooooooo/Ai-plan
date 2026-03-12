@@ -435,6 +435,18 @@ function calculateFee(amount: number, rate: number): number {
 - 상태 관리: 로컬 상태는 useState, 전역 상태는 Zustand
 - 서버 데이터: Supabase 클라이언트 직접 사용 또는 Server Actions
 
+### 9.2.1 데스크탑/모바일 호환 필수 규칙
+
+> **모든 UI 수정/신규 개발 시 데스크탑과 모바일 양쪽에서 정상 동작해야 한다.**
+
+1. **레이아웃**: Tailwind 반응형 클래스(`sm:`, `md:`, `lg:`) 활용. 모바일 퍼스트로 기본 스타일 작성 후 데스크탑 확장
+2. **터치 타겟**: 모바일 버튼/인터랙션 요소는 최소 `w-7 h-7`(28px) 이상. 핵심 CTA는 `h-10` 이상
+3. **고정 요소**: `position: fixed` 사용 시 모바일에서 BottomNav(`h-16`, `z-40`)와 겹치지 않도록 `pb-24` 확보. 데스크탑에서는 `lg:` 접두사로 분기
+4. **이미지 내보내기(html2canvas)**: 오프스크린 캡처 영역(`position: fixed; left: -9999px`)에 고정 너비(420px), `<table>` 레이아웃, 인라인 스타일 사용. Tailwind 클래스 대신 명시적 `fontSize`, `lineHeight`, `whiteSpace` 지정
+5. **overflow**: 긴 텍스트는 `truncate` 또는 `break-words` 처리. 수평 스크롤 발생하지 않도록 `overflow-x: hidden` 확인
+6. **입력 폼**: 모바일 키보드가 올라올 때 입력 필드가 가려지지 않도록 스크롤 고려
+7. **테스트 체크리스트**: 주요 변경 후 모바일(375px) / 태블릿(768px) / 데스크탑(1280px) 세 viewport에서 레이아웃 깨짐 없는지 확인
+
 ### 9.3 API Routes
 
 - 에러 핸들링 일관성 유지
