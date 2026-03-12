@@ -126,35 +126,35 @@ export function OrderExport({ confirmedItems, itemsMap, orderDate }: OrderExport
                 <button onClick={() => setShowPreview(false)} className="p-1 text-neutral-400"><X size={20} /></button>
               </div>
 
-              <div ref={previewRef} className="px-6 pb-6 bg-white">
+              <div ref={previewRef} className="bg-white" style={{ minWidth: 360, padding: "24px 28px 28px" }}>
                 <h2 className="text-lg font-bold text-neutral-900 mb-1">발주서</h2>
-                <p className="text-sm text-neutral-500 mb-4">{orderDate}</p>
+                <p className="text-sm text-neutral-500 mb-5">{orderDate}</p>
                 {groups.map((g) => (
-                  <div key={g.supplierName} className="mb-3">
-                    <p className="text-sm font-semibold text-neutral-800 mb-1">
+                  <div key={g.supplierName} className="mb-4">
+                    <p className="text-sm font-semibold text-neutral-800 mb-2">
                       {g.supplierName}
                       {g.supplierContact && <span className="font-normal text-neutral-400 ml-2">{g.supplierContact}</span>}
                     </p>
                     {g.items.map((item, i) => (
-                      <div key={i} className="flex justify-between text-sm text-neutral-600 py-0.5">
-                        <span>{item.name}</span>
-                        <span>{item.qty}{item.unit}{item.unitPrice ? ` (${formatCurrency(item.unitPrice * item.qty, { showSymbol: false })})` : ""}</span>
+                      <div key={i} className="flex justify-between items-center text-sm text-neutral-600 py-1 gap-4">
+                        <span className="shrink-0">{item.name}</span>
+                        <span className="text-right whitespace-nowrap">{item.qty}{item.unit}{item.unitPrice ? ` (${formatCurrency(item.unitPrice * item.qty, { showSymbol: false })})` : ""}</span>
                       </div>
                     ))}
                     {g.total > 0 && (
-                      <p className="text-right text-sm font-semibold text-neutral-800 mt-1 pt-1 border-t border-neutral-200">
+                      <p className="text-right text-sm font-semibold text-neutral-800 mt-2 pt-2 border-t border-neutral-200">
                         {formatCurrency(g.total)}
                       </p>
                     )}
                   </div>
                 ))}
                 {grandTotal > 0 && (
-                  <div className="flex justify-between items-center pt-3 mt-3 border-t-2 border-neutral-300">
+                  <div className="flex justify-between items-center pt-3 mt-3 border-t-2 border-neutral-300 gap-4">
                     <span className="text-sm text-neutral-600">총 합계</span>
                     <span className="text-base font-bold text-blue-600">{formatCurrency(grandTotal)}</span>
                   </div>
                 )}
-                <p className="text-[10px] text-neutral-300 text-center mt-4">사장님비서</p>
+                <p className="text-[10px] text-neutral-300 text-center mt-5">사장님비서</p>
               </div>
 
               <div className="flex gap-2 p-4 border-t border-neutral-100">

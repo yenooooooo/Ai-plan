@@ -100,22 +100,22 @@ export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: Receip
                 <button onClick={() => setShowPreview(false)} className="p-1 text-neutral-400"><X size={20} /></button>
               </div>
 
-              <div ref={previewRef} className="px-6 pb-6 bg-white">
+              <div ref={previewRef} className="bg-white" style={{ minWidth: 360, padding: "24px 28px 28px" }}>
                 <h2 className="text-lg font-bold text-neutral-900 mb-0.5">경비 요약 리포트</h2>
-                <p className="text-sm text-neutral-500 mb-4">{dateLabel}</p>
+                <p className="text-sm text-neutral-500 mb-5">{dateLabel}</p>
 
-                <div className="space-y-1 mb-3">
+                <div className="space-y-2.5 mb-4">
                   <Row label="총 경비" value={formatCurrency(total)} bold />
                   {vatTotal > 0 && <Row label="부가세 합계" value={formatCurrency(vatTotal)} />}
                   <Row label="건수" value={`${receipts.length}건`} />
                 </div>
 
-                <div className="border-t border-neutral-200 pt-3 mb-3">
-                  <p className="text-xs text-neutral-500 mb-2 font-medium">카테고리별</p>
+                <div className="border-t border-neutral-200 pt-3 mb-4">
+                  <p className="text-xs text-neutral-500 mb-2.5 font-medium">카테고리별</p>
                   {catBreakdown.map((c) => (
-                    <div key={c.label} className="flex justify-between text-sm mb-1">
-                      <span className="text-neutral-600">{c.label} ({c.count}건)</span>
-                      <span className="text-neutral-800">
+                    <div key={c.label} className="flex justify-between items-center text-sm mb-2 gap-4">
+                      <span className="text-neutral-600 shrink-0">{c.label} ({c.count}건)</span>
+                      <span className="text-neutral-800 text-right whitespace-nowrap">
                         {formatCurrency(c.amount)}
                         <span className="text-xs text-neutral-400 ml-1">
                           {total > 0 ? `(${((c.amount / total) * 100).toFixed(1)}%)` : ""}
@@ -126,18 +126,18 @@ export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: Receip
                 </div>
 
                 {payMap.size > 1 && (
-                  <div className="border-t border-neutral-200 pt-3 mb-3">
-                    <p className="text-xs text-neutral-500 mb-2 font-medium">결제수단별</p>
+                  <div className="border-t border-neutral-200 pt-3 mb-4">
+                    <p className="text-xs text-neutral-500 mb-2.5 font-medium">결제수단별</p>
                     {Array.from(payMap.entries()).map(([method, amt]) => (
-                      <div key={method} className="flex justify-between text-sm mb-1">
-                        <span className="text-neutral-600">{method}</span>
-                        <span className="text-neutral-800">{formatCurrency(amt)}</span>
+                      <div key={method} className="flex justify-between items-center text-sm mb-2 gap-4">
+                        <span className="text-neutral-600 shrink-0">{method}</span>
+                        <span className="text-neutral-800 text-right whitespace-nowrap">{formatCurrency(amt)}</span>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <p className="text-[10px] text-neutral-300 text-center mt-4">사장님비서</p>
+                <p className="text-[10px] text-neutral-300 text-center mt-5">사장님비서</p>
               </div>
 
               <div className="flex gap-2 p-4 border-t border-neutral-100">
@@ -170,9 +170,9 @@ export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: Receip
 
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
-    <div className="flex justify-between text-sm">
-      <span className="text-neutral-600">{label}</span>
-      <span className={`text-neutral-800 ${bold ? "font-bold text-base" : ""}`}>{value}</span>
+    <div className="flex justify-between items-center text-sm gap-4">
+      <span className="text-neutral-600 shrink-0">{label}</span>
+      <span className={`text-neutral-800 text-right ${bold ? "font-bold text-base" : ""}`}>{value}</span>
     </div>
   );
 }

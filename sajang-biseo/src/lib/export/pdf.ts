@@ -15,7 +15,7 @@ export async function saveAsPdf(
   const canvas = await html2canvas(element, {
     scale: 2,
     useCORS: true,
-    backgroundColor: "#1a1a2e",
+    backgroundColor: "#ffffff",
     logging: false,
   });
 

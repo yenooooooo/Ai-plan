@@ -103,8 +103,9 @@ export default function BriefingPage() {
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(carouselRef.current, {
-        backgroundColor: null,
+        backgroundColor: "#ffffff",
         scale: 2,
+        useCORS: true,
       });
       const link = document.createElement("a");
       link.download = `briefing-${briefing?.weekStart ?? "week"}.png`;

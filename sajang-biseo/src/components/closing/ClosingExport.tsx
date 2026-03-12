@@ -97,40 +97,40 @@ export function ClosingExport({
               </div>
 
               {/* 캡처 대상 */}
-              <div ref={previewRef} className="px-6 pb-6 bg-white">
+              <div ref={previewRef} className="bg-white" style={{ minWidth: 360, padding: "24px 28px 28px" }}>
                 <h2 className="text-lg font-bold text-neutral-900 mb-0.5">마감 리포트</h2>
-                <p className="text-sm text-neutral-500 mb-4">{dateLabel}</p>
+                <p className="text-sm text-neutral-500 mb-5">{dateLabel}</p>
 
-                <div className="space-y-1 mb-3">
+                <div className="space-y-2.5 mb-4">
                   <Row label="총매출" value={formatCurrency(totalSales)} />
                   {feeResult.totalFees > 0 && <Row label="수수료" value={`-${formatCurrency(feeResult.totalFees)}`} color="red" />}
                   {customTotal > 0 && <Row label="추가 수수료" value={`-${formatCurrency(customTotal)}`} color="red" />}
                   {totalExp > 0 && <Row label="경비" value={`-${formatCurrency(totalExp)}`} color="red" />}
                 </div>
 
-                <div className="border-t-2 border-neutral-300 pt-2 mb-4">
+                <div className="border-t-2 border-neutral-300 pt-3 mb-5">
                   <Row label="순이익" value={formatCurrency(netProfit)} bold color={netProfit >= 0 ? "blue" : "red"} />
                   {totalSales > 0 && (
-                    <p className="text-xs text-neutral-400 text-right">수익률 {((netProfit / totalSales) * 100).toFixed(1)}%</p>
+                    <p className="text-xs text-neutral-400 text-right mt-1">수익률 {((netProfit / totalSales) * 100).toFixed(1)}%</p>
                   )}
                 </div>
 
                 {channels.filter((c) => c.ratio > 0).length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-xs text-neutral-500 mb-1">채널</p>
+                  <div className="mb-4">
+                    <p className="text-xs text-neutral-500 mb-1.5">채널</p>
                     <p className="text-sm text-neutral-700">
                       {channels.filter((c) => c.ratio > 0).map((c) => `${c.channel} ${c.ratio}%`).join(" / ")}
                     </p>
                   </div>
                 )}
 
-                <p className="text-xs text-neutral-500 mb-1">결제</p>
-                <p className="text-sm text-neutral-700 mb-3">카드 {cardRatio}% / 현금 {100 - cardRatio}%</p>
+                <p className="text-xs text-neutral-500 mb-1.5">결제</p>
+                <p className="text-sm text-neutral-700 mb-4">카드 {cardRatio}% / 현금 {100 - cardRatio}%</p>
 
-                {tags.length > 0 && <p className="text-xs text-neutral-400 mb-1">#{tags.join(" #")}</p>}
+                {tags.length > 0 && <p className="text-xs text-neutral-400 mb-1.5">#{tags.join(" #")}</p>}
                 {memo && <p className="text-xs text-neutral-400">{memo}</p>}
 
-                <p className="text-[10px] text-neutral-300 text-center mt-4">사장님비서</p>
+                <p className="text-[10px] text-neutral-300 text-center mt-5">사장님비서</p>
               </div>
 
               <div className="flex gap-2 p-4 border-t border-neutral-100">
@@ -164,9 +164,9 @@ export function ClosingExport({
 function Row({ label, value, bold, color }: { label: string; value: string; bold?: boolean; color?: string }) {
   const colorCls = color === "red" ? "text-red-500" : color === "blue" ? "text-blue-600" : "text-neutral-800";
   return (
-    <div className="flex justify-between text-sm">
-      <span className="text-neutral-600">{label}</span>
-      <span className={`${colorCls} ${bold ? "font-bold text-base" : ""}`}>{value}</span>
+    <div className="flex justify-between items-center text-sm gap-4">
+      <span className="text-neutral-600 shrink-0">{label}</span>
+      <span className={`${colorCls} ${bold ? "font-bold text-base" : ""} text-right`}>{value}</span>
     </div>
   );
 }
