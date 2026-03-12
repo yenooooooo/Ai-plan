@@ -25,7 +25,7 @@ const nextConfig = {
           // Referrer 정보 제한
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           // 권한 정책
-          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(self)" },
           // CSP — 필요한 출처만 허용
           {
             key: "Content-Security-Policy",
