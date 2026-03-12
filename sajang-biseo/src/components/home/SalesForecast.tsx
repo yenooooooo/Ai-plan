@@ -31,11 +31,8 @@ export function SalesForecast() {
         body: JSON.stringify({ storeId }),
       });
       const result = await res.json();
-      if (!res.ok) {
-        if (res.status === 400) { setNeedMore(true); return; }
-        toast(result.error, "error");
-        return;
-      }
+      if (!res.ok) { toast(result.error, "error"); return; }
+      if (result.needMore) { setNeedMore(true); return; }
       setData(result.data);
     } catch { toast("예측 실패", "error"); }
     finally { setLoading(false); }

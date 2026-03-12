@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       .order("date");
 
     if (!closings || closings.length < 7) {
-      return NextResponse.json({ error: "예측에 최소 7일 이상의 데이터가 필요합니다." }, { status: 400 });
+      return NextResponse.json({ needMore: true, days: closings?.length ?? 0 });
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
