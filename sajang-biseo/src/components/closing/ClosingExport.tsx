@@ -21,6 +21,26 @@ interface ClosingExportProps {
   memo: string;
 }
 
+/* ── inline style 상수 ── */
+const S = {
+  root: {
+    width: 420,
+    padding: "28px 32px 32px",
+    backgroundColor: "#ffffff",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    lineHeight: "1.5",
+    boxSizing: "border-box" as const,
+  },
+  table: {
+    width: "100%" as const,
+    borderCollapse: "collapse" as const,
+    fontSize: 14,
+    lineHeight: "1.6",
+  },
+  tdLabel: { padding: "5px 16px 5px 0", color: "#525252", verticalAlign: "middle" as const },
+  tdValue: { padding: "5px 0", textAlign: "right" as const, whiteSpace: "nowrap" as const, verticalAlign: "middle" as const },
+};
+
 export function ClosingExport({
   totalSales, feeResult, todayExpenses, customFees,
   channels, cardRatio, date, tags, memo,
@@ -38,13 +58,16 @@ export function ClosingExport({
   const customTotal = customFees.reduce((s, f) => s + f.amount, 0);
   const netProfit = feeResult.netSales - totalExp - customTotal;
   const activeChannels = channels.filter((c) => c.ratio > 0);
+  const profitRate = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : "0";
 
   async function captureImage(): Promise<Blob | null> {
     if (!captureRef.current) return null;
+    if (document.fonts?.ready) await document.fonts.ready;
     const canvas = await html2canvas(captureRef.current, {
       backgroundColor: "#ffffff",
       scale: 2,
       useCORS: true,
+      logging: false,
     });
     return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
   }
@@ -89,54 +112,71 @@ export function ClosingExport({
     finally { setSaving(false); }
   }
 
-  const profitRate = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : "0";
+  // 행 데이터 구성
+  const rows: { label: string; value: string; color?: string; bold?: boolean }[] = [
+    { label: "총매출", value: formatCurrency(totalSales) },
+  ];
+  if (feeResult.totalFees > 0) rows.push({ label: "수수료", value: `-${formatCurrency(feeResult.totalFees)}`, color: "#ef4444" });
+  if (customTotal > 0) rows.push({ label: "추가 수수료", value: `-${formatCurrency(customTotal)}`, color: "#ef4444" });
+  if (totalExp > 0) rows.push({ label: "경비", value: `-${formatCurrency(totalExp)}`, color: "#ef4444" });
 
   return (
     <>
-      {/* 오프스크린 캡처 영역 — 고정 너비로 겹침 방지 */}
-      <div style={{ position: "fixed", left: -9999, top: 0, pointerEvents: "none" }}>
-        <div
-          ref={captureRef}
-          style={{ width: 400, padding: "28px 32px 32px", backgroundColor: "#ffffff" }}
-        >
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 2 }}>마감 리포트</h2>
-          <p style={{ fontSize: 14, color: "#737373", marginBottom: 20 }}>{dateLabel}</p>
+      {/* ── 오프스크린 캡처 영역: table 레이아웃 ── */}
+      <div style={{ position: "fixed", left: -9999, top: 0, pointerEvents: "none", overflow: "hidden" }}>
+        <div ref={captureRef} style={S.root}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#171717", margin: "0 0 4px", lineHeight: "1.4" }}>마감 리포트</p>
+          <p style={{ fontSize: 14, color: "#737373", margin: "0 0 20px", lineHeight: "1.4" }}>{dateLabel}</p>
 
-          <ExportRow label="총매출" value={formatCurrency(totalSales)} />
-          {feeResult.totalFees > 0 && <ExportRow label="수수료" value={`-${formatCurrency(feeResult.totalFees)}`} color="#ef4444" />}
-          {customTotal > 0 && <ExportRow label="추가 수수료" value={`-${formatCurrency(customTotal)}`} color="#ef4444" />}
-          {totalExp > 0 && <ExportRow label="경비" value={`-${formatCurrency(totalExp)}`} color="#ef4444" />}
+          {/* 매출/수수료/경비 테이블 */}
+          <table style={S.table}>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.label}>
+                  <td style={S.tdLabel}>{r.label}</td>
+                  <td style={{ ...S.tdValue, color: r.color ?? "#262626" }}>{r.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-          <div style={{ borderTop: "2px solid #d4d4d4", paddingTop: 12, marginTop: 16, marginBottom: 20 }}>
-            <ExportRow
-              label="순이익"
-              value={formatCurrency(netProfit)}
-              color={netProfit >= 0 ? "#2563eb" : "#ef4444"}
-              bold
-            />
+          {/* 순이익 구분선 */}
+          <div style={{ borderTop: "2px solid #d4d4d4", paddingTop: 12, marginTop: 14, marginBottom: 20 }}>
+            <table style={S.table}>
+              <tbody>
+                <tr>
+                  <td style={S.tdLabel}>순이익</td>
+                  <td style={{ ...S.tdValue, fontSize: 16, fontWeight: 700, color: netProfit >= 0 ? "#2563eb" : "#ef4444" }}>
+                    {formatCurrency(netProfit)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
             {totalSales > 0 && (
-              <p style={{ fontSize: 12, color: "#a3a3a3", textAlign: "right", marginTop: 4 }}>
+              <p style={{ fontSize: 12, color: "#a3a3a3", textAlign: "right", marginTop: 4, lineHeight: "1.4" }}>
                 수익률 {profitRate}%
               </p>
             )}
           </div>
 
+          {/* 채널 */}
           {activeChannels.length > 0 && (
             <div style={{ marginBottom: 16 }}>
-              <p style={{ fontSize: 12, color: "#737373", marginBottom: 6 }}>채널</p>
-              <p style={{ fontSize: 14, color: "#404040" }}>
+              <p style={{ fontSize: 12, color: "#737373", marginBottom: 6, lineHeight: "1.4" }}>채널</p>
+              <p style={{ fontSize: 14, color: "#404040", lineHeight: "1.5" }}>
                 {activeChannels.map((c) => `${c.channel} ${c.ratio}%`).join(" / ")}
               </p>
             </div>
           )}
 
-          <p style={{ fontSize: 12, color: "#737373", marginBottom: 6 }}>결제</p>
-          <p style={{ fontSize: 14, color: "#404040", marginBottom: 16 }}>카드 {cardRatio}% / 현금 {100 - cardRatio}%</p>
+          {/* 결제 */}
+          <p style={{ fontSize: 12, color: "#737373", marginBottom: 6, lineHeight: "1.4" }}>결제</p>
+          <p style={{ fontSize: 14, color: "#404040", marginBottom: 16, lineHeight: "1.5" }}>카드 {cardRatio}% / 현금 {100 - cardRatio}%</p>
 
-          {tags.length > 0 && <p style={{ fontSize: 12, color: "#a3a3a3", marginBottom: 6 }}>#{tags.join(" #")}</p>}
-          {memo && <p style={{ fontSize: 12, color: "#a3a3a3" }}>{memo}</p>}
+          {tags.length > 0 && <p style={{ fontSize: 12, color: "#a3a3a3", marginBottom: 6, lineHeight: "1.4" }}>#{tags.join(" #")}</p>}
+          {memo && <p style={{ fontSize: 12, color: "#a3a3a3", lineHeight: "1.4" }}>{memo}</p>}
 
-          <p style={{ fontSize: 10, color: "#d4d4d4", textAlign: "center", marginTop: 20 }}>사장님비서</p>
+          <p style={{ fontSize: 10, color: "#d4d4d4", textAlign: "center", marginTop: 20, lineHeight: "1.4" }}>사장님비서</p>
         </div>
       </div>
 
@@ -166,14 +206,5 @@ export function ClosingExport({
         )}
       </div>
     </>
-  );
-}
-
-function ExportRow({ label, value, bold, color }: { label: string; value: string; bold?: boolean; color?: string }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", gap: 16 }}>
-      <span style={{ fontSize: 14, color: "#525252" }}>{label}</span>
-      <span style={{ fontSize: bold ? 16 : 14, fontWeight: bold ? 700 : 400, color: color ?? "#262626", textAlign: "right" }}>{value}</span>
-    </div>
   );
 }

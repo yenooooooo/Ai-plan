@@ -15,6 +15,26 @@ interface ReceiptExportProps {
   dateTo: string;
 }
 
+/* ── inline style 상수 ── */
+const S = {
+  root: {
+    width: 420,
+    padding: "28px 32px 32px",
+    backgroundColor: "#ffffff",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    lineHeight: "1.5",
+    boxSizing: "border-box" as const,
+  },
+  table: {
+    width: "100%" as const,
+    borderCollapse: "collapse" as const,
+    fontSize: 14,
+    lineHeight: "1.6",
+  },
+  tdLabel: { padding: "5px 16px 5px 0", color: "#525252", verticalAlign: "middle" as const },
+  tdValue: { padding: "5px 0", textAlign: "right" as const, whiteSpace: "nowrap" as const, verticalAlign: "middle" as const, color: "#262626" },
+};
+
 export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: ReceiptExportProps) {
   const { limits } = usePlan();
   const [saving, setSaving] = useState(false);
@@ -50,10 +70,12 @@ export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: Receip
 
   async function captureImage(): Promise<Blob | null> {
     if (!captureRef.current) return null;
+    if (document.fonts?.ready) await document.fonts.ready;
     const canvas = await html2canvas(captureRef.current, {
       backgroundColor: "#ffffff",
       scale: 2,
       useCORS: true,
+      logging: false,
     });
     return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
   }
@@ -100,49 +122,72 @@ export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: Receip
 
   return (
     <>
-      {/* 오프스크린 캡처 영역 — 고정 너비로 겹침 방지 */}
-      <div style={{ position: "fixed", left: -9999, top: 0, pointerEvents: "none" }}>
-        <div
-          ref={captureRef}
-          style={{ width: 400, padding: "28px 32px 32px", backgroundColor: "#ffffff" }}
-        >
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 2 }}>경비 요약 리포트</h2>
-          <p style={{ fontSize: 14, color: "#737373", marginBottom: 20 }}>{dateLabel}</p>
+      {/* ── 오프스크린 캡처 영역: table 레이아웃 ── */}
+      <div style={{ position: "fixed", left: -9999, top: 0, pointerEvents: "none", overflow: "hidden" }}>
+        <div ref={captureRef} style={S.root}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#171717", margin: "0 0 4px", lineHeight: "1.4" }}>경비 요약 리포트</p>
+          <p style={{ fontSize: 14, color: "#737373", margin: "0 0 20px", lineHeight: "1.4" }}>{dateLabel}</p>
 
-          <ExportRow label="총 경비" value={formatCurrency(total)} bold />
-          {vatTotal > 0 && <ExportRow label="부가세 합계" value={formatCurrency(vatTotal)} />}
-          <ExportRow label="건수" value={`${receipts.length}건`} />
+          {/* 요약 테이블 */}
+          <table style={S.table}>
+            <tbody>
+              <tr>
+                <td style={{ ...S.tdLabel, fontWeight: 600 }}>총 경비</td>
+                <td style={{ ...S.tdValue, fontWeight: 700, fontSize: 16 }}>{formatCurrency(total)}</td>
+              </tr>
+              {vatTotal > 0 && (
+                <tr>
+                  <td style={S.tdLabel}>부가세 합계</td>
+                  <td style={S.tdValue}>{formatCurrency(vatTotal)}</td>
+                </tr>
+              )}
+              <tr>
+                <td style={S.tdLabel}>건수</td>
+                <td style={S.tdValue}>{receipts.length}건</td>
+              </tr>
+            </tbody>
+          </table>
 
-          <div style={{ borderTop: "1px solid #e5e5e5", paddingTop: 12, marginTop: 16, marginBottom: 16 }}>
-            <p style={{ fontSize: 12, color: "#737373", marginBottom: 10, fontWeight: 500 }}>카테고리별</p>
-            {catBreakdown.map((c) => (
-              <div key={c.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, marginBottom: 8, gap: 16 }}>
-                <span style={{ color: "#525252" }}>{c.label} ({c.count}건)</span>
-                <span style={{ color: "#262626", textAlign: "right", whiteSpace: "nowrap" }}>
-                  {formatCurrency(c.amount)}
-                  {total > 0 && (
-                    <span style={{ fontSize: 12, color: "#a3a3a3", marginLeft: 4 }}>
-                      ({((c.amount / total) * 100).toFixed(1)}%)
-                    </span>
-                  )}
-                </span>
-              </div>
-            ))}
+          {/* 카테고리별 */}
+          <div style={{ borderTop: "1px solid #e5e5e5", paddingTop: 12, marginTop: 14, marginBottom: 16 }}>
+            <p style={{ fontSize: 12, color: "#737373", marginBottom: 8, fontWeight: 500, lineHeight: "1.4" }}>카테고리별</p>
+            <table style={S.table}>
+              <tbody>
+                {catBreakdown.map((c) => (
+                  <tr key={c.label}>
+                    <td style={S.tdLabel}>{c.label} ({c.count}건)</td>
+                    <td style={S.tdValue}>
+                      {formatCurrency(c.amount)}
+                      {total > 0 && (
+                        <span style={{ fontSize: 12, color: "#a3a3a3", marginLeft: 4 }}>
+                          ({((c.amount / total) * 100).toFixed(1)}%)
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
+          {/* 결제수단별 */}
           {payEntries.length > 1 && (
             <div style={{ borderTop: "1px solid #e5e5e5", paddingTop: 12, marginBottom: 16 }}>
-              <p style={{ fontSize: 12, color: "#737373", marginBottom: 10, fontWeight: 500 }}>결제수단별</p>
-              {payEntries.map(([method, amt]) => (
-                <div key={method} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, marginBottom: 8, gap: 16 }}>
-                  <span style={{ color: "#525252" }}>{method}</span>
-                  <span style={{ color: "#262626", textAlign: "right", whiteSpace: "nowrap" }}>{formatCurrency(amt)}</span>
-                </div>
-              ))}
+              <p style={{ fontSize: 12, color: "#737373", marginBottom: 8, fontWeight: 500, lineHeight: "1.4" }}>결제수단별</p>
+              <table style={S.table}>
+                <tbody>
+                  {payEntries.map(([method, amt]) => (
+                    <tr key={method}>
+                      <td style={S.tdLabel}>{method}</td>
+                      <td style={S.tdValue}>{formatCurrency(amt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
-          <p style={{ fontSize: 10, color: "#d4d4d4", textAlign: "center", marginTop: 20 }}>사장님비서</p>
+          <p style={{ fontSize: 10, color: "#d4d4d4", textAlign: "center", marginTop: 20, lineHeight: "1.4" }}>사장님비서</p>
         </div>
       </div>
 
@@ -172,14 +217,5 @@ export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: Receip
         )}
       </div>
     </>
-  );
-}
-
-function ExportRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", gap: 16 }}>
-      <span style={{ fontSize: 14, color: "#525252" }}>{label}</span>
-      <span style={{ fontSize: bold ? 16 : 14, fontWeight: bold ? 700 : 400, color: "#262626", textAlign: "right" }}>{value}</span>
-    </div>
   );
 }
