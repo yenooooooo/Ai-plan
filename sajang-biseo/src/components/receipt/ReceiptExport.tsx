@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Share2, Download, X, FileDown } from "lucide-react";
+import { FileText, Share2, FileDown, Loader2 } from "lucide-react";
 import { usePlan } from "@/hooks/usePlan";
 import html2canvas from "html2canvas";
 import { formatCurrency } from "@/lib/utils/format";
+import { useToast } from "@/stores/useToast";
 import type { Receipt, ReceiptCategory } from "@/lib/supabase/types";
 
 interface ReceiptExportProps {
@@ -17,9 +17,9 @@ interface ReceiptExportProps {
 
 export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: ReceiptExportProps) {
   const { limits } = usePlan();
-  const [showPreview, setShowPreview] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const previewRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
+  const toast = useToast((s) => s.show);
 
   if (receipts.length === 0) return null;
 
@@ -42,137 +42,144 @@ export function ReceiptExport({ receipts, categories, dateFrom, dateTo }: Receip
   receipts.forEach((r) => {
     payMap.set(r.payment_method, (payMap.get(r.payment_method) ?? 0) + r.total_amount);
   });
+  const payEntries = Array.from(payMap.entries());
 
   const fromLabel = `${dateFrom.slice(5, 7)}/${dateFrom.slice(8)}`;
   const toLabel = `${dateTo.slice(5, 7)}/${dateTo.slice(8)}`;
   const dateLabel = `${dateFrom.slice(0, 4)}년 ${fromLabel} ~ ${toLabel}`;
 
-  async function generateImage(): Promise<Blob | null> {
-    if (!previewRef.current) return null;
-    setGenerating(true);
+  async function captureImage(): Promise<Blob | null> {
+    if (!captureRef.current) return null;
+    const canvas = await html2canvas(captureRef.current, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      useCORS: true,
+    });
+    return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
+  }
+
+  async function handleSave() {
+    setSaving(true);
     try {
-      const canvas = await html2canvas(previewRef.current, {
-        backgroundColor: "#ffffff", scale: 2, useCORS: true,
-      });
-      return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
-    } finally { setGenerating(false); }
+      const blob = await captureImage();
+      if (!blob) { toast("이미지 생성 실패", "error"); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `경비요약_${dateFrom}_${dateTo}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast("경비 요약 이미지가 저장되었습니다", "success");
+    } catch {
+      toast("이미지 저장 실패", "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleShare() {
-    const blob = await generateImage();
-    if (!blob) return;
-    const file = new File([blob], `경비요약_${dateFrom}_${dateTo}.png`, { type: "image/png" });
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: `경비 요약 ${dateLabel}` });
-    } else { downloadBlob(blob); }
-  }
-
-  async function handleDownload() {
-    const blob = await generateImage();
-    if (blob) downloadBlob(blob);
-  }
-
-  function downloadBlob(blob: Blob) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `경비요약_${dateFrom}_${dateTo}.png`; a.click();
-    URL.revokeObjectURL(url);
+    setSaving(true);
+    try {
+      const blob = await captureImage();
+      if (!blob) { toast("이미지 생성 실패", "error"); return; }
+      const file = new File([blob], `경비요약_${dateFrom}_${dateTo}.png`, { type: "image/png" });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: `경비 요약 ${dateLabel}` });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `경비요약_${dateFrom}_${dateTo}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast("경비 요약 이미지가 저장되었습니다", "success");
+      }
+    } catch { /* share cancelled */ }
+    finally { setSaving(false); }
   }
 
   return (
     <>
-      <button onClick={() => setShowPreview(true)}
-        className="w-full py-3 rounded-2xl text-body-small font-medium flex items-center justify-center gap-2 press-effect
-          bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500 transition-colors">
-        <FileText size={16} />경비 요약 내보내기
-      </button>
+      {/* 오프스크린 캡처 영역 — 고정 너비로 겹침 방지 */}
+      <div style={{ position: "fixed", left: -9999, top: 0, pointerEvents: "none" }}>
+        <div
+          ref={captureRef}
+          style={{ width: 400, padding: "28px 32px 32px", backgroundColor: "#ffffff" }}
+        >
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#171717", marginBottom: 2 }}>경비 요약 리포트</h2>
+          <p style={{ fontSize: 14, color: "#737373", marginBottom: 20 }}>{dateLabel}</p>
 
-      <AnimatePresence>
-        {showPreview && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-neutral-900/60 flex items-center justify-center p-4"
-            onClick={() => setShowPreview(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl max-w-sm w-full max-h-[80vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-end p-3">
-                <button onClick={() => setShowPreview(false)} className="p-1 text-neutral-400"><X size={20} /></button>
+          <ExportRow label="총 경비" value={formatCurrency(total)} bold />
+          {vatTotal > 0 && <ExportRow label="부가세 합계" value={formatCurrency(vatTotal)} />}
+          <ExportRow label="건수" value={`${receipts.length}건`} />
+
+          <div style={{ borderTop: "1px solid #e5e5e5", paddingTop: 12, marginTop: 16, marginBottom: 16 }}>
+            <p style={{ fontSize: 12, color: "#737373", marginBottom: 10, fontWeight: 500 }}>카테고리별</p>
+            {catBreakdown.map((c) => (
+              <div key={c.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, marginBottom: 8, gap: 16 }}>
+                <span style={{ color: "#525252" }}>{c.label} ({c.count}건)</span>
+                <span style={{ color: "#262626", textAlign: "right", whiteSpace: "nowrap" }}>
+                  {formatCurrency(c.amount)}
+                  {total > 0 && (
+                    <span style={{ fontSize: 12, color: "#a3a3a3", marginLeft: 4 }}>
+                      ({((c.amount / total) * 100).toFixed(1)}%)
+                    </span>
+                  )}
+                </span>
               </div>
+            ))}
+          </div>
 
-              <div ref={previewRef} className="bg-white" style={{ minWidth: 360, padding: "24px 28px 28px" }}>
-                <h2 className="text-lg font-bold text-neutral-900 mb-0.5">경비 요약 리포트</h2>
-                <p className="text-sm text-neutral-500 mb-5">{dateLabel}</p>
-
-                <div className="space-y-2.5 mb-4">
-                  <Row label="총 경비" value={formatCurrency(total)} bold />
-                  {vatTotal > 0 && <Row label="부가세 합계" value={formatCurrency(vatTotal)} />}
-                  <Row label="건수" value={`${receipts.length}건`} />
+          {payEntries.length > 1 && (
+            <div style={{ borderTop: "1px solid #e5e5e5", paddingTop: 12, marginBottom: 16 }}>
+              <p style={{ fontSize: 12, color: "#737373", marginBottom: 10, fontWeight: 500 }}>결제수단별</p>
+              {payEntries.map(([method, amt]) => (
+                <div key={method} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, marginBottom: 8, gap: 16 }}>
+                  <span style={{ color: "#525252" }}>{method}</span>
+                  <span style={{ color: "#262626", textAlign: "right", whiteSpace: "nowrap" }}>{formatCurrency(amt)}</span>
                 </div>
+              ))}
+            </div>
+          )}
 
-                <div className="border-t border-neutral-200 pt-3 mb-4">
-                  <p className="text-xs text-neutral-500 mb-2.5 font-medium">카테고리별</p>
-                  {catBreakdown.map((c) => (
-                    <div key={c.label} className="flex justify-between items-center text-sm mb-2 gap-4">
-                      <span className="text-neutral-600 shrink-0">{c.label} ({c.count}건)</span>
-                      <span className="text-neutral-800 text-right whitespace-nowrap">
-                        {formatCurrency(c.amount)}
-                        <span className="text-xs text-neutral-400 ml-1">
-                          {total > 0 ? `(${((c.amount / total) * 100).toFixed(1)}%)` : ""}
-                        </span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
+          <p style={{ fontSize: 10, color: "#d4d4d4", textAlign: "center", marginTop: 20 }}>사장님비서</p>
+        </div>
+      </div>
 
-                {payMap.size > 1 && (
-                  <div className="border-t border-neutral-200 pt-3 mb-4">
-                    <p className="text-xs text-neutral-500 mb-2.5 font-medium">결제수단별</p>
-                    {Array.from(payMap.entries()).map(([method, amt]) => (
-                      <div key={method} className="flex justify-between items-center text-sm mb-2 gap-4">
-                        <span className="text-neutral-600 shrink-0">{method}</span>
-                        <span className="text-neutral-800 text-right whitespace-nowrap">{formatCurrency(amt)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <p className="text-[10px] text-neutral-300 text-center mt-5">사장님비서</p>
-              </div>
-
-              <div className="flex gap-2 p-4 border-t border-neutral-100">
-                <button onClick={handleShare} disabled={generating}
-                  className="flex-1 py-3 rounded-xl bg-blue-500 text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50">
-                  <Share2 size={16} />공유
-                </button>
-                <button onClick={handleDownload} disabled={generating}
-                  className="py-3 px-4 rounded-xl bg-neutral-100 text-neutral-700 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50">
-                  <Download size={16} />이미지
-                </button>
-                {limits.pdfExport && (
-                  <button disabled={generating} onClick={async () => {
-                    if (!previewRef.current) return;
-                    const { saveAsPdf } = await import("@/lib/export/pdf");
-                    await saveAsPdf(previewRef.current, `경비요약_${dateFrom}_${dateTo}`);
-                  }}
-                    className="py-3 px-4 rounded-xl bg-neutral-100 text-neutral-700 text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50">
-                    <FileDown size={16} />PDF
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
+      {/* 이미지 저장 / 공유 / PDF 버튼 */}
+      <div className="flex gap-2">
+        <button onClick={handleSave} disabled={saving}
+          className="flex-1 py-3 rounded-2xl text-body-small font-medium flex items-center justify-center gap-2 press-effect
+            bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500 transition-colors disabled:opacity-50">
+          {saving ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+          {saving ? "저장 중..." : "이미지 저장"}
+        </button>
+        <button onClick={handleShare} disabled={saving}
+          className="flex-1 py-3 rounded-2xl text-body-small font-medium flex items-center justify-center gap-2 press-effect
+            bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500 transition-colors disabled:opacity-50">
+          <Share2 size={16} />공유
+        </button>
+        {limits.pdfExport && (
+          <button disabled={saving} onClick={async () => {
+            if (!captureRef.current) return;
+            const { saveAsPdf } = await import("@/lib/export/pdf");
+            await saveAsPdf(captureRef.current, `경비요약_${dateFrom}_${dateTo}`);
+          }}
+            className="py-3 px-4 rounded-2xl text-body-small font-medium flex items-center justify-center gap-2 press-effect
+              bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-primary-500 transition-colors disabled:opacity-50">
+            <FileDown size={16} />PDF
+          </button>
         )}
-      </AnimatePresence>
+      </div>
     </>
   );
 }
 
-function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+function ExportRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
-    <div className="flex justify-between items-center text-sm gap-4">
-      <span className="text-neutral-600 shrink-0">{label}</span>
-      <span className={`text-neutral-800 text-right ${bold ? "font-bold text-base" : ""}`}>{value}</span>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", gap: 16 }}>
+      <span style={{ fontSize: 14, color: "#525252" }}>{label}</span>
+      <span style={{ fontSize: bold ? 16 : 14, fontWeight: bold ? 700 : 400, color: "#262626", textAlign: "right" }}>{value}</span>
     </div>
   );
 }
