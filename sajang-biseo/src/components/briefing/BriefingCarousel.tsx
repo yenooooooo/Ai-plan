@@ -30,9 +30,10 @@ interface BriefingCarouselProps {
   generating: boolean;
   onGenerateCoaching: () => void;
   prevCoaching?: AiCoachingData | null;
+  readOnly?: boolean;
 }
 
-export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoaching }: BriefingCarouselProps) {
+export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoaching, readOnly = false }: BriefingCarouselProps) {
   const [currentCard, setCurrentCard] = useState(0);
   const [direction, setDirection] = useState(0);
   const currentRef = useRef(0);
@@ -140,6 +141,7 @@ export function BriefingCarousel({ data, generating, onGenerateCoaching, prevCoa
                 onGenerate={onGenerateCoaching}
                 weekStart={data.weekStart}
                 prevCoaching={prevCoaching}
+                readOnly={readOnly}
               />
             )}
           </motion.div>

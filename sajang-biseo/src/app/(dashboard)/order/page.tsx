@@ -185,10 +185,12 @@ export default function OrderPage() {
                   className="mx-auto px-6 py-2.5 rounded-xl bg-primary-500 text-white text-body-small font-medium hover:bg-primary-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <Package size={15} />품목 선택해서 불러오기
                 </button>
-                <AddGroupInline adding={addingGroup} name={newGroupName}
-                  onToggle={() => { setAddingGroup((v) => !v); setNewGroupName(""); }}
-                  onNameChange={setNewGroupName}
-                  onSubmit={async () => { const ok = await handleAddGroup(newGroupName); if (ok) { setAddingGroup(false); setNewGroupName(""); } }} />
+                {canEdit && (
+                  <AddGroupInline adding={addingGroup} name={newGroupName}
+                    onToggle={() => { setAddingGroup((v) => !v); setNewGroupName(""); }}
+                    onNameChange={setNewGroupName}
+                    onSubmit={async () => { const ok = await handleAddGroup(newGroupName); if (ok) { setAddingGroup(false); setNewGroupName(""); } }} />
+                )}
               </div>
             ) : (
               <>
@@ -235,13 +237,15 @@ export default function OrderPage() {
                       onSaveItem={handleSaveItem} onDeleteItem={handleDeleteItem} onToggleItem={handleToggleItem}
                       onRenameGroup={handleRenameGroup} onDeleteGroup={handleDeleteGroup}
                       onReorderGroup={handleReorderGroup} onMoveItem={handleMoveItem}
-                      editingItemId={editingItemId} onSetEditingItemId={setEditingItemId} />
+                      editingItemId={editingItemId} onSetEditingItemId={setEditingItemId} readOnly={!canEdit} />
                   </div>
                 ))}
-                <AddGroupInline adding={addingGroup} name={newGroupName}
-                  onToggle={() => { setAddingGroup((v) => !v); setNewGroupName(""); }}
-                  onNameChange={setNewGroupName}
-                  onSubmit={async () => { const ok = await handleAddGroup(newGroupName); if (ok) { setAddingGroup(false); setNewGroupName(""); } }} />
+                {canEdit && (
+                  <AddGroupInline adding={addingGroup} name={newGroupName}
+                    onToggle={() => { setAddingGroup((v) => !v); setNewGroupName(""); }}
+                    onNameChange={setNewGroupName}
+                    onSubmit={async () => { const ok = await handleAddGroup(newGroupName); if (ok) { setAddingGroup(false); setNewGroupName(""); } }} />
+                )}
                 <SupplierDirectory items={items} />
               </>
             )}
@@ -262,6 +266,7 @@ export default function OrderPage() {
               items={items} receiveStock={receiveStock} stockReceiving={stockReceiving}
               saveUsage={saveUsage} usageSaving={usageSaving} usageSaved={usageSaved} hasUsageData={hasUsageData}
               onGoToRecommend={() => setTab("recommend")}
+              readOnly={!canEdit}
             />
           ) : (
             <motion.div key="usage-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-8 text-center space-y-3">
@@ -292,6 +297,7 @@ export default function OrderPage() {
               activeItems={activeItems} stockMap={stockMap} usageMap={usageMap} wasteMap={wasteMap}
               itemsMap={itemsMap} items={items}
               onGoToUsage={() => setTab("usage")}
+              readOnly={!canEdit}
             />
           </PlanGate>
         )}

@@ -30,7 +30,7 @@ interface ClosingAnalyticsTabProps {
   };
   todaySales: number;
   monthlyGoal: number;
-  onGoalChange: (goal: number) => void;
+  onGoalChange?: (goal: number) => void;
   onDateClick?: (date: string) => void;
   onShowMonthSummary?: () => void;
 }

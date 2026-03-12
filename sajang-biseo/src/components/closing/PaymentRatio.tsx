@@ -9,6 +9,7 @@ interface PaymentRatioProps {
   cardRatio: number;
   totalSales: number;
   onChange: (cardRatio: number) => void;
+  readOnly?: boolean;
 }
 
 const QUICK_OPTIONS = [
@@ -17,7 +18,7 @@ const QUICK_OPTIONS = [
   { label: "반반", ratio: 50 },
 ];
 
-export function PaymentRatio({ cardRatio, totalSales, onChange }: PaymentRatioProps) {
+export function PaymentRatio({ cardRatio, totalSales, onChange, readOnly = false }: PaymentRatioProps) {
   const [showDetail, setShowDetail] = useState(false);
   const cashRatio = 100 - cardRatio;
   const cardAmount = Math.round((totalSales * cardRatio) / 100);
@@ -55,6 +56,7 @@ export function PaymentRatio({ cardRatio, totalSales, onChange }: PaymentRatioPr
           <button
             key={opt.ratio}
             onClick={() => onChange(opt.ratio)}
+            disabled={readOnly}
             className={`flex-1 py-2 rounded-xl text-caption font-medium transition-all press-effect ${
               cardRatio === opt.ratio
                 ? "bg-primary-500/10 text-primary-500 border border-primary-500/30"
@@ -66,11 +68,12 @@ export function PaymentRatio({ cardRatio, totalSales, onChange }: PaymentRatioPr
         ))}
         <button
           onClick={() => setShowDetail((v) => !v)}
+          disabled={readOnly}
           className={`flex-1 py-2 rounded-xl text-caption font-medium transition-all press-effect flex items-center justify-center gap-1 ${
             isCustom || showDetail
               ? "bg-primary-500/10 text-primary-500 border border-primary-500/30"
               : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent"
-          }`}
+          } disabled:opacity-50`}
         >
           직접 입력
           <motion.div animate={{ rotate: showDetail ? 180 : 0 }} transition={{ duration: 0.2 }}>

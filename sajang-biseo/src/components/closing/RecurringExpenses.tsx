@@ -16,11 +16,12 @@ interface RecurringExpensesProps {
   onApplyToday: (expenses: RecurringExpense[]) => void;
   /** 이번 달 며칠째인지 (1일이면 자동 적용 알림) */
   dayOfMonth: number;
+  readOnly?: boolean;
 }
 
 const RECURRING_PRESETS = ["임대료", "보험료", "대출이자", "관리비", "통신비", "리스료"] as const;
 
-export function RecurringExpenses({ recurring, onRecurringChange, onApplyToday, dayOfMonth }: RecurringExpensesProps) {
+export function RecurringExpenses({ recurring, onRecurringChange, onApplyToday, dayOfMonth, readOnly = false }: RecurringExpensesProps) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAmount, setNewAmount] = useState("");
@@ -52,7 +53,7 @@ export function RecurringExpenses({ recurring, onRecurringChange, onApplyToday, 
             </span>
           )}
         </div>
-        {recurring.length > 0 && (
+        {recurring.length > 0 && !readOnly && (
           <button
             onClick={() => onApplyToday(recurring)}
             className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary-500/10 text-caption text-primary-500 font-medium
@@ -78,10 +79,12 @@ export function RecurringExpenses({ recurring, onRecurringChange, onApplyToday, 
           {recurring.map((exp, idx) => (
             <div key={idx} className="flex items-center justify-between py-1">
               <div className="flex items-center gap-2">
-                <button onClick={() => handleRemove(idx)}
-                  className="text-[var(--text-tertiary)] hover:text-danger transition-colors">
-                  <X size={12} />
-                </button>
+                {!readOnly && (
+                  <button onClick={() => handleRemove(idx)}
+                    className="text-[var(--text-tertiary)] hover:text-danger transition-colors">
+                    <X size={12} />
+                  </button>
+                )}
                 <span className="text-body-small text-[var(--text-primary)]">{exp.name}</span>
               </div>
               <span className="text-body-small font-display text-[var(--text-secondary)] tabular-nums">
@@ -93,7 +96,7 @@ export function RecurringExpenses({ recurring, onRecurringChange, onApplyToday, 
       )}
 
       {/* 프리셋 */}
-      {adding && (
+      {adding && !readOnly && (
         <div className="flex gap-1.5 flex-wrap mb-2">
           {RECURRING_PRESETS.map((p) => (
             <button key={p} onClick={() => setNewName(p)}
@@ -106,6 +109,7 @@ export function RecurringExpenses({ recurring, onRecurringChange, onApplyToday, 
       )}
 
       {/* 추가 폼 */}
+      {!readOnly && (
       <AnimatePresence>
         {adding ? (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
@@ -134,6 +138,7 @@ export function RecurringExpenses({ recurring, onRecurringChange, onApplyToday, 
           </button>
         )}
       </AnimatePresence>
+      )}
     </div>
   );
 }

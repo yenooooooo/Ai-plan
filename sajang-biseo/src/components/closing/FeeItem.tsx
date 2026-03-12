@@ -67,15 +67,17 @@ interface FeeItemProps {
   onPlatformRateChange?: (channel: string, rate: number) => void;
   onDeliveryFeeChange?: (amount: number) => void;
   onCardRateChange?: (rate: number) => void;
+  readOnly?: boolean;
 }
 
-export function FeeItem({ item, onPlatformRateChange, onDeliveryFeeChange, onCardRateChange }: FeeItemProps) {
+export function FeeItem({ item, onPlatformRateChange, onDeliveryFeeChange, onCardRateChange, readOnly = false }: FeeItemProps) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EditTarget | null>(null);
   const [editValue, setEditValue] = useState("");
   const hasFees = item.totalFee > 0;
 
   const startEdit = (target: EditTarget, value: string) => {
+    if (readOnly) return;
     setEditing(target);
     setEditValue(value);
   };

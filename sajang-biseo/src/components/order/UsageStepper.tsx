@@ -15,11 +15,12 @@ interface UsageStepperProps {
   wasteValue?: number;
   onWasteChange?: (itemId: string, value: number) => void;
   step?: number;
+  readOnly?: boolean;
 }
 
 export function UsageStepper({
   itemId, itemName, unit, value, remainingStock, prevValue,
-  onChange, wasteValue, onWasteChange, step = 0.5,
+  onChange, wasteValue, onWasteChange, step = 0.5, readOnly = false,
 }: UsageStepperProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
@@ -86,7 +87,7 @@ export function UsageStepper({
               </span>
             )}
           </div>
-          {prevValue !== undefined && prevValue > 0 && value === 0 && (
+          {prevValue !== undefined && prevValue > 0 && value === 0 && !readOnly && (
             <button onClick={applyPrev}
               className="text-[11px] text-primary-500/70 hover:text-primary-500 transition-colors mt-0.5">
               어제 {prevValue}{unit} →적용
@@ -97,13 +98,13 @@ export function UsageStepper({
         <div className="flex items-center gap-1.5 shrink-0">
           <motion.button whileTap={{ scale: 0.88 }}
             onPointerDown={() => startLongPress(-1)} onPointerUp={clearTimers} onPointerLeave={clearTimers}
-            onClick={() => handlePress(-1)} disabled={value <= 0}
+            onClick={() => handlePress(-1)} disabled={value <= 0 || readOnly}
             className="w-9 h-9 rounded-xl bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-secondary)] disabled:opacity-30 press-effect">
             <Minus size={16} />
           </motion.button>
 
           <div className="w-20 text-center">
-            {editing ? (
+            {editing && !readOnly ? (
               <input ref={inputRef} type="text" inputMode="decimal" value={editValue}
                 onChange={(e) => setEditValue(e.target.value.replace(/[^0-9.]/g, ""))}
                 onBlur={commitEdit}
@@ -111,8 +112,8 @@ export function UsageStepper({
                 className="w-full h-8 text-center rounded-lg bg-[var(--bg-tertiary)] border border-primary-500 text-body-small font-display font-semibold text-[var(--text-primary)] outline-none"
                 autoFocus />
             ) : (
-              <button onClick={startEditing}
-                className="w-full h-8 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors flex items-center justify-center">
+              <button onClick={readOnly ? undefined : startEditing} disabled={readOnly}
+                className="w-full h-8 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors flex items-center justify-center disabled:cursor-default">
                 <span className="text-body-small font-display font-semibold text-[var(--text-primary)]">{value}</span>
                 <span className="text-caption text-[var(--text-tertiary)] ml-0.5">{unit}</span>
               </button>
@@ -121,8 +122,8 @@ export function UsageStepper({
 
           <motion.button whileTap={{ scale: 0.88 }}
             onPointerDown={() => startLongPress(1)} onPointerUp={clearTimers} onPointerLeave={clearTimers}
-            onClick={() => handlePress(1)}
-            className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500 press-effect">
+            onClick={() => handlePress(1)} disabled={readOnly}
+            className="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500 disabled:opacity-30 press-effect">
             <Plus size={16} />
           </motion.button>
         </div>
@@ -136,15 +137,15 @@ export function UsageStepper({
           </span>
           <div className="flex items-center gap-1">
             <button onClick={() => onWasteChange(itemId, Math.max(0, +((wasteValue ?? 0) - step).toFixed(1)))}
-              disabled={(wasteValue ?? 0) <= 0}
+              disabled={(wasteValue ?? 0) <= 0 || readOnly}
               className="w-6 h-6 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-tertiary)] disabled:opacity-30 text-xs">
               −
             </button>
             <span className={`w-14 text-center text-[11px] font-medium ${(wasteValue ?? 0) > 0 ? "text-danger" : "text-[var(--text-tertiary)]"}`}>
               {wasteValue ?? 0}{unit}
             </span>
-            <button onClick={() => onWasteChange(itemId, +((wasteValue ?? 0) + step).toFixed(1))}
-              className="w-6 h-6 rounded-lg bg-danger/5 flex items-center justify-center text-danger/60 text-xs">
+            <button onClick={() => onWasteChange(itemId, +((wasteValue ?? 0) + step).toFixed(1))} disabled={readOnly}
+              className="w-6 h-6 rounded-lg bg-danger/5 flex items-center justify-center text-danger/60 disabled:opacity-30 text-xs">
               +
             </button>
           </div>

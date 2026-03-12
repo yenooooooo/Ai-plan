@@ -13,9 +13,10 @@ interface CoachingCardProps {
   onGenerate: () => void;
   weekStart: string;
   prevCoaching?: AiCoachingData | null;
+  readOnly?: boolean;
 }
 
-export function CoachingCard({ data, generating, onGenerate, weekStart, prevCoaching }: CoachingCardProps) {
+export function CoachingCard({ data, generating, onGenerate, weekStart, prevCoaching, readOnly = false }: CoachingCardProps) {
   const hasContent = data.actions.length > 0;
   const { limits } = usePlan();
   const { completed, toggle, getProgress } = useBriefingGoals();
@@ -101,8 +102,9 @@ export function CoachingCard({ data, generating, onGenerate, weekStart, prevCoac
               return (
                 <button
                   key={i}
-                  onClick={() => toggle(weekStart, i)}
-                  className="w-full flex items-center gap-2 text-left press-effect"
+                  onClick={() => !readOnly && toggle(weekStart, i)}
+                  disabled={readOnly}
+                  className="w-full flex items-center gap-2 text-left press-effect disabled:opacity-70"
                 >
                   {isDone ? (
                     <CheckCircle2 size={16} className="text-success shrink-0" />
@@ -152,7 +154,7 @@ export function CoachingCard({ data, generating, onGenerate, weekStart, prevCoac
       )}
 
       {/* AI 생성 버튼 */}
-      {limits.aiCoaching ? (
+      {limits.aiCoaching && !readOnly ? (
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={onGenerate}

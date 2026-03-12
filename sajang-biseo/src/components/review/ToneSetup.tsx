@@ -61,7 +61,8 @@ export function ToneSetup({ settings, onSave, readOnly = false }: ToneSetupProps
             <button
               key={preset.key}
               onClick={() => setTone(preset.key)}
-              className={`p-3 rounded-xl text-left transition-all ${
+              disabled={readOnly}
+              className={`p-3 rounded-xl text-left transition-all disabled:opacity-60 ${
                 tone === preset.key
                   ? "bg-primary-500/10 border border-primary-500/30"
                   : "bg-[var(--bg-tertiary)] border border-transparent"
@@ -91,13 +92,15 @@ export function ToneSetup({ settings, onSave, readOnly = false }: ToneSetupProps
           {samples.map((s, i) => (
             <div key={i} className="flex items-start gap-2 bg-[var(--bg-tertiary)] rounded-xl p-3">
               <p className="flex-1 text-caption text-[var(--text-secondary)] line-clamp-2">{s}</p>
-              <button onClick={() => setSamples(samples.filter((_, j) => j !== i))}
-                className="text-[var(--text-tertiary)] hover:text-danger">
-                <X size={14} />
-              </button>
+              {!readOnly && (
+                <button onClick={() => setSamples(samples.filter((_, j) => j !== i))}
+                  className="text-[var(--text-tertiary)] hover:text-danger">
+                  <X size={14} />
+                </button>
+              )}
             </div>
           ))}
-          {samples.length < 5 && (
+          {samples.length < 5 && !readOnly && (
             <div className="flex gap-2">
               <textarea
                 value={newSample}
@@ -121,18 +124,19 @@ export function ToneSetup({ settings, onSave, readOnly = false }: ToneSetupProps
           매장 정보
         </h4>
         <Field label="매장명 (답글에 표시)" value={storeName}
-          onChange={setStoreName} placeholder="김사장 칼국수" />
+          onChange={setStoreName} placeholder="김사장 칼국수" readOnly={readOnly} />
         <Field label="대표 메뉴 (쉼표 구분)" value={menus}
-          onChange={setMenus} placeholder="손칼국수, 수제비, 녹두전" />
+          onChange={setMenus} placeholder="손칼국수, 수제비, 녹두전" readOnly={readOnly} />
         <Field label="매장 특징 (쉼표 구분)" value={features}
-          onChange={setFeatures} placeholder="40년 전통, 직접 반죽" />
+          onChange={setFeatures} placeholder="40년 전통, 직접 반죽" readOnly={readOnly} />
         <Field label="자주 쓰는 표현 (쉼표 구분)" value={phrases}
-          onChange={setPhrases} placeholder="감사합니다~, 맛있게 드셨다니" />
+          onChange={setPhrases} placeholder="감사합니다~, 맛있게 드셨다니" readOnly={readOnly} />
 
         <div className="flex items-center justify-between pt-1">
           <span className="text-caption text-[var(--text-secondary)]">이모지 사용</span>
-          <button onClick={() => setUseEmoji(!useEmoji)}
-            className={`w-11 h-6 rounded-full transition-colors relative ${
+          <button onClick={() => !readOnly && setUseEmoji(!useEmoji)}
+            disabled={readOnly}
+            className={`w-11 h-6 rounded-full transition-colors relative disabled:opacity-60 ${
               useEmoji ? "bg-primary-500" : "bg-[var(--bg-tertiary)]"
             }`}>
             <motion.div animate={{ x: useEmoji ? 20 : 2 }}
@@ -152,14 +156,15 @@ export function ToneSetup({ settings, onSave, readOnly = false }: ToneSetupProps
   );
 }
 
-function Field({ label, value, onChange, placeholder }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder: string;
+function Field({ label, value, onChange, placeholder, readOnly }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder: string; readOnly?: boolean;
 }) {
   return (
     <div>
       <label className="text-caption text-[var(--text-secondary)] mb-1 block">{label}</label>
       <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder} className="input-field" />
+        placeholder={placeholder} className={`input-field ${readOnly ? "opacity-70 cursor-default" : ""}`}
+        readOnly={readOnly} />
     </div>
   );
 }

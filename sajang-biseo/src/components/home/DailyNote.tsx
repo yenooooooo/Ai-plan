@@ -9,9 +9,10 @@ import { toDateString } from "@/lib/utils/date";
 
 interface DailyNoteProps {
   initialMemo: string | null;
+  readOnly?: boolean;
 }
 
-export function DailyNote({ initialMemo }: DailyNoteProps) {
+export function DailyNote({ initialMemo, readOnly = false }: DailyNoteProps) {
   const { storeId } = useStoreSettings();
   const toast = useToast((s) => s.show);
   const [editing, setEditing] = useState(false);
@@ -72,6 +73,19 @@ export function DailyNote({ initialMemo }: DailyNoteProps) {
       setSaving(false);
       setEditing(false);
     }
+  }
+
+  if (readOnly) {
+    return (
+      <div className="glass-card p-4">
+        <h2 className="text-body-small font-semibold text-[var(--text-primary)]">오늘 한 줄</h2>
+        {savedNote ? (
+          <p className="text-body-small text-[var(--text-secondary)] mt-2">{savedNote}</p>
+        ) : (
+          <p className="text-caption text-[var(--text-tertiary)] mt-2">아직 메모가 없습니다</p>
+        )}
+      </div>
+    );
   }
 
   if (editing) {

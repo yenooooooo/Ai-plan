@@ -126,7 +126,7 @@ export default function SettingsPage() {
         </>
       )}
 
-      <MonthlyGoalSection />
+      <MonthlyGoalSection readOnly={!isOwner} />
 
       {isOwner && <PresetsSection />}
 

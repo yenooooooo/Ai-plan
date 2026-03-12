@@ -15,6 +15,7 @@ import { useToast } from "@/stores/useToast";
 import { parseDate, formatDateShort } from "@/lib/utils/date";
 import { formatCurrency } from "@/lib/utils/format";
 import type { BriefingData } from "@/lib/briefing/types";
+import { useTeamRole } from "@/hooks/useTeamRole";
 
 type Tab = "briefing" | "archive";
 
@@ -68,6 +69,7 @@ export default function BriefingPage() {
 
   const toast = useToast((s) => s.show);
   const { limits } = usePlan();
+  const { canEdit } = useTeamRole();
   const [tab, setTab] = useState<Tab>("briefing");
   const [copied, setCopied] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
@@ -197,6 +199,7 @@ export default function BriefingPage() {
                     generating={generating}
                     onGenerateCoaching={generateCoaching}
                     prevCoaching={prevCoaching}
+                    readOnly={!canEdit}
                   />
                 </div>
 
@@ -249,7 +252,7 @@ export default function BriefingPage() {
                       <FileDown size={14} /> PDF 저장
                     </button>
                   )}
-                  {limits.emailBriefing && (
+                  {limits.emailBriefing && canEdit && (
                     <button onClick={sendEmail} disabled={emailSending}
                       className="flex-1 py-2.5 rounded-xl bg-[var(--bg-tertiary)] text-body-small text-[var(--text-secondary)] hover:text-primary-500 flex items-center justify-center gap-1.5 press-effect disabled:opacity-50">
                       {emailSending ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}

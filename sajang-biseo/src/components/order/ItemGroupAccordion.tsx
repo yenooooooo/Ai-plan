@@ -34,6 +34,7 @@ interface ItemGroupAccordionProps {
   onMoveItem: (itemId: string, targetGroupId: string) => void;
   editingItemId: string | null;
   onSetEditingItemId: (id: string | null) => void;
+  readOnly?: boolean;
 }
 
 export function ItemGroupAccordion({
@@ -42,6 +43,7 @@ export function ItemGroupAccordion({
   onAddItem, onSaveItem, onDeleteItem, onToggleItem,
   onRenameGroup, onDeleteGroup, onReorderGroup, onMoveItem,
   editingItemId, onSetEditingItemId,
+  readOnly = false,
 }: ItemGroupAccordionProps) {
   const itemGroupsOpen = useUIState((s) => s.orderItemGroups);
   const setItemGroupOpen = useUIState((s) => s.setOrderItemGroup);
@@ -86,37 +88,39 @@ export function ItemGroupAccordion({
         </button>
 
         <div className="flex items-center gap-0.5">
-          {!isFirst && (
+          {!readOnly && !isFirst && (
             <button onClick={() => onReorderGroup(group.id, "up")} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
               <ChevronUp size={14} />
             </button>
           )}
-          {!isLast && (
+          {!readOnly && !isLast && (
             <button onClick={() => onReorderGroup(group.id, "down")} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
               <ChevronDown size={14} />
             </button>
           )}
 
-          <div className="relative">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
-              <MoreHorizontal size={16} />
-            </button>
-            {menuOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-8 z-20 w-36 glass-card shadow-lg border border-[var(--border-subtle)] p-1 rounded-xl">
-                  <button onClick={() => { setRenaming(true); setRenameName(group.group_name); setMenuOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-body-small text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
-                    <Pencil size={13} />이름 변경
-                  </button>
-                  <button onClick={() => { setMenuOpen(false); setConfirmDelete({ type: "group", id: group.id, name: group.group_name }); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-body-small text-danger hover:bg-danger/5">
-                    <Trash2 size={13} />카테고리 삭제
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          {!readOnly && (
+            <div className="relative">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]">
+                <MoreHorizontal size={16} />
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 top-8 z-20 w-36 glass-card shadow-lg border border-[var(--border-subtle)] p-1 rounded-xl">
+                    <button onClick={() => { setRenaming(true); setRenameName(group.group_name); setMenuOpen(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-body-small text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]">
+                      <Pencil size={13} />이름 변경
+                    </button>
+                    <button onClick={() => { setMenuOpen(false); setConfirmDelete({ type: "group", id: group.id, name: group.group_name }); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-body-small text-danger hover:bg-danger/5">
+                      <Trash2 size={13} />카테고리 삭제
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <button onClick={() => setOpen(!open)} className="p-1.5">
@@ -150,7 +154,7 @@ export function ItemGroupAccordion({
                           )}
                         </button>
                       ) : (
-                        <button onClick={() => onToggleItem(item.id, !item.is_active)}
+                        <button onClick={() => onToggleItem(item.id, !item.is_active)} disabled={readOnly}
                           className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
                             item.is_active ? "bg-primary-500 border-primary-500" : "border-[var(--border-default)]"
                           }`}>
@@ -171,7 +175,7 @@ export function ItemGroupAccordion({
                       </div>
                     </div>
 
-                    {!selectMode && (
+                    {!selectMode && !readOnly && (
                       <div className="flex items-center gap-0.5">
                         {allGroups.length > 1 && (
                           <div className="relative">
@@ -217,10 +221,12 @@ export function ItemGroupAccordion({
                 </div>
               ))}
 
-              <button onClick={() => onAddItem(group.id)}
-                className="flex items-center gap-2 w-full py-2 px-2 rounded-lg text-primary-500 hover:bg-primary-500/5 transition-colors">
-                <Plus size={16} /><span className="text-body-small">품목 추가</span>
-              </button>
+              {!readOnly && (
+                <button onClick={() => onAddItem(group.id)}
+                  className="flex items-center gap-2 w-full py-2 px-2 rounded-lg text-primary-500 hover:bg-primary-500/5 transition-colors">
+                  <Plus size={16} /><span className="text-body-small">품목 추가</span>
+                </button>
+              )}
             </div>
           </motion.div>
         )}

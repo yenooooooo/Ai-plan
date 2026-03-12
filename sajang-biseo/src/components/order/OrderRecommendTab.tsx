@@ -44,6 +44,7 @@ export interface OrderRecommendTabProps {
   itemsMap: Map<string, DBOrderItem>;
   items: DBOrderItem[];
   onGoToUsage: () => void;
+  readOnly?: boolean;
 }
 
 export function OrderRecommendTab({
@@ -53,6 +54,7 @@ export function OrderRecommendTab({
   orderMap, setOrderMap, orderSaving, orderSaved, saveOrders,
   activeItems, stockMap, usageMap,
   wasteMap, itemsMap, items, onGoToUsage,
+  readOnly = false,
 }: OrderRecommendTabProps) {
   const recommendOpen = useUIState((s) => s.orderRecommendOpen);
   const setRecommendOpen = useUIState((s) => s.setOrderRecommendOpen);
@@ -100,13 +102,15 @@ export function OrderRecommendTab({
       </div>
 
       {/* 발주 템플릿 */}
-      <OrderTemplates currentOrderMap={orderMap}
-        onApplyTemplate={(templateItems) => {
-          setOrderMap(templateItems);
-          Array.from(Object.entries(templateItems)).forEach(([itemId, qty]) => {
-            if (qty > 0) handleConfirm(itemId, qty);
-          });
-        }} />
+      {!readOnly && (
+        <OrderTemplates currentOrderMap={orderMap}
+          onApplyTemplate={(templateItems) => {
+            setOrderMap(templateItems);
+            Array.from(Object.entries(templateItems)).forEach(([itemId, qty]) => {
+              if (qty > 0) handleConfirm(itemId, qty);
+            });
+          }} />
+      )}
 
       {/* 로딩 */}
       {recLoading && (
@@ -145,7 +149,7 @@ export function OrderRecommendTab({
               open={openNeed} onToggle={() => setRecommendOpen("need", !openNeed)}>
               <div className="space-y-3">
                 {needOrderRecs.map((rec) => (
-                  <RecommendationCard key={rec.itemId} rec={rec} onConfirm={handleConfirm} confirmed={confirmedItems.has(rec.itemId)} />
+                  <RecommendationCard key={rec.itemId} rec={rec} onConfirm={handleConfirm} confirmed={confirmedItems.has(rec.itemId)} readOnly={readOnly} />
                 ))}
               </div>
             </AccordionSection>
@@ -166,7 +170,7 @@ export function OrderRecommendTab({
             </AccordionSection>
           )}
 
-          {confirmedItems.size > 0 && (
+          {confirmedItems.size > 0 && !readOnly && (
             <div ref={confirmedRef} className="space-y-4">
               <OrderSheet
                 confirmedItems={confirmedList}

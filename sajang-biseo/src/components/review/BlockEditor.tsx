@@ -19,6 +19,7 @@ interface BlockEditorProps {
   onBlockEdit: (versionIdx: number, blockId: string, text: string) => void;
   onBlockRegenerate: (blockId: string, blockType: string, adjustment?: ToneAdjustment) => void;
   regeneratingBlockId: string | null;
+  readOnly?: boolean;
 }
 
 export function BlockEditor({
@@ -28,6 +29,7 @@ export function BlockEditor({
   onBlockEdit,
   onBlockRegenerate,
   regeneratingBlockId,
+  readOnly = false,
 }: BlockEditorProps) {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -95,7 +97,7 @@ export function BlockEditor({
                   {BLOCK_LABELS[block.type]}
                 </span>
                 <div className="flex items-center gap-1">
-                  {isEditing ? (
+                  {!readOnly && (isEditing ? (
                     <>
                       <button onClick={() => saveEdit(block.id)}
                         className="p-1 rounded-md text-success"><Check size={14} /></button>
@@ -114,7 +116,7 @@ export function BlockEditor({
                         <Pencil size={13} />
                       </button>
                     </>
-                  )}
+                  ))}
                 </div>
               </div>
 
@@ -136,7 +138,7 @@ export function BlockEditor({
               </div>
 
               {/* 톤 조절 칩 (response 블록에 특히 유용) */}
-              {!isEditing && (
+              {!isEditing && !readOnly && (
                 <div className="px-4 pb-3 flex flex-wrap gap-1.5">
                   {TONE_ADJUSTMENTS.map((adj) => (
                     <button
@@ -160,17 +162,19 @@ export function BlockEditor({
         <span className="text-caption text-[var(--text-tertiary)]">
           {charCount}자 · {lineCount}줄
         </span>
-        <button
-          onClick={() => {
-            addTemplate(`v${currentVersion + 1}`, fullText);
-            setSavedTemplate(true);
-            setTimeout(() => setSavedTemplate(false), 2000);
-          }}
-          className="flex items-center gap-1 text-caption text-[var(--text-tertiary)] hover:text-warning transition-colors"
-        >
-          <Bookmark size={13} className={savedTemplate ? "fill-warning text-warning" : ""} />
-          {savedTemplate ? "저장됨" : "템플릿 저장"}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => {
+              addTemplate(`v${currentVersion + 1}`, fullText);
+              setSavedTemplate(true);
+              setTimeout(() => setSavedTemplate(false), 2000);
+            }}
+            className="flex items-center gap-1 text-caption text-[var(--text-tertiary)] hover:text-warning transition-colors"
+          >
+            <Bookmark size={13} className={savedTemplate ? "fill-warning text-warning" : ""} />
+            {savedTemplate ? "저장됨" : "템플릿 저장"}
+          </button>
+        )}
       </div>
 
       {/* 복사 버튼 */}

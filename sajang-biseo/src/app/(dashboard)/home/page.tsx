@@ -16,6 +16,7 @@ import { MultiStoreCompare } from "@/components/home/MultiStoreCompare";
 import { SalesForecast } from "@/components/home/SalesForecast";
 import { PlanGate } from "@/components/shared/PlanGate";
 import { formatCurrency } from "@/lib/utils/format";
+import { useTeamRole } from "@/hooks/useTeamRole";
 
 const QUICK_MENU = [
   { label: "마감", icon: BarChart3, href: "/closing", color: "text-primary-500" },
@@ -27,6 +28,7 @@ const QUICK_MENU = [
 export default function HomePage() {
   const { loading, storeName, greeting, summary, todos, notices } = useHomeData();
   const { monthlyGoal } = useStoreSettings();
+  const { canEdit } = useTeamRole();
 
   const salesChange = summary.todaySales !== null && summary.yesterdaySales !== null && summary.yesterdaySales > 0
     ? Math.round(((summary.todaySales - summary.yesterdaySales) / summary.yesterdaySales) * 100)
@@ -55,7 +57,7 @@ export default function HomePage() {
 
       {/* 마감 미입력 알림 배너 */}
       {summary.todaySales === null && summary.monthlySales > 0 && (
-        <Link href="/closing">
+        <Link href="/closing" className="block">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -65,7 +67,7 @@ export default function HomePage() {
             <div className="flex-1 min-w-0">
               <p className="text-body-small font-medium text-[var(--text-primary)]">오늘 마감을 아직 입력하지 않았어요</p>
               <p className="text-[10px] text-[var(--text-tertiary)]">
-                {summary.yesterdaySales === null ? "어제 마감도 빠져있어요!" : "탭하여 지금 입력하기"}
+                {summary.yesterdaySales === null ? "어제 마감도 빠져있어요!" : canEdit ? "탭하여 지금 입력하기" : "탭하여 현황 확인하기"}
               </p>
             </div>
             <ChevronRight size={16} className="text-warning shrink-0" />
@@ -89,7 +91,7 @@ export default function HomePage() {
 
       {/* 정산일 알림 */}
       {summary.nextSettlement && (
-        <Link href="/fees">
+        <Link href="/fees" className="block">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -143,21 +145,24 @@ export default function HomePage() {
               <BarChart3 size={24} className="text-primary-500" />
             </div>
             <h2 className="text-body-small font-semibold text-[var(--text-primary)]">
-              첫 매출을 기록해보세요!
+              {canEdit ? "첫 매출을 기록해보세요!" : "아직 매출 기록이 없어요"}
             </h2>
             <p className="text-caption text-[var(--text-tertiary)]">
-              오늘 마감 매출을 입력하면 매출 분석, 수수료 계산,<br />
-              주간 브리핑이 자동으로 시작됩니다
+              {canEdit
+                ? <>오늘 마감 매출을 입력하면 매출 분석, 수수료 계산,<br />주간 브리핑이 자동으로 시작됩니다</>
+                : "매장 사장님이 마감 매출을 입력하면 여기에 표시됩니다"}
             </p>
           </div>
-          <Link
-            href="/closing"
-            className="w-full h-11 rounded-xl bg-primary-500 text-white text-body-small font-semibold
-              flex items-center justify-center gap-2 press-effect hover:bg-primary-600 transition-colors"
-          >
-            <BarChart3 size={16} />
-            오늘 마감 입력하기
-          </Link>
+          {canEdit && (
+            <Link
+              href="/closing"
+              className="w-full h-11 rounded-xl bg-primary-500 text-white text-body-small font-semibold
+                flex items-center justify-center gap-2 press-effect hover:bg-primary-600 transition-colors"
+            >
+              <BarChart3 size={16} />
+              오늘 마감 입력하기
+            </Link>
+          )}
         </section>
       ) : (
         <section className="glass-card p-4 space-y-3">
@@ -209,7 +214,7 @@ export default function HomePage() {
       )}
 
       {/* 오늘 한 줄 메모 */}
-      <DailyNote initialMemo={summary.todayMemo} />
+      <DailyNote initialMemo={summary.todayMemo} readOnly={!canEdit} />
 
       {/* 월 목표 진행률 */}
       {monthlyGoal > 0 && (

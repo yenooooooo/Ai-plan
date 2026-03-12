@@ -171,6 +171,7 @@ export default function ReviewPage() {
                       onBlockEdit={editBlock}
                       onBlockRegenerate={handleBlockRegenerate}
                       regeneratingBlockId={regeneratingBlockId}
+                      readOnly={!canEdit}
                     />
 
                     <ReplyPreview blocks={versions[currentVersion] ?? []} />
@@ -194,7 +195,7 @@ export default function ReviewPage() {
                 )}
 
                 {/* 저장된 템플릿 */}
-                <ReplyTemplates />
+                <ReplyTemplates readOnly={!canEdit} />
               </>
             )}
           </motion.div>

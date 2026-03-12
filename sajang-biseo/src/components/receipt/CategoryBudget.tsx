@@ -9,9 +9,10 @@ import { CATEGORY_COLORS } from "@/lib/receipt/categories";
 interface Props {
   receipts: Receipt[];
   categories: ReceiptCategory[];
+  readOnly?: boolean;
 }
 
-export default function CategoryBudget({ receipts, categories }: Props) {
+export default function CategoryBudget({ receipts, categories, readOnly = false }: Props) {
   const { budgets, setBudget, removeBudget } = useCategoryBudget();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -42,7 +43,7 @@ export default function CategoryBudget({ receipts, categories }: Props) {
     <div className="space-y-3">
       {tracked.length === 0 && (
         <p className="text-caption text-center py-4">
-          카테고리를 눌러 월 예산을 설정하세요
+          {readOnly ? "설정된 예산이 없습니다" : "카테고리를 눌러 월 예산을 설정하세요"}
         </p>
       )}
 
@@ -59,7 +60,7 @@ export default function CategoryBudget({ receipts, categories }: Props) {
               <span className="text-body-small font-medium">
                 {cat.icon} {cat.label}
               </span>
-              {editingId === cat.id ? (
+              {editingId === cat.id && !readOnly ? (
                 <input
                   type="number"
                   className="w-28 px-2 py-1 rounded bg-white/10 text-body-small text-right outline-none"
@@ -72,7 +73,8 @@ export default function CategoryBudget({ receipts, categories }: Props) {
               ) : (
                 <button
                   className="text-caption hover:underline"
-                  onClick={() => startEdit(cat.id)}
+                  onClick={() => !readOnly && startEdit(cat.id)}
+                  disabled={readOnly}
                 >
                   {formatCurrency(spent)} / {formatCurrency(budget)}
                 </button>
@@ -93,7 +95,7 @@ export default function CategoryBudget({ receipts, categories }: Props) {
         );
       })}
 
-      {untracked.length > 0 && (
+      {!readOnly && untracked.length > 0 && (
         <div className="flex flex-wrap gap-2 pt-1">
           {untracked.map((cat) => (
             <button
@@ -107,7 +109,7 @@ export default function CategoryBudget({ receipts, categories }: Props) {
         </div>
       )}
 
-      {editingId && !tracked.find((c) => c.id === editingId) && (
+      {!readOnly && editingId && !tracked.find((c) => c.id === editingId) && (
         <div className="glass-card p-3">
           <label className="text-caption block mb-1">
             {categories.find((c) => c.id === editingId)?.label} 월 예산

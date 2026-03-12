@@ -51,7 +51,8 @@ export function ReviewInput({ onGenerate, loading, hasResult, onReset, disabled 
         <div className="flex gap-1.5 flex-wrap">
           {PLATFORMS.map((p) => (
             <button key={p} onClick={() => setPlatform(p)}
-              className={`px-3 py-1.5 rounded-lg text-caption font-medium transition-colors ${
+              disabled={disabled}
+              className={`px-3 py-1.5 rounded-lg text-caption font-medium transition-colors disabled:opacity-50 ${
                 platform === p
                   ? "bg-primary-500/15 text-primary-500 border border-primary-500/30"
                   : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent"
@@ -67,7 +68,7 @@ export function ReviewInput({ onGenerate, loading, hasResult, onReset, disabled 
         <label className="text-caption text-[var(--text-secondary)] mb-1.5 block">별점</label>
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((n) => (
-            <button key={n} onClick={() => setRating(n)} className="p-0.5">
+            <button key={n} onClick={() => setRating(n)} disabled={disabled} className="p-0.5 disabled:opacity-50">
               <Star
                 size={28}
                 className={n <= rating ? "text-warning fill-warning" : "text-[var(--text-tertiary)]"}
@@ -86,9 +87,10 @@ export function ReviewInput({ onGenerate, loading, hasResult, onReset, disabled 
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="리뷰 내용을 붙여넣어주세요..."
+          placeholder={disabled ? "조회 전용 권한입니다" : "리뷰 내용을 붙여넣어주세요..."}
           rows={4}
-          className="input-field resize-none"
+          readOnly={disabled}
+          className={`input-field resize-none ${disabled ? "opacity-70 cursor-default" : ""}`}
         />
       </div>
 

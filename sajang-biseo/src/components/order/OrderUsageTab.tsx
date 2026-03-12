@@ -33,6 +33,7 @@ interface OrderUsageTabProps {
   usageSaved: boolean;
   hasUsageData: boolean;
   onGoToRecommend: () => void;
+  readOnly?: boolean;
 }
 
 const PRESET_BUTTONS = [
@@ -46,6 +47,7 @@ export function OrderUsageTab({
   selectedDate, setSelectedDate, handleUsageChange, handleWasteChange,
   applyPreset, hasAutoFillData, autoFillUsage, copyToNextDay, items, receiveStock,
   stockReceiving, saveUsage, usageSaving, usageSaved, hasUsageData, onGoToRecommend,
+  readOnly = false,
 }: OrderUsageTabProps) {
   const openGroups = useUIState((s) => s.orderUsageGroups);
   const setUsageGroup = useUIState((s) => s.setOrderUsageGroup);
@@ -77,29 +79,31 @@ export function OrderUsageTab({
           <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}
             className="bg-[var(--bg-tertiary)] rounded-lg px-3 py-1.5 text-caption text-[var(--text-primary)] outline-none" />
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {PRESET_BUTTONS.map(({ type, label, caption }) => (
-            <button key={type} onClick={() => handlePreset(type)}
-              className="flex flex-col items-start px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] hover:text-primary-500 transition-colors press-effect">
-              <span className="text-caption text-[var(--text-secondary)]">{label}</span>
-              <span className="text-[10px] text-[var(--text-tertiary)] leading-tight">{caption}</span>
-            </button>
-          ))}
-          {hasAutoFillData && (
-            <button onClick={autoFillUsage}
-              className="flex flex-col items-start px-3 py-1.5 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 transition-colors press-effect">
-              <span className="text-caption text-primary-500 font-medium flex items-center gap-1"><Wand2 size={12} />자동 채우기</span>
-              <span className="text-[10px] text-primary-400 leading-tight">같은 요일 4주 평균</span>
-            </button>
-          )}
-          {hasUsageData && (
-            <button onClick={copyToNextDay}
-              className="flex flex-col items-start px-3 py-1.5 rounded-lg bg-success/10 hover:bg-success/20 transition-colors press-effect">
-              <span className="text-caption text-success font-medium flex items-center gap-1"><Copy size={12} />내일도 동일</span>
-              <span className="text-[10px] text-success/70 leading-tight">내일 날짜로 복사</span>
-            </button>
-          )}
-        </div>
+        {!readOnly && (
+          <div className="flex gap-2 flex-wrap">
+            {PRESET_BUTTONS.map(({ type, label, caption }) => (
+              <button key={type} onClick={() => handlePreset(type)}
+                className="flex flex-col items-start px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] hover:text-primary-500 transition-colors press-effect">
+                <span className="text-caption text-[var(--text-secondary)]">{label}</span>
+                <span className="text-[10px] text-[var(--text-tertiary)] leading-tight">{caption}</span>
+              </button>
+            ))}
+            {hasAutoFillData && (
+              <button onClick={autoFillUsage}
+                className="flex flex-col items-start px-3 py-1.5 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 transition-colors press-effect">
+                <span className="text-caption text-primary-500 font-medium flex items-center gap-1"><Wand2 size={12} />자동 채우기</span>
+                <span className="text-[10px] text-primary-400 leading-tight">같은 요일 4주 평균</span>
+              </button>
+            )}
+            {hasUsageData && (
+              <button onClick={copyToNextDay}
+                className="flex flex-col items-start px-3 py-1.5 rounded-lg bg-success/10 hover:bg-success/20 transition-colors press-effect">
+                <span className="text-caption text-success font-medium flex items-center gap-1"><Copy size={12} />내일도 동일</span>
+                <span className="text-[10px] text-success/70 leading-tight">내일 날짜로 복사</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 카테고리별 사용량 + 인라인 폐기 입력 */}
@@ -121,7 +125,7 @@ export function OrderUsageTab({
                   <UsageStepper key={item.id} itemId={item.id} itemName={item.item_name} unit={item.unit}
                     value={usageMap[item.id] ?? 0} remainingStock={stockMap[item.id]} prevValue={prevUsageMap[item.id]}
                     onChange={handleUsageChange}
-                    wasteValue={wasteMap[item.id] ?? 0} onWasteChange={handleWasteChange} />
+                    wasteValue={wasteMap[item.id] ?? 0} onWasteChange={handleWasteChange} readOnly={readOnly} />
                 ))}
               </div>
             </AccordionSection>
@@ -130,9 +134,11 @@ export function OrderUsageTab({
       })}
 
       {/* 입고 처리 */}
-      <div ref={receivingRef}>
-        <StockReceiving items={items} onReceive={receiveStock} receiving={stockReceiving} />
-      </div>
+      {!readOnly && (
+        <div ref={receivingRef}>
+          <StockReceiving items={items} onReceive={receiveStock} receiving={stockReceiving} />
+        </div>
+      )}
 
       {/* 저장 완료 안내 배너 */}
       {usageSaved && (
@@ -152,12 +158,14 @@ export function OrderUsageTab({
       )}
 
       {/* 저장 버튼 */}
-      <motion.button whileTap={{ scale: 0.97 }} onClick={saveUsage} disabled={usageSaving || (!hasUsageData && !usageSaved)}
-        className={`w-full py-4 rounded-2xl font-semibold text-body-small flex items-center justify-center gap-2 press-effect ${usageSaved ? "bg-success/10 text-success" : "bg-primary-500 text-white"} disabled:opacity-50`}>
-        {usageSaving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          : usageSaved ? <><CheckCircle2 size={18} />저장 완료</>
-          : <><Save size={18} />사용량 저장</>}
-      </motion.button>
+      {!readOnly && (
+        <motion.button whileTap={{ scale: 0.97 }} onClick={saveUsage} disabled={usageSaving || (!hasUsageData && !usageSaved)}
+          className={`w-full py-4 rounded-2xl font-semibold text-body-small flex items-center justify-center gap-2 press-effect ${usageSaved ? "bg-success/10 text-success" : "bg-primary-500 text-white"} disabled:opacity-50`}>
+          {usageSaving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            : usageSaved ? <><CheckCircle2 size={18} />저장 완료</>
+            : <><Save size={18} />사용량 저장</>}
+        </motion.button>
+      )}
     </motion.div>
   );
 }

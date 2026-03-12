@@ -9,6 +9,7 @@ interface RecommendationCardProps {
   rec: RecommendationResult;
   onConfirm: (itemId: string, qty: number) => void;
   confirmed?: boolean;
+  readOnly?: boolean;
 }
 
 const URGENCY_CONFIG = {
@@ -36,6 +37,7 @@ export function RecommendationCard({
   rec,
   onConfirm,
   confirmed = false,
+  readOnly = false,
 }: RecommendationCardProps) {
   const [qty, setQty] = useState(rec.recommendedQty);
   const config = URGENCY_CONFIG[rec.urgency];
@@ -83,49 +85,51 @@ export function RecommendationCard({
       </p>
 
       {/* 수량 조절 + 확정 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-caption text-[var(--text-secondary)]">발주:</span>
+      {!readOnly && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-caption text-[var(--text-secondary)]">발주:</span>
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => setQty(Math.max(0, +(qty - 0.5).toFixed(1)))}
+              disabled={confirmed}
+              className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-secondary)] disabled:opacity-30"
+            >
+              <Minus size={14} />
+            </motion.button>
+            <span className="w-16 text-center text-body-small font-display font-semibold text-[var(--text-primary)]">
+              {qty}{rec.unit}
+            </span>
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={() => setQty(+(qty + 0.5).toFixed(1))}
+              disabled={confirmed}
+              className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-500 disabled:opacity-30"
+            >
+              <Plus size={14} />
+            </motion.button>
+          </div>
+
           <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={() => setQty(Math.max(0, +(qty - 0.5).toFixed(1)))}
-            disabled={confirmed}
-            className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-secondary)] disabled:opacity-30"
+            whileTap={{ scale: 0.92 }}
+            onClick={() => onConfirm(rec.itemId, qty)}
+            disabled={!confirmed && qty === 0}
+            className={`px-4 py-2 rounded-xl text-body-small font-medium press-effect ${
+              confirmed
+                ? "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-danger"
+                : "bg-primary-500 text-white"
+            } disabled:opacity-40`}
           >
-            <Minus size={14} />
-          </motion.button>
-          <span className="w-16 text-center text-body-small font-display font-semibold text-[var(--text-primary)]">
-            {qty}{rec.unit}
-          </span>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={() => setQty(+(qty + 0.5).toFixed(1))}
-            disabled={confirmed}
-            className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-500 disabled:opacity-30"
-          >
-            <Plus size={14} />
+            {confirmed ? (
+              <span className="flex items-center gap-1">
+                <X size={14} /> 취소
+              </span>
+            ) : (
+              "확정"
+            )}
           </motion.button>
         </div>
-
-        <motion.button
-          whileTap={{ scale: 0.92 }}
-          onClick={() => onConfirm(rec.itemId, qty)}
-          disabled={!confirmed && qty === 0}
-          className={`px-4 py-2 rounded-xl text-body-small font-medium press-effect ${
-            confirmed
-              ? "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-danger"
-              : "bg-primary-500 text-white"
-          } disabled:opacity-40`}
-        >
-          {confirmed ? (
-            <span className="flex items-center gap-1">
-              <X size={14} /> 취소
-            </span>
-          ) : (
-            "확정"
-          )}
-        </motion.button>
-      </div>
+      )}
     </motion.div>
   );
 }

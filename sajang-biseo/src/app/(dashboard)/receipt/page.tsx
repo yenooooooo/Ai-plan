@@ -212,7 +212,7 @@ export default function ReceiptPage() {
             )}
 
             <MonthlyExpenseReport receipts={receipts} categories={categories} />
-            <CategoryBudget receipts={receipts} categories={categories} />
+            <CategoryBudget receipts={receipts} categories={categories} readOnly={!canEdit} />
             <ReceiptExport receipts={receipts} categories={categories} dateFrom={filter.dateFrom} dateTo={filter.dateTo} />
           </motion.div>
         )}

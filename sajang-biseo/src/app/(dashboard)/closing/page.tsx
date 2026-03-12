@@ -177,44 +177,50 @@ export default function ClosingPage() {
             </div>
 
             {/* 프리셋 + 전날복사 */}
-            <div className="flex gap-2 flex-wrap">
-              {presets.map((preset) => (
-                <button key={preset.name} onClick={() => applyPreset(preset)} className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[13px] font-medium transition-all duration-200 press-effect ${activePreset === preset.name ? "bg-primary-500/10 text-primary-500 border border-primary-500/30" : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent hover:text-[var(--text-secondary)]"}`}>
-                  {activePreset === preset.name ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
-                  {preset.name}
-                </button>
-              ))}
-              {!saved && totalSales === 0 && (
-                <button
-                  onClick={copyFromPreviousDay}
-                  className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-[13px] font-medium
-                    bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent
-                    hover:text-primary-500 hover:border-primary-500/30 transition-all press-effect"
-                >
-                  <Copy size={13} />
-                  {previousClosingDate
-                    ? `${formatDateShort(parseDate(previousClosingDate))} 복사`
-                    : "이전 복사"}
-                </button>
-              )}
-            </div>
+            {canEdit && (
+              <div className="flex gap-2 flex-wrap">
+                {presets.map((preset) => (
+                  <button key={preset.name} onClick={() => applyPreset(preset)} className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[13px] font-medium transition-all duration-200 press-effect ${activePreset === preset.name ? "bg-primary-500/10 text-primary-500 border border-primary-500/30" : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent hover:text-[var(--text-secondary)]"}`}>
+                    {activePreset === preset.name ? <BookmarkCheck size={14} /> : <BookmarkPlus size={14} />}
+                    {preset.name}
+                  </button>
+                ))}
+                {!saved && totalSales === 0 && (
+                  <button
+                    onClick={copyFromPreviousDay}
+                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-[13px] font-medium
+                      bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent
+                      hover:text-primary-500 hover:border-primary-500/30 transition-all press-effect"
+                  >
+                    <Copy size={13} />
+                    {previousClosingDate
+                      ? `${formatDateShort(parseDate(previousClosingDate))} 복사`
+                      : "이전 복사"}
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* 키패드 + 음성/대화 입력 */}
-            <NumericKeypad value={totalSales} onChange={setTotalSales} />
-            <div className="flex gap-2">
-              <VoiceInput onResult={setTotalSales} />
-              <button onClick={() => setShowChat((v) => !v)}
-                className={`h-10 px-4 rounded-xl text-body-small font-medium flex items-center gap-2 press-effect transition-all ${showChat ? "bg-primary-500/10 text-primary-500 border border-primary-500/30" : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-transparent hover:text-primary-500"}`}>
-                <MessageSquare size={16} />대화 입력
-              </button>
-            </div>
-            {showChat && (
-              <ChatInput onApply={({ totalSales: sales, channels: chs, memo: m }) => {
-                setTotalSales(sales);
-                if (chs.length > 0) { setChannels(chs); setActivePreset(null); }
-                if (m) setMemo(m);
-                setShowChat(false);
-              }} />
+            {canEdit && (
+              <>
+                <NumericKeypad value={totalSales} onChange={setTotalSales} />
+                <div className="flex gap-2">
+                  <VoiceInput onResult={setTotalSales} />
+                  <button onClick={() => setShowChat((v) => !v)}
+                    className={`h-10 px-4 rounded-xl text-body-small font-medium flex items-center gap-2 press-effect transition-all ${showChat ? "bg-primary-500/10 text-primary-500 border border-primary-500/30" : "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-transparent hover:text-primary-500"}`}>
+                    <MessageSquare size={16} />대화 입력
+                  </button>
+                </div>
+                {showChat && (
+                  <ChatInput onApply={({ totalSales: sales, channels: chs, memo: m }) => {
+                    setTotalSales(sales);
+                    if (chs.length > 0) { setChannels(chs); setActivePreset(null); }
+                    if (m) setMemo(m);
+                    setShowChat(false);
+                  }} />
+                )}
+              </>
             )}
 
             {/* ── 아코디언 섹션들 ── */}
@@ -227,7 +233,7 @@ export default function ClosingPage() {
               open={openSections.channel}
               onToggle={() => toggleSection("channel")}
             >
-              <ChannelSlider channels={channels} totalSales={totalSales} onChange={(updated) => { setChannels(updated); setActivePreset(null); }} />
+              <ChannelSlider channels={channels} totalSales={totalSales} onChange={(updated) => { setChannels(updated); setActivePreset(null); }} readOnly={!canEdit} />
             </AccordionSection>
 
             {/* 결제수단 */}
@@ -238,7 +244,7 @@ export default function ClosingPage() {
               open={openSections.payment}
               onToggle={() => toggleSection("payment")}
             >
-              <PaymentRatio cardRatio={cardRatio} totalSales={totalSales} onChange={(v) => { setCardRatio(v); setActivePreset(null); }} />
+              <PaymentRatio cardRatio={cardRatio} totalSales={totalSales} onChange={(v) => { setCardRatio(v); setActivePreset(null); }} readOnly={!canEdit} />
             </AccordionSection>
 
             {/* 수수료 */}
@@ -260,6 +266,7 @@ export default function ClosingPage() {
                   customFees={customFees}
                   onCustomFeeAdd={(fee) => setCustomFees((prev) => [...prev, fee])}
                   onCustomFeeRemove={(idx) => setCustomFees((prev) => prev.filter((_, i) => i !== idx))}
+                  readOnly={!canEdit}
                 />
               </AccordionSection>
             )}
@@ -272,11 +279,13 @@ export default function ClosingPage() {
               open={openSections.expense}
               onToggle={() => toggleSection("expense")}
             >
-              <TodayExpenses expenses={todayExpenses} onChange={setTodayExpenses} />
-              <button onClick={handleImportReceipts}
-                className="w-full mt-2 py-2 rounded-xl text-caption font-medium text-primary-500 bg-primary-500/5 hover:bg-primary-500/10 transition-colors press-effect flex items-center justify-center gap-1.5">
-                <Receipt size={13} />영수증 경비 불러오기
-              </button>
+              <TodayExpenses expenses={todayExpenses} onChange={setTodayExpenses} readOnly={!canEdit} />
+              {canEdit && (
+                <button onClick={handleImportReceipts}
+                  className="w-full mt-2 py-2 rounded-xl text-caption font-medium text-primary-500 bg-primary-500/5 hover:bg-primary-500/10 transition-colors press-effect flex items-center justify-center gap-1.5">
+                  <Receipt size={13} />영수증 경비 불러오기
+                </button>
+              )}
             </AccordionSection>
 
             {/* 고정 경비 */}
@@ -300,6 +309,7 @@ export default function ClosingPage() {
                 return [...prev, ...newItems];
               })}
               dayOfMonth={new Date().getDate()}
+              readOnly={!canEdit}
             />
 
             {/* 태그/메모 */}
@@ -316,6 +326,7 @@ export default function ClosingPage() {
                 date={selectedDate}
                 onTagsChange={setTags}
                 onMemoChange={setMemo}
+                readOnly={!canEdit}
               />
             </AccordionSection>
 
@@ -406,7 +417,7 @@ export default function ClosingPage() {
               analytics={analytics}
               todaySales={totalSales}
               monthlyGoal={monthlyGoal}
-              onGoalChange={setMonthlyGoal}
+              onGoalChange={canEdit ? setMonthlyGoal : undefined}
               onDateClick={handleCalendarDateClick}
               onShowMonthSummary={() => setShowMonthSummary(true)}
             />

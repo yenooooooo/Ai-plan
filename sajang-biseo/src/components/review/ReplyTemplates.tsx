@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bookmark, Copy, Check, Trash2, X } from "lucide-react";
 import { useReplyTemplates } from "@/stores/useReplyTemplates";
 
-export function ReplyTemplates() {
+export function ReplyTemplates({ readOnly = false }: { readOnly?: boolean }) {
   const { templates, removeTemplate } = useReplyTemplates();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -59,10 +59,12 @@ export function ReplyTemplates() {
                           className="p-1 rounded-md text-[var(--text-tertiary)] hover:text-primary-500">
                           {isCopied ? <Check size={12} className="text-success" /> : <Copy size={12} />}
                         </button>
-                        <button onClick={() => removeTemplate(tpl.id)}
-                          className="p-1 rounded-md text-[var(--text-tertiary)] hover:text-danger">
-                          <Trash2 size={12} />
-                        </button>
+                        {!readOnly && (
+                          <button onClick={() => removeTemplate(tpl.id)}
+                            className="p-1 rounded-md text-[var(--text-tertiary)] hover:text-danger">
+                            <Trash2 size={12} />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className="text-[11px] text-[var(--text-tertiary)] line-clamp-2">{tpl.fullText}</p>

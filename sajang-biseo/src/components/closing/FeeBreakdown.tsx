@@ -20,11 +20,12 @@ interface FeeBreakdownProps {
   customFees: CustomFee[];
   onCustomFeeAdd: (fee: CustomFee) => void;
   onCustomFeeRemove: (idx: number) => void;
+  readOnly?: boolean;
 }
 
 export function FeeBreakdownView({
   result, onPlatformRateChange, onDeliveryFeeChange, onCardRateChange,
-  customFees, onCustomFeeAdd, onCustomFeeRemove,
+  customFees, onCustomFeeAdd, onCustomFeeRemove, readOnly = false,
 }: FeeBreakdownProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newFeeName, setNewFeeName] = useState("");
@@ -53,12 +54,14 @@ export function FeeBreakdownView({
     <div className="glass-card p-5 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-body-small font-medium text-[var(--text-secondary)]">수수료 내역</h3>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className={`flex items-center gap-1 text-caption transition-colors ${showAddForm ? "text-primary-500" : "text-[var(--text-tertiary)] hover:text-primary-500"}`}
-        >
-          <Plus size={13} />항목 추가
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className={`flex items-center gap-1 text-caption transition-colors ${showAddForm ? "text-primary-500" : "text-[var(--text-tertiary)] hover:text-primary-500"}`}
+          >
+            <Plus size={13} />항목 추가
+          </button>
+        )}
       </div>
 
       {/* 자동 계산 항목 */}
@@ -70,6 +73,7 @@ export function FeeBreakdownView({
             onPlatformRateChange={onPlatformRateChange}
             onDeliveryFeeChange={onDeliveryFeeChange}
             onCardRateChange={onCardRateChange}
+            readOnly={readOnly}
           />
         ))}
       </div>
@@ -80,9 +84,11 @@ export function FeeBreakdownView({
           {customFees.map((fee, idx) => (
             <div key={idx} className="flex items-center justify-between py-1">
               <div className="flex items-center gap-2">
+                {!readOnly && (
                 <button onClick={() => onCustomFeeRemove(idx)} className="text-[var(--text-tertiary)] hover:text-[var(--danger)] transition-colors">
                   <X size={13} />
                 </button>
+              )}
                 <span className="text-body-small text-[var(--text-primary)]">{fee.name}</span>
               </div>
               <span className="text-body-small font-display text-[var(--fee-deducted)] tabular-nums">
@@ -94,7 +100,7 @@ export function FeeBreakdownView({
       )}
 
       {/* 항목 추가 폼 */}
-      {showAddForm && (
+      {showAddForm && !readOnly && (
         <div className="flex items-center gap-2 pt-1 border-t border-[var(--border-subtle)]">
           <input
             type="text"

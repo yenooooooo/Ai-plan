@@ -13,9 +13,10 @@ interface TagMemoProps {
   date: string;
   onTagsChange: (tags: string[]) => void;
   onMemoChange: (memo: string) => void;
+  readOnly?: boolean;
 }
 
-export function TagMemo({ tags, memo, date, onTagsChange, onMemoChange }: TagMemoProps) {
+export function TagMemo({ tags, memo, date, onTagsChange, onMemoChange, readOnly = false }: TagMemoProps) {
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [showInput, setShowInput] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -72,15 +73,16 @@ export function TagMemo({ tags, memo, date, onTagsChange, onMemoChange }: TagMem
               <div key={tag} className="relative group">
                 <button
                   onClick={() => toggleTag(tag)}
-                  className={`px-3 h-7 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-95 ${
+                  disabled={readOnly}
+                  className={`px-3 h-7 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-95 disabled:opacity-60 disabled:cursor-default ${
                     isSelected
                       ? "bg-primary-500/15 text-primary-500 border border-primary-500/40"
                       : "bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-transparent hover:text-[var(--text-secondary)]"
-                  } ${isCustom ? "pr-6" : ""}`}
+                  } ${isCustom && !readOnly ? "pr-6" : ""}`}
                 >
                   {tag}
                 </button>
-                {isCustom && (
+                {isCustom && !readOnly && (
                   <button onClick={(e) => { e.stopPropagation(); removeCustomTag(tag); }}
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-danger/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <X size={10} />
@@ -89,7 +91,7 @@ export function TagMemo({ tags, memo, date, onTagsChange, onMemoChange }: TagMem
               </div>
             );
           })}
-          {showInput ? (
+          {!readOnly && (showInput ? (
             <div className="flex items-center gap-1">
               <input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") addCustomTag(); if (e.key === "Escape") setShowInput(false); }}
@@ -103,7 +105,7 @@ export function TagMemo({ tags, memo, date, onTagsChange, onMemoChange }: TagMem
               className="px-3 h-7 rounded-full text-[13px] font-medium bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border border-dashed border-[var(--border-default)] hover:text-primary-500 hover:border-primary-500/30 transition-colors flex items-center gap-1">
               <Plus size={12} />추가
             </button>
-          )}
+          ))}
         </div>
       </div>
 
@@ -113,12 +115,13 @@ export function TagMemo({ tags, memo, date, onTagsChange, onMemoChange }: TagMem
         <textarea
           value={memo}
           onChange={(e) => onMemoChange(e.target.value)}
-          placeholder="그 외 특이사항을 자유롭게 기록하세요"
+          placeholder={readOnly ? "메모 없음" : "그 외 특이사항을 자유롭게 기록하세요"}
           rows={2}
-          className="w-full bg-[var(--bg-tertiary)] rounded-xl px-4 py-3
+          readOnly={readOnly}
+          className={`w-full bg-[var(--bg-tertiary)] rounded-xl px-4 py-3
             text-body-default text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]
             border border-[var(--border-default)] focus:outline-none focus:border-primary-500
-            resize-none transition-colors duration-200"
+            resize-none transition-colors duration-200 ${readOnly ? "opacity-70 cursor-default" : ""}`}
         />
       </div>
     </div>

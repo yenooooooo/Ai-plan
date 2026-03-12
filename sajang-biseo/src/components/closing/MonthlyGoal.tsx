@@ -9,7 +9,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 interface MonthlyGoalProps {
   currentSales: number;
   goal: number;
-  onGoalChange: (goal: number) => void;
+  onGoalChange?: (goal: number) => void;
   daysRemaining: number;
   monthLabel: string;
 }
@@ -31,7 +31,7 @@ export function MonthlyGoal({
 
   function handleSaveGoal() {
     const val = parseInt(tempGoal.replace(/,/g, ""), 10);
-    if (val > 0) onGoalChange(val);
+    if (val > 0) onGoalChange?.(val);
     setEditing(false);
   }
 
@@ -41,7 +41,7 @@ export function MonthlyGoal({
         <h3 className="text-heading-md text-[var(--text-primary)]">
           {monthLabel} 매출 목표
         </h3>
-        {editing ? (
+        {onGoalChange && (editing ? (
           <button
             onClick={handleSaveGoal}
             className="p-2 rounded-lg bg-primary-500/10 text-primary-500 press-effect"
@@ -55,11 +55,11 @@ export function MonthlyGoal({
           >
             <Edit3 size={16} />
           </button>
-        )}
+        ))}
       </div>
 
       {/* 목표 입력 */}
-      {editing ? (
+      {editing && onGoalChange ? (
         <div className="mb-4">
           <div className="flex items-center gap-2">
             <span className="text-body-small text-[var(--text-tertiary)]">₩</span>

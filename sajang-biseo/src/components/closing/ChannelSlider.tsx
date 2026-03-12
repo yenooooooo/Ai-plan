@@ -17,13 +17,14 @@ interface ChannelSliderProps {
   channels: ChannelRatio[];
   totalSales: number;
   onChange: (channels: ChannelRatio[]) => void;
+  readOnly?: boolean;
 }
 
 type InputMode = "ratio" | "amount";
 
 const COMMON_CHANNELS = ["홀", "배민", "쿠팡이츠", "요기요", "땡겨요", "네이버주문", "포장", "기타"];
 
-export function ChannelSlider({ channels, totalSales, onChange }: ChannelSliderProps) {
+export function ChannelSlider({ channels, totalSales, onChange, readOnly = false }: ChannelSliderProps) {
   const [inputMode, setInputMode] = useState<InputMode>("ratio");
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
@@ -105,7 +106,7 @@ export function ChannelSlider({ channels, totalSales, onChange }: ChannelSliderP
       )}
 
       {/* 채널 추가 */}
-      {showAdd ? (
+      {readOnly ? null : showAdd ? (
         <div className="space-y-2">
           {suggestions.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
