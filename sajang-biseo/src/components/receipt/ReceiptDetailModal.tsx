@@ -14,6 +14,7 @@ interface ReceiptDetailModalProps {
   categories: ReceiptCategory[];
   onClose: () => void;
   onDelete: (id: string) => void;
+  readOnly?: boolean;
   onUpdate?: (id: string, data: {
     date: string;
     merchantName: string;
@@ -31,6 +32,7 @@ export function ReceiptDetailModal({
   categories,
   onClose,
   onDelete,
+  readOnly = false,
   onUpdate,
 }: ReceiptDetailModalProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -101,7 +103,7 @@ export function ReceiptDetailModal({
             {editing ? "영수증 수정" : "영수증 상세"}
           </h3>
           <div className="flex items-center gap-1">
-            {!editing && onUpdate && (
+            {!editing && onUpdate && !readOnly && (
               <button onClick={() => setEditing(true)} className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-primary-500">
                 <Edit3 size={18} />
               </button>
@@ -218,13 +220,15 @@ export function ReceiptDetailModal({
             </div>
 
             {/* 삭제 */}
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="w-full mt-6 py-3 rounded-xl flex items-center justify-center gap-2 bg-danger/10 text-danger text-body-small font-medium press-effect"
-            >
-              <Trash2 size={16} />
-              삭제
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="w-full mt-6 py-3 rounded-xl flex items-center justify-center gap-2 bg-danger/10 text-danger text-body-small font-medium press-effect"
+              >
+                <Trash2 size={16} />
+                삭제
+              </button>
+            )}
           </>
         )}
 

@@ -14,9 +14,10 @@ interface ReviewDashboardProps {
   onReviewSelect: (review: Review) => void;
   onAddReview: (data: { content: string; rating: number; platform: Platform }) => void;
   onDeleteReview: (reviewId: string) => void;
+  readOnly?: boolean;
 }
 
-export function ReviewDashboard({ reviews, onReviewSelect, onAddReview, onDeleteReview }: ReviewDashboardProps) {
+export function ReviewDashboard({ reviews, onReviewSelect, onAddReview, onDeleteReview, readOnly = false }: ReviewDashboardProps) {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const ratingDist = [0, 0, 0, 0, 0];
@@ -83,7 +84,7 @@ export function ReviewDashboard({ reviews, onReviewSelect, onAddReview, onDelete
         </div>
       </div>
 
-      <AddReviewForm onAdd={onAddReview} />
+      {!readOnly && <AddReviewForm onAdd={onAddReview} />}
 
       {sortedPending.length > 0 && (
         <div>
@@ -93,7 +94,7 @@ export function ReviewDashboard({ reviews, onReviewSelect, onAddReview, onDelete
           <div className="space-y-2">
             {sortedPending.map((review, i) => (
               <ReviewRow key={review.id} review={review} onClick={() => onReviewSelect(review)} index={i}
-                onDelete={() => setDeleteTarget(review.id)} />
+                onDelete={() => setDeleteTarget(review.id)} readOnly={readOnly} />
             ))}
           </div>
         </div>
@@ -107,7 +108,7 @@ export function ReviewDashboard({ reviews, onReviewSelect, onAddReview, onDelete
           <div className="space-y-2">
             {replied.slice(0, 10).map((review, i) => (
               <ReviewRow key={review.id} review={review} onClick={() => onReviewSelect(review)} index={i} done
-                onDelete={() => setDeleteTarget(review.id)} />
+                onDelete={() => setDeleteTarget(review.id)} readOnly={readOnly} />
             ))}
           </div>
         </div>
@@ -133,8 +134,8 @@ export function ReviewDashboard({ reviews, onReviewSelect, onAddReview, onDelete
   );
 }
 
-function ReviewRow({ review, onClick, index, done, onDelete }: {
-  review: Review; onClick: () => void; index: number; done?: boolean; onDelete: () => void;
+function ReviewRow({ review, onClick, index, done, onDelete, readOnly }: {
+  review: Review; onClick: () => void; index: number; done?: boolean; onDelete: () => void; readOnly?: boolean;
 }) {
   const isNegative = review.rating <= 2;
   const d = review.reviewed_at ? parseDate(review.reviewed_at.split("T")[0]) : null;
@@ -164,10 +165,12 @@ function ReviewRow({ review, onClick, index, done, onDelete }: {
         </div>
         <p className="text-caption text-[var(--text-primary)] line-clamp-2">{review.content}</p>
       </button>
-      <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-danger hover:bg-danger/10 transition-colors shrink-0">
-        <Trash2 size={13} />
-      </button>
+      {!readOnly && (
+        <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-danger hover:bg-danger/10 transition-colors shrink-0">
+          <Trash2 size={13} />
+        </button>
+      )}
     </motion.div>
   );
 }

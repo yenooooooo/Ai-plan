@@ -21,6 +21,7 @@ import { useReviewData } from "@/hooks/useReviewData";
 import type { Review } from "@/lib/supabase/types";
 import { UsageBadge } from "@/components/shared/UsageBadge";
 import type { Platform, ToneAdjustment } from "@/lib/review/blocks";
+import { useTeamRole } from "@/hooks/useTeamRole";
 
 type Tab = "generate" | "dashboard" | "settings";
 
@@ -40,6 +41,7 @@ export default function ReviewPage() {
     deleteReview, loadReplyHistory,
   } = useReviewData();
 
+  const { canEdit, isViewer } = useTeamRole();
   const [tab, setTab] = useState<Tab>("generate");
   const [currentVersion, setCurrentVersion] = useState(0);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
@@ -98,6 +100,7 @@ export default function ReviewPage() {
           <p className="text-body-small text-[var(--text-secondary)]">
             AI가 맞춤 답글을 작성해드려요
           </p>
+          {isViewer && <p className="text-caption text-warning mt-1">조회 전용 권한입니다</p>}
         </div>
         <UsageBadge feature="review_generate" />
       </div>
@@ -148,6 +151,7 @@ export default function ReviewPage() {
                 <ReviewInput
                   onGenerate={handleGenerate}
                   loading={generating}
+                  disabled={!canEdit}
                   hasResult={versions.length > 0}
                   onReset={() => { setCurrentReviewData(null); setSelectedReview(null); clearVersions(); }}
                 />
@@ -172,7 +176,7 @@ export default function ReviewPage() {
                     <ReplyPreview blocks={versions[currentVersion] ?? []} />
 
                     {/* 선택된 리뷰가 있으면 저장 버튼 */}
-                    {selectedReview && (
+                    {selectedReview && canEdit && (
                       <motion.button
                         whileTap={{ scale: 0.97 }}
                         onClick={handleSaveReply}
@@ -215,6 +219,7 @@ export default function ReviewPage() {
                 onReviewSelect={handleReviewSelect}
                 onAddReview={addReview}
                 onDeleteReview={deleteReview}
+                readOnly={!canEdit}
               />
             )}
           </motion.div>
@@ -229,7 +234,7 @@ export default function ReviewPage() {
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
           >
-            <ToneSetup settings={toneSettings} onSave={saveToneSettings} />
+            <ToneSetup settings={toneSettings} onSave={saveToneSettings} readOnly={!canEdit} />
           </motion.div>
         )}
       </AnimatePresence>

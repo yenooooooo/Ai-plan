@@ -27,6 +27,7 @@ import { useOrderData } from "@/hooks/useOrderData";
 import { useOrderAnalytics } from "@/hooks/useOrderAnalytics";
 import { useStoreSettings } from "@/stores/useStoreSettings";
 import { useUIState } from "@/stores/useUIState";
+import { useTeamRole } from "@/hooks/useTeamRole";
 
 type Tab = "settings" | "usage" | "recommend" | "analytics";
 
@@ -74,6 +75,7 @@ export default function OrderPage() {
   const setAnalyticsOpenKey = useUIState((s) => s.setOrderAnalyticsOpen);
 
   const { businessType } = useStoreSettings();
+  const { canEdit, isViewer } = useTeamRole();
   const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const {
@@ -139,6 +141,7 @@ export default function OrderPage() {
       <div className="mb-5">
         <h1 className="text-heading-lg text-[var(--text-primary)] mb-1">발주 추천</h1>
         <p className="text-body-small text-[var(--text-secondary)]">AI가 내일 필요한 식자재를 추천해드려요</p>
+        {isViewer && <p className="text-caption text-warning mt-1">조회 전용 권한입니다</p>}
       </div>
 
       {showOnboarding && (
@@ -178,8 +181,8 @@ export default function OrderPage() {
               <div className="glass-card p-8 text-center space-y-4">
                 <p className="text-body-small text-[var(--text-secondary)] font-medium">등록된 품목이 없어요</p>
                 <p className="text-caption text-[var(--text-tertiary)]">업종에 맞는 기본 품목을 골라서 추가할 수 있어요</p>
-                <button onClick={() => setShowTemplateSelector(true)}
-                  className="mx-auto px-6 py-2.5 rounded-xl bg-primary-500 text-white text-body-small font-medium hover:bg-primary-600 transition-colors flex items-center gap-2">
+                <button onClick={() => setShowTemplateSelector(true)} disabled={!canEdit}
+                  className="mx-auto px-6 py-2.5 rounded-xl bg-primary-500 text-white text-body-small font-medium hover:bg-primary-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <Package size={15} />품목 선택해서 불러오기
                 </button>
                 <AddGroupInline adding={addingGroup} name={newGroupName}
@@ -191,8 +194,8 @@ export default function OrderPage() {
               <>
                 <ItemSearch items={items} groups={groups} onScrollToGroup={scrollToGroup} />
                 <div className="flex items-center justify-between gap-2">
-                  <button onClick={() => setShowTemplateSelector(true)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-caption text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:text-primary-500 transition-colors press-effect">
+                  <button onClick={() => setShowTemplateSelector(true)} disabled={!canEdit}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-caption text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:text-primary-500 transition-colors press-effect disabled:opacity-50">
                     <Package size={13} />템플릿 추가
                   </button>
                   <div className="flex items-center gap-1.5">
@@ -213,12 +216,12 @@ export default function OrderPage() {
                           <X size={14} />
                         </button>
                       </>
-                    ) : (
+                    ) : canEdit ? (
                       <button onClick={() => setSelectMode(true)}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-caption text-[var(--text-secondary)] bg-[var(--bg-tertiary)] hover:text-primary-500 transition-colors press-effect">
                         <CheckSquare size={13} />선택
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 

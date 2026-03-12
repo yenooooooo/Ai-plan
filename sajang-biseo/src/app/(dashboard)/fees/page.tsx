@@ -17,6 +17,7 @@ import { FeeSimulator } from "@/components/fees/FeeSimulator";
 import { SettlementSchedule } from "@/components/fees/SettlementSchedule";
 import { FeeSettingsEditor } from "@/components/fees/FeeSettingsEditor";
 import { formatCurrency, formatPercent } from "@/lib/utils/format";
+import { useTeamRole } from "@/hooks/useTeamRole";
 
 type Tab = "report" | "profitability" | "tips" | "settlement" | "settings";
 
@@ -41,6 +42,7 @@ export default function FeesPage() {
     goToPrevMonth, goToNextMonth,
     saveFeeSettings, addChannel, deleteChannel,
   } = useFeesData();
+  const { canEdit } = useTeamRole();
 
   const { mode, toggle } = useFeeToggle();
   const [tab, setTab] = useState<Tab>("report");
@@ -153,6 +155,7 @@ export default function FeesPage() {
                 onSaveSettings={saveFeeSettings}
                 onAddChannel={addChannel}
                 onDeleteChannel={deleteChannel}
+                readOnly={!canEdit}
               />
             </motion.div>
           )}

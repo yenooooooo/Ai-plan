@@ -9,6 +9,6 @@ interface TeamRoleState {
 }
 
 export const useTeamRoleStore = create<TeamRoleState>()((set) => ({
-  role: "owner",
+  role: "viewer",
   setRole: (role) => set({ role }),
 }));

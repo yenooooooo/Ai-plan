@@ -23,6 +23,7 @@ import { useToast } from "@/stores/useToast";
 import { usePlan } from "@/hooks/usePlan";
 import { receiptsToCsv, downloadCsv } from "@/lib/receipt/csvExport";
 import type { Receipt } from "@/lib/supabase/types";
+import { useTeamRole } from "@/hooks/useTeamRole";
 
 type Tab = "list" | "capture";
 type GroupBy = "date" | "category";
@@ -43,6 +44,7 @@ export default function ReceiptPage() {
   } = useReceiptData();
   const toast = useToast((s) => s.show);
   const { limits } = usePlan();
+  const { canEdit, isViewer } = useTeamRole();
 
   const [tab, setTab] = useState<Tab>("list");
   const [groupBy, setGroupBy] = useState<GroupBy>("date");
@@ -98,6 +100,7 @@ export default function ReceiptPage() {
           <p className="text-body-small text-[var(--text-secondary)]">
             경비를 카테고리별로 관리하세요
           </p>
+          {isViewer && <p className="text-caption text-warning mt-1">조회 전용 권한입니다</p>}
         </div>
         {tab === "list" && receipts.length > 0 && limits.csvExport && (
           <button
@@ -124,11 +127,12 @@ export default function ReceiptPage() {
         </button>
         <button
           onClick={() => setTab("capture")}
+          disabled={!canEdit}
           className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
             tab === "capture"
               ? "bg-[var(--bg-elevated)] text-primary-500 shadow-sm"
               : "text-[var(--text-tertiary)]"
-          }`}
+          } disabled:opacity-40`}
         >
           <Plus size={15} />
           경비 등록
@@ -240,12 +244,13 @@ export default function ReceiptPage() {
             onClose={() => setSelectedReceipt(null)}
             onDelete={deleteReceipt}
             onUpdate={updateReceipt}
+            readOnly={!canEdit}
           />
         )}
       </AnimatePresence>
 
       {/* FAB 경비 등록 버튼 (장부 조회 시) */}
-      {tab === "list" && (
+      {tab === "list" && canEdit && (
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => setTab("capture")}

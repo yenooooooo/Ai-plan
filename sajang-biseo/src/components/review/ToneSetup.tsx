@@ -17,9 +17,10 @@ interface ToneSetupProps {
     frequent_phrases: string[];
     use_emoji: boolean;
   }) => void;
+  readOnly?: boolean;
 }
 
-export function ToneSetup({ settings, onSave }: ToneSetupProps) {
+export function ToneSetup({ settings, onSave, readOnly = false }: ToneSetupProps) {
   const [tone, setTone] = useState(settings?.tone_name ?? "friendly");
   const [samples, setSamples] = useState<string[]>(settings?.sample_replies ?? []);
   const [newSample, setNewSample] = useState("");
@@ -141,10 +142,12 @@ export function ToneSetup({ settings, onSave }: ToneSetupProps) {
       </div>
 
       {/* 저장 */}
-      <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave}
-        className="w-full py-3.5 rounded-2xl bg-primary-500 text-white font-semibold text-body-small flex items-center justify-center gap-2 press-effect">
-        <Check size={18} /> 설정 저장
-      </motion.button>
+      {!readOnly && (
+        <motion.button whileTap={{ scale: 0.97 }} onClick={handleSave}
+          className="w-full py-3.5 rounded-2xl bg-primary-500 text-white font-semibold text-body-small flex items-center justify-center gap-2 press-effect">
+          <Check size={18} /> 설정 저장
+        </motion.button>
+      )}
     </div>
   );
 }

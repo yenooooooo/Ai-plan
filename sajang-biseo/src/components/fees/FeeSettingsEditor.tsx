@@ -18,11 +18,13 @@ interface FeeSettingsEditorProps {
   }) => Promise<void>;
   onAddChannel: (data: { channel_name: string; fee_type: "percentage" | "fixed"; rate: number; category: string }) => Promise<void>;
   onDeleteChannel: (id: string) => Promise<void>;
+  readOnly?: boolean;
 }
 
 export function FeeSettingsEditor({
   feeSettings, feeChannels,
   onSaveSettings, onAddChannel, onDeleteChannel,
+  readOnly = false,
 }: FeeSettingsEditorProps) {
   const [tier, setTier] = useState(feeSettings?.annual_revenue_tier ?? "3억 이하 (영세)");
   const [checkRatio, setCheckRatio] = useState(feeSettings?.check_card_ratio ?? 30);
@@ -97,7 +99,7 @@ export function FeeSettingsEditor({
             </div>
           </div>
 
-          <button onClick={handleSaveSettings} disabled={saving}
+          <button onClick={handleSaveSettings} disabled={saving || readOnly}
             className="w-full py-2.5 rounded-xl bg-primary-500 text-white text-body-small font-medium flex items-center justify-center gap-1.5 press-effect disabled:opacity-50">
             <Save size={14} />
             {saving ? "저장 중..." : "설정 저장"}
@@ -109,10 +111,12 @@ export function FeeSettingsEditor({
       <div className="glass-card p-5 space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-heading-md text-[var(--text-primary)]">채널 수수료 관리</h4>
-          <button onClick={() => setShowAdd(!showAdd)}
-            className="p-1.5 rounded-lg bg-primary-500/10 text-primary-500 press-effect">
-            <Plus size={14} />
-          </button>
+          {!readOnly && (
+            <button onClick={() => setShowAdd(!showAdd)}
+              className="p-1.5 rounded-lg bg-primary-500/10 text-primary-500 press-effect">
+              <Plus size={14} />
+            </button>
+          )}
         </div>
 
         {/* 새 채널 추가 폼 */}
@@ -149,10 +153,12 @@ export function FeeSettingsEditor({
                   {ch.fee_type === "percentage" ? `${ch.rate}%` : `₩${ch.fixed_amount?.toLocaleString()}/건`}
                 </span>
               </div>
-              <button onClick={() => onDeleteChannel(ch.id)}
-                className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-danger press-effect">
-                <Trash2 size={13} />
-              </button>
+              {!readOnly && (
+                <button onClick={() => onDeleteChannel(ch.id)}
+                  className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-danger press-effect">
+                  <Trash2 size={13} />
+                </button>
+              )}
             </div>
           ))}
         </div>

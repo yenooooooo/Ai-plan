@@ -10,9 +10,10 @@ interface ReviewInputProps {
   loading: boolean;
   hasResult: boolean;
   onReset: () => void;
+  disabled?: boolean;
 }
 
-export function ReviewInput({ onGenerate, loading, hasResult, onReset }: ReviewInputProps) {
+export function ReviewInput({ onGenerate, loading, hasResult, onReset, disabled = false }: ReviewInputProps) {
   const [content, setContent] = useState("");
   const [rating, setRating] = useState(5);
   const [platform, setPlatform] = useState<Platform>("배민");
@@ -96,7 +97,7 @@ export function ReviewInput({ onGenerate, loading, hasResult, onReset }: ReviewI
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={handleSubmit}
-          disabled={!content.trim() || loading}
+          disabled={!content.trim() || loading || disabled}
           className="flex-1 py-3.5 rounded-2xl bg-primary-500 text-white font-semibold text-body-small flex items-center justify-center gap-2 press-effect disabled:opacity-50"
         >
           {loading ? (
