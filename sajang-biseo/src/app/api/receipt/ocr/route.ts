@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const imageUrl = formData.get("imageUrl") as string;
+    const mode = (formData.get("mode") as string) || "receipt"; // "receipt" | "memo"
 
     if (!imageUrl) {
       return NextResponse.json({ success: false, error: "이미지 URL이 필요합니다" }, { status: 400 });
@@ -87,7 +88,30 @@ export async function POST(req: NextRequest) {
               },
               {
                 type: "text",
-                text: `이 영수증 이미지를 분석해주세요. 반드시 아래 JSON 형식으로만 응답하세요.
+                text: mode === "memo"
+                  ? `이 이미지는 손글씨 메모, 노트, 수기 기록 등입니다. 경비/지출 관련 내용을 최대한 추출해주세요.
+글씨가 흐리거나 불명확한 부분은 null로 처리하고, confidence를 낮게 설정하세요.
+반드시 아래 JSON 형식으로만 응답하세요.
+
+{
+  "date": "YYYY-MM-DD 또는 null (메모에 날짜가 있으면 추출)",
+  "merchantName": "사용처/가맹점명 또는 null",
+  "totalAmount": 숫자(원 단위) 또는 null,
+  "vatAmount": 숫자(원 단위) 또는 null,
+  "paymentMethod": "카드" | "현금" | "이체" | null,
+  "cardLastFour": "카드 끝 4자리 또는 null",
+  "items": [{"name": "품목명", "qty": 수량, "price": 금액}] 또는 null,
+  "categoryCode": "F01~F99 중 적절한 코드",
+  "confidence": 0.0~1.0 (인식 신뢰도 — 손글씨는 보통 0.3~0.6)
+}
+
+카테고리 코드:
+F01=식재료비, F02=소모품비, F03=수선유지비, F04=차량유지비,
+F05=접대비, F06=통신비, F07=광고선전비, F08=보험료,
+F09=임차료, F10=인건비, F99=기타
+
+JSON만 응답하세요. 설명 금지.`
+                  : `이 영수증 이미지를 분석해주세요. 반드시 아래 JSON 형식으로만 응답하세요.
 
 {
   "date": "YYYY-MM-DD 또는 null",

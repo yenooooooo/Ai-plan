@@ -3,15 +3,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Camera,
   ClipboardList,
   Download,
   Plus,
   Grid3X3,
   List,
 } from "lucide-react";
-import { ReceiptCapture } from "@/components/receipt/ReceiptCapture";
-import { OcrResultCard } from "@/components/receipt/OcrResultCard";
+import { CaptureFlowPanel } from "@/components/receipt/CaptureFlowPanel";
 import { FilterBar } from "@/components/receipt/FilterBar";
 import { ReceiptList } from "@/components/receipt/ReceiptList";
 import { ReceiptDetailModal } from "@/components/receipt/ReceiptDetailModal";
@@ -49,73 +47,8 @@ export default function ReceiptPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
 
-  // 촬영 플로우
-  const [capturedImageUrl, setCapturedImageUrl] = useState<string | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
-  const [ocrData, setOcrData] = useState<{
-    date: string | null;
-    merchantName: string | null;
-    totalAmount: number | null;
-    vatAmount: number | null;
-    paymentMethod: "카드" | "현금" | "이체" | null;
-    cardLastFour: string | null;
-    categoryCode: string | null;
-    confidence: number;
-  } | null>(null);
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const [limitReached, setLimitReached] = useState(false);
-
-  // 이미지 촬영 완료 → OCR 호출
-  async function handleCaptured(storageUrl: string, previewUrl: string) {
-    setCapturedImageUrl(storageUrl);
-    setPreviewImageUrl(previewUrl);
-    const imageUrl = storageUrl;
-    setOcrLoading(true);
-    setLimitReached(false);
-
-    try {
-      const form = new FormData();
-      form.append("imageUrl", imageUrl);
-
-      const res = await fetch("/api/receipt/ocr", { method: "POST", body: form });
-      const json = await res.json();
-
-      if (json.success && json.data) {
-        setOcrData(json.data);
-      } else if (json.limitReached) {
-        setLimitReached(true);
-      } else {
-        toast(json.error || "영수증 인식에 실패했습니다. 직접 입력해주세요.", "error");
-        setOcrData({
-          date: new Date().toISOString().split("T")[0],
-          merchantName: "",
-          totalAmount: null,
-          vatAmount: null,
-          paymentMethod: "카드",
-          cardLastFour: null,
-          categoryCode: "F99",
-          confidence: 0,
-        });
-      }
-    } catch {
-      toast("영수증 인식 중 오류가 발생했습니다. 직접 입력해주세요.", "error");
-      setOcrData({
-        date: new Date().toISOString().split("T")[0],
-        merchantName: "",
-        totalAmount: null,
-        vatAmount: null,
-        paymentMethod: "카드",
-        cardLastFour: null,
-        categoryCode: "F99",
-        confidence: 0,
-      });
-    } finally {
-      setOcrLoading(false);
-    }
-  }
-
-  // OCR 결과 저장
-  async function handleOcrSave(data: {
+  // 경비 저장 (CaptureFlowPanel에서 호출)
+  async function handleSaveEntry(data: {
     date: string;
     merchantName: string;
     totalAmount: number;
@@ -125,14 +58,14 @@ export default function ReceiptPage() {
     categoryId: string | null;
     memo: string;
     confidence: number;
+    imageUrl: string;
   }) {
-    await saveReceipt({ ...data, imageUrl: capturedImageUrl! });
-    toast("영수증이 저장되었습니다", "success");
+    await saveReceipt(data);
+    toast("경비가 저장되었습니다", "success");
 
-    // 저장된 영수증 날짜가 현재 필터 범위 밖이면 해당 월로 필터 이동
-    const savedDate = data.date;
-    const savedMonth = savedDate.slice(0, 7); // "2020-09"
-    const filterMonth = filter.dateFrom.slice(0, 7); // "2026-03"
+    // 저장된 날짜가 현재 필터 범위 밖이면 해당 월로 필터 이동
+    const savedMonth = data.date.slice(0, 7);
+    const filterMonth = filter.dateFrom.slice(0, 7);
     if (savedMonth !== filterMonth) {
       const monthStart = `${savedMonth}-01`;
       const lastDay = new Date(parseInt(savedMonth.slice(0, 4)), parseInt(savedMonth.slice(5, 7)), 0).getDate();
@@ -140,14 +73,6 @@ export default function ReceiptPage() {
       setFilter((prev) => ({ ...prev, dateFrom: monthStart, dateTo: monthEnd }));
     }
 
-    resetCapture();
-  }
-
-  function resetCapture() {
-    setCapturedImageUrl(null);
-    setPreviewImageUrl(null);
-    setOcrData(null);
-    setLimitReached(false);
     setTab("list");
   }
 
@@ -203,8 +128,8 @@ export default function ReceiptPage() {
               : "text-[var(--text-tertiary)]"
           }`}
         >
-          <Camera size={15} />
-          영수증 촬영
+          <Plus size={15} />
+          경비 등록
         </button>
       </div>
 
@@ -219,17 +144,9 @@ export default function ReceiptPage() {
             transition={{ duration: 0.2 }}
             className="space-y-4"
           >
-            {/* 필터 */}
-            <FilterBar
-              filter={filter}
-              onChange={setFilter}
-              categories={categories}
-            />
-
-            {/* 요약 */}
+            <FilterBar filter={filter} onChange={setFilter} categories={categories} />
             <SummaryCards receipts={receipts} categories={categories} />
 
-            {/* 그룹 전환 + 뷰 모드 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-caption text-[var(--text-tertiary)]">
@@ -265,7 +182,6 @@ export default function ReceiptPage() {
               )}
             </div>
 
-            {/* 리스트 / 갤러리 */}
             {loading ? (
               <div className="flex justify-center py-12">
                 <div className="w-8 h-8 border-2 border-primary-500/20 border-t-primary-500 rounded-full animate-spin" />
@@ -289,14 +205,13 @@ export default function ReceiptPage() {
               </>
             )}
 
-            {/* 월별 경비 리포트 & 예산 */}
             <MonthlyExpenseReport receipts={receipts} categories={categories} />
             <CategoryBudget receipts={receipts} categories={categories} />
             <ReceiptExport receipts={receipts} categories={categories} dateFrom={filter.dateFrom} dateTo={filter.dateTo} />
           </motion.div>
         )}
 
-        {/* ── 영수증 촬영 탭 ── */}
+        {/* ── 경비 등록 탭 ── */}
         {tab === "capture" && (
           <motion.div
             key="capture"
@@ -304,59 +219,12 @@ export default function ReceiptPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="space-y-4"
           >
-            {!capturedImageUrl && !ocrData && !limitReached && (
-              <ReceiptCapture onCaptured={handleCaptured} />
-            )}
-
-            {ocrLoading && (
-              <div className="glass-card p-8 flex flex-col items-center gap-3">
-                <div className="w-10 h-10 border-2 border-primary-500/20 border-t-primary-500 rounded-full animate-spin" />
-                <p className="text-body-small text-[var(--text-secondary)]">
-                  AI가 영수증을 분석 중입니다...
-                </p>
-              </div>
-            )}
-
-            {limitReached && (
-              <div className="glass-card p-6 flex flex-col items-center gap-3 text-center">
-                <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center text-2xl">
-                  ⚡
-                </div>
-                <h3 className="text-heading-md text-[var(--text-primary)]">
-                  이번 달 무료 인식 횟수를 모두 사용했어요
-                </h3>
-                <p className="text-body-small text-[var(--text-secondary)]">
-                  무료 플랜은 월 5회까지 영수증 인식이 가능합니다.<br />
-                  Pro 플랜으로 업그레이드하면 월 100회까지 사용할 수 있어요.
-                </p>
-                <div className="flex gap-2 w-full mt-1">
-                  <button
-                    onClick={resetCapture}
-                    className="flex-1 py-3 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-body-small font-medium press-effect"
-                  >
-                    돌아가기
-                  </button>
-                  <button
-                    onClick={() => { window.location.href = "/settings"; }}
-                    className="flex-1 py-3 rounded-xl bg-primary-500 text-white text-body-small font-medium press-effect"
-                  >
-                    플랜 업그레이드
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {ocrData && capturedImageUrl && (
-              <OcrResultCard
-                data={ocrData}
-                imageUrl={previewImageUrl ?? capturedImageUrl}
-                categories={categories}
-                onSave={handleOcrSave}
-                onSkip={resetCapture}
-              />
-            )}
+            <CaptureFlowPanel
+              categories={categories}
+              onSave={handleSaveEntry}
+              onDone={() => setTab("list")}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -374,7 +242,7 @@ export default function ReceiptPage() {
         )}
       </AnimatePresence>
 
-      {/* FAB 촬영 버튼 (장부 조회 시) */}
+      {/* FAB 경비 등록 버튼 (장부 조회 시) */}
       {tab === "list" && (
         <motion.button
           whileTap={{ scale: 0.9 }}
