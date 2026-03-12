@@ -14,8 +14,12 @@ export function NotificationSection() {
     setTesting(true);
     try {
       const res = await fetch("/api/push/test", { method: "POST" });
-      if (res.ok) toast("테스트 알림을 발송했습니다", "success");
-      else toast("테스트 발송 실패", "error");
+      const data = await res.json();
+      if (res.ok) {
+        toast(`발송 완료 (${data.sent}건 전송됨)`, data.sent > 0 ? "success" : "info");
+      } else {
+        toast(`발송 실패: ${data.error ?? res.status}`, "error");
+      }
     } catch { toast("테스트 발송 실패", "error"); }
     finally { setTesting(false); }
   };
