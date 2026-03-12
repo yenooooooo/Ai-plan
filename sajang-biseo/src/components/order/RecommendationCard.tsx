@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Minus, Plus, Check } from "lucide-react";
+import { Minus, Plus, X } from "lucide-react";
 import type { RecommendationResult } from "@/lib/order/recommend";
 
 interface RecommendationCardProps {
@@ -46,7 +46,7 @@ export function RecommendationCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className={`glass-card p-4 border ${config.border} ${
-        confirmed ? "opacity-60" : ""
+        confirmed ? "bg-success/5" : ""
       }`}
     >
       {/* 상단: 품목명 + 긴급도 */}
@@ -110,16 +110,16 @@ export function RecommendationCard({
         <motion.button
           whileTap={{ scale: 0.92 }}
           onClick={() => onConfirm(rec.itemId, qty)}
-          disabled={confirmed || qty === 0}
+          disabled={!confirmed && qty === 0}
           className={`px-4 py-2 rounded-xl text-body-small font-medium press-effect ${
             confirmed
-              ? "bg-success/10 text-success"
+              ? "bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-danger"
               : "bg-primary-500 text-white"
           } disabled:opacity-40`}
         >
           {confirmed ? (
             <span className="flex items-center gap-1">
-              <Check size={14} /> 확정
+              <X size={14} /> 취소
             </span>
           ) : (
             "확정"

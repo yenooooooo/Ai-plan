@@ -86,7 +86,8 @@ export default function OrderPage() {
     orderMap, setOrderMap, orderSaving, orderSaved,
     handleUsageChange, handleWasteChange, applyPreset, saveUsage,
     generateRecs, initializeFromSelected,
-    handleConfirm, handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
+    handleConfirm, handleRemoveConfirmed, handleUpdateConfirmedQty, handleClearAllConfirmed,
+    handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
     handleRenameGroup, handleDeleteGroup, handleReorderGroup, handleMoveItem, handleBulkAction,
     applyConfirmedToOrders, saveOrders,
     items, avgUsageMap, autoFillUsage, copyToNextDay,
@@ -277,6 +278,9 @@ export default function OrderPage() {
             needOrderRecs={needOrderRecs} sufficientRecs={sufficientRecs}
             confirmedItems={confirmedItems} confirmedList={confirmedList}
             orderDateLabel={orderDateLabel} handleConfirm={handleConfirm}
+            handleRemoveConfirmed={handleRemoveConfirmed}
+            handleUpdateConfirmedQty={handleUpdateConfirmedQty}
+            handleClearAllConfirmed={handleClearAllConfirmed}
             orderMap={orderMap} setOrderMap={setOrderMap}
             orderSaving={orderSaving} orderSaved={orderSaved} saveOrders={saveOrders}
             applyConfirmedToOrders={applyConfirmedToOrders}

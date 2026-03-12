@@ -448,7 +448,7 @@ export function useOrderData() {
     }
   }, [storeId, items, supabase, toast]);
 
-  // 발주 확인
+  // 발주 확인 (토글)
   const handleConfirm = (itemId: string, qty: number) => {
     setConfirmedItems((prev) => {
       const next = new Map(prev);
@@ -456,6 +456,36 @@ export function useOrderData() {
       saveConfirmedToStorage(next);
       return next;
     });
+  };
+
+  // 발주서에서 개별 아이템 삭제
+  const handleRemoveConfirmed = (itemId: string) => {
+    setConfirmedItems((prev) => {
+      const next = new Map(prev);
+      next.delete(itemId);
+      saveConfirmedToStorage(next);
+      return next;
+    });
+  };
+
+  // 발주서에서 수량 수정 (0 이하면 자동 삭제)
+  const handleUpdateConfirmedQty = (itemId: string, qty: number) => {
+    if (qty <= 0) {
+      handleRemoveConfirmed(itemId);
+      return;
+    }
+    setConfirmedItems((prev) => {
+      const next = new Map(prev);
+      next.set(itemId, qty);
+      saveConfirmedToStorage(next);
+      return next;
+    });
+  };
+
+  // 발주서 전체 초기화
+  const handleClearAllConfirmed = () => {
+    setConfirmedItems(new Map());
+    saveConfirmedToStorage(new Map());
   };
 
   // ── 발주 입력 핸들러 ──
@@ -846,7 +876,8 @@ export function useOrderData() {
     orderMap, setOrderMap, orderSaving, orderSaved, itemSaving,
     handleUsageChange, handleWasteChange, applyPreset, saveUsage,
     generateRecs, initializeFromTemplate,
-    handleConfirm, handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
+    handleConfirm, handleRemoveConfirmed, handleUpdateConfirmedQty, handleClearAllConfirmed,
+    handleAddGroup, handleSaveItem, handleDeleteItem, handleToggleItem,
     handleOrderChange, applyConfirmedToOrders, saveOrders, loadOrdersForDate,
     handleRenameGroup, handleDeleteGroup, handleReorderGroup, handleMoveItem, handleBulkAction,
     initializeFromSelected,

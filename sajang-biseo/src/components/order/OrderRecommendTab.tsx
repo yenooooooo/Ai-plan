@@ -28,6 +28,9 @@ export interface OrderRecommendTabProps {
   confirmedList: { itemId: string; qty: number }[];
   orderDateLabel: string;
   handleConfirm: (itemId: string, qty: number) => void;
+  handleRemoveConfirmed: (itemId: string) => void;
+  handleUpdateConfirmedQty: (itemId: string, qty: number) => void;
+  handleClearAllConfirmed: () => void;
   orderMap: Record<string, number>;
   setOrderMap: (map: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
   orderSaving: boolean;
@@ -46,6 +49,7 @@ export interface OrderRecommendTabProps {
 export function OrderRecommendTab({
   recLoading, recommendations, needOrderRecs, sufficientRecs,
   confirmedItems, confirmedList, orderDateLabel, handleConfirm,
+  handleRemoveConfirmed, handleUpdateConfirmedQty, handleClearAllConfirmed,
   orderMap, setOrderMap, orderSaving, orderSaved, saveOrders,
   activeItems, stockMap, usageMap,
   wasteMap, itemsMap, items, onGoToUsage,
@@ -164,7 +168,14 @@ export function OrderRecommendTab({
 
           {confirmedItems.size > 0 && (
             <div ref={confirmedRef} className="space-y-4">
-              <OrderSheet confirmedItems={confirmedList} itemsMap={itemsMap} orderDate={formatDateShort(addDays(new Date(), 1))} />
+              <OrderSheet
+                confirmedItems={confirmedList}
+                itemsMap={itemsMap}
+                orderDate={formatDateShort(addDays(new Date(), 1))}
+                onRemoveItem={handleRemoveConfirmed}
+                onUpdateQty={handleUpdateConfirmedQty}
+                onClearAll={handleClearAllConfirmed}
+              />
               <OrderExport confirmedItems={confirmedList} itemsMap={itemsMap} orderDate={formatDateShort(addDays(new Date(), 1))} />
               <motion.button whileTap={{ scale: 0.97 }} onClick={saveOrders} disabled={orderSaving}
                 className={`w-full py-3.5 rounded-2xl font-semibold text-body-small flex items-center justify-center gap-2 press-effect ${orderSaved ? "bg-success/10 text-success" : "bg-primary-500 text-white"} disabled:opacity-50`}>
