@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Clock, Zap, Shield, ArrowRight, Check,
-  ChevronRight, Sparkles, CreditCard,
+  Sparkles, Play,
 } from "lucide-react";
 import { ScrollReveal } from "@/components/landing/ScrollReveal";
 import { FeeCalculatorDemo } from "@/components/landing/FeeCalculatorDemo";
@@ -80,22 +80,22 @@ export default function LandingPage() {
             className="space-y-4"
           >
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/signup"
+              <Link href="/demo"
                 className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-primary-500 text-white font-semibold text-lg flex items-center justify-center gap-2 press-effect hover:bg-primary-600 hover:shadow-glow-orange-md transition-all">
-                무료로 시작하기 <ArrowRight size={20} />
+                <Play size={18} /> 데모 체험하기
               </Link>
-              <a href="#features"
+              <Link href="/signup"
                 className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-medium text-lg flex items-center justify-center gap-2 press-effect hover:bg-[var(--bg-elevated)] transition-colors">
-                기능 살펴보기 <ChevronRight size={18} />
-              </a>
+                무료로 시작하기 <ArrowRight size={18} />
+              </Link>
             </div>
             {/* 리스크 리버설 */}
             <div className="flex items-center justify-center gap-4 text-[11px] text-[var(--text-tertiary)]">
-              <span className="flex items-center gap-1"><CreditCard size={11} />신용카드 필요 없음</span>
+              <span className="flex items-center gap-1"><Play size={11} />로그인 없이 바로 체험</span>
               <span>·</span>
-              <span>3분 가입</span>
+              <span>실제 대시보드 미리보기</span>
               <span>·</span>
-              <span>언제든 해지 가능</span>
+              <span>3분이면 충분</span>
             </div>
           </motion.div>
 
@@ -300,12 +300,18 @@ export default function LandingPage() {
               <br />
               이제 사장님도 데이터로 경영하세요.
             </p>
-            <Link href="/signup"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary-500 text-white font-semibold text-lg press-effect hover:bg-primary-600 hover:shadow-glow-orange-md transition-all">
-              무료로 시작하기 <ArrowRight size={20} />
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/demo"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-primary-500 text-white font-semibold text-lg press-effect hover:bg-primary-600 hover:shadow-glow-orange-md transition-all">
+                <Play size={18} /> 데모 체험하기
+              </Link>
+              <Link href="/signup"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-[var(--bg-tertiary)] text-[var(--text-secondary)] font-medium text-lg press-effect hover:bg-[var(--bg-elevated)] transition-colors">
+                무료로 시작하기 <ArrowRight size={18} />
+              </Link>
+            </div>
             <p className="text-[11px] text-[var(--text-tertiary)] mt-3">
-              신용카드 없이 무료 시작 · 언제든 해지 가능
+              로그인 없이 대시보드를 바로 체험해보세요
             </p>
           </div>
         </ScrollReveal>
