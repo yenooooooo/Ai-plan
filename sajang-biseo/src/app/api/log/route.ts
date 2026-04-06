@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Allowed actions whitelist
-    const ALLOWED = ["closing_save", "order_save", "settings_update", "briefing_view", "login"];
+    const ALLOWED = ["closing_save", "order_save", "settings_update", "briefing_view", "login", "receipt_save"];
     if (!ALLOWED.includes(action)) {
       return NextResponse.json({ error: "유효하지 않은 action" }, { status: 400 });
     }

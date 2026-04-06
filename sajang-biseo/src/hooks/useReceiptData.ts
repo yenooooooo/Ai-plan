@@ -168,6 +168,7 @@ export function useReceiptData() {
       if (insertErr) { console.error("영수증 저장 실패:", insertErr); return; }
 
       await loadReceipts();
+      fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "receipt_save" }) }).catch(() => {});
     },
     [storeId, supabase, loadReceipts]
   );

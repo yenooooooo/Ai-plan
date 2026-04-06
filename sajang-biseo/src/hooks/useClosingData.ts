@@ -310,6 +310,7 @@ export function useClosingData() {
 
       setSaved(true);
       toast("마감이 저장되었습니다", "success");
+      fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "closing_save" }) }).catch(() => {});
     } catch (err) {
       console.error("마감 저장 실패:", err);
       // 오프라인이면 드래프트가 이미 localStorage에 있으므로 안내만

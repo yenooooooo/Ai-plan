@@ -14,8 +14,11 @@ interface LogEntry {
 
 const ACTION_LABELS: Record<string, string> = {
   login: "로그인",
+  logout: "로그아웃",
+  user_signup: "회원가입",
   closing_save: "마감 저장",
   receipt_ocr: "영수증 OCR",
+  receipt_save: "영수증 저장",
   review_generate: "리뷰 생성",
   order_save: "발주 저장",
   briefing_view: "브리핑 조회",
@@ -30,8 +33,11 @@ const LIMIT = 50;
 
 const ACTION_COLORS: Record<string, string> = {
   login: "#3b82f6",
+  logout: "#64748b",
+  user_signup: "#22c55e",
   closing_save: "#8b5cf6",
   receipt_ocr: "#f59e0b",
+  receipt_save: "#eab308",
   review_generate: "#10b981",
   order_save: "#ef4444",
   briefing_view: "#06b6d4",

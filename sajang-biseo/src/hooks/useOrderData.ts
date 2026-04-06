@@ -561,6 +561,7 @@ export function useOrderData() {
 
       setOrderSaved(true);
       toast("발주가 저장되었습니다", "success");
+      fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "order_save" }) }).catch(() => {});
     } catch (err) {
       console.error("발주 저장 실패:", err);
       toast("발주 저장에 실패했습니다", "error");

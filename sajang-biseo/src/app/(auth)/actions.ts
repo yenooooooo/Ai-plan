@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { verifyTurnstile } from "@/lib/security/turnstile";
 import { checkLoginAttempt, resetLoginAttempts, checkSignupLimit } from "@/lib/security/rateLimiter";
 import { isDisposableEmail } from "@/lib/security/disposableEmails";
+import { logActivity } from "@/lib/activityLog";
 
 /** 요청 IP 추출 */
 async function getClientIp(): Promise<string> {
@@ -46,7 +47,7 @@ export async function signUp(formData: FormData) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sajangbiseo.com";
 
-  const { error } = await supabase.auth.signUp({
+  const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -56,6 +57,10 @@ export async function signUp(formData: FormData) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  if (signUpData?.user) {
+    logActivity(signUpData.user.id, "user_signup");
   }
 
   redirect(`/verify-email?email=${encodeURIComponent(email)}`);
@@ -109,6 +114,8 @@ export async function signIn(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (user) {
+    logActivity(user.id, "login");
+
     const { data: profile } = await supabase
       .from("sb_user_profiles")
       .select("id")
@@ -125,6 +132,8 @@ export async function signIn(formData: FormData) {
 
 export async function signOut() {
   const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) logActivity(user.id, "logout");
   await supabase.auth.signOut();
   redirect("/login");
 }
