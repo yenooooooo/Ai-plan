@@ -171,15 +171,17 @@ function DemoHome() {
             const h = (d.amount / max) * 100;
             const isToday = i === WEEKLY_SALES.length - 1;
             return (
-              <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+              <div key={d.day} className="flex-1 flex flex-col items-center gap-1 h-full">
                 <span className="text-[10px] text-[var(--text-tertiary)] font-display">
                   {(d.amount / 10000).toFixed(0)}
                 </span>
-                <motion.div
-                  initial={{ height: 0 }} animate={{ height: `${h}%` }}
-                  transition={{ duration: 0.5, delay: i * 0.05 }}
-                  className={`w-full rounded-t-md ${isToday ? "bg-primary-500" : "bg-primary-500/30"}`}
-                />
+                <div className="flex-1 w-full relative">
+                  <motion.div
+                    initial={{ height: 0 }} animate={{ height: `${h}%` }}
+                    transition={{ duration: 0.5, delay: i * 0.05 }}
+                    className={`absolute bottom-0 left-0 right-0 rounded-t-md ${isToday ? "bg-primary-500" : "bg-primary-500/30"}`}
+                  />
+                </div>
                 <span className={`text-[11px] ${isToday ? "text-primary-500 font-semibold" : "text-[var(--text-tertiary)]"}`}>
                   {d.day}
                 </span>
