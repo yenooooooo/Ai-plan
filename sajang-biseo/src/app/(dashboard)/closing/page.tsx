@@ -35,6 +35,7 @@ import { useUIState } from "@/stores/useUIState";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/stores/useToast";
 import { useTeamRole } from "@/hooks/useTeamRole";
+import { DatePickerModal } from "@/components/closing/DatePickerModal";
 
 type Tab = "input" | "analytics";
 
@@ -68,6 +69,7 @@ export default function ClosingPage() {
   const [reportCopied, setReportCopied] = useState(false);
   const [showMonthSummary, setShowMonthSummary] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // 미저장 경고
   const isDirty = !saved && (totalSales > 0 || memo !== "" || tags.length > 0 || todayExpenses.length > 0);
@@ -153,10 +155,13 @@ export default function ClosingPage() {
               <button onClick={() => moveDate(-1)} className="p-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors">
                 <ChevronLeft size={20} />
               </button>
-              <div className="flex items-center gap-2 text-heading-md text-[var(--text-primary)]">
+              <button
+                onClick={() => setShowDatePicker(true)}
+                className="flex items-center gap-2 text-heading-md text-[var(--text-primary)] hover:text-primary-500 transition-colors"
+              >
                 <CalendarDays size={18} className="text-[var(--text-tertiary)]" />
                 <span>{isToday ? `오늘 ${dateLabel}` : dateLabel}</span>
-              </div>
+              </button>
               <button onClick={() => moveDate(1)} disabled={isToday} className="p-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-30">
                 <ChevronRight size={20} />
               </button>
@@ -424,6 +429,15 @@ export default function ClosingPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 날짜 선택 캘린더 모달 */}
+      {showDatePicker && (
+        <DatePickerModal
+          selectedDate={selectedDate}
+          onSelect={(date) => { goToDate(date); setTab("input"); }}
+          onClose={() => setShowDatePicker(false)}
+        />
+      )}
 
       {/* 월간 요약 팝업 */}
       {showMonthSummary && (
