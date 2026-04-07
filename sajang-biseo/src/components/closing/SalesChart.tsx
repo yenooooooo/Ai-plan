@@ -11,7 +11,7 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import { formatCompact, formatCurrency } from "@/lib/utils/format";
+import { formatCurrency } from "@/lib/utils/format";
 
 type ViewMode = "daily" | "weekly" | "monthly";
 
@@ -83,7 +83,7 @@ export function SalesChart({ data, mode = "daily", onModeChange }: SalesChartPro
         transition={{ duration: 0.3 }}
       >
         <ResponsiveContainer width="100%" height={200} minWidth={0}>
-          <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--border-subtle)"
@@ -97,10 +97,15 @@ export function SalesChart({ data, mode = "daily", onModeChange }: SalesChartPro
               axisLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "var(--text-tertiary)" }}
+              tick={{ fontSize: 10, fill: "var(--text-tertiary)" }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v: number) => formatCompact(v)}
+              tickFormatter={(v: number) => {
+                const abs = Math.abs(v);
+                if (abs >= 100_000_000) return `${Math.floor(abs / 100_000_000)}억`;
+                if (abs >= 10_000) return `${Math.floor(abs / 10_000)}만`;
+                return String(v);
+              }}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(249, 115, 22, 0.05)" }} />
             <Bar dataKey="sales" radius={[6, 6, 0, 0]} maxBarSize={32}>
