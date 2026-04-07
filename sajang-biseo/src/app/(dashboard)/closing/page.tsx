@@ -442,7 +442,7 @@ export default function ClosingPage() {
       {/* 월간 요약 팝업 */}
       {showMonthSummary && (
         <MonthEndSummary
-          selectedMonth={selectedDate.slice(0, 7)}
+          selectedMonth={analytics.selectedMonthKey}
           onClose={() => setShowMonthSummary(false)}
         />
       )}
