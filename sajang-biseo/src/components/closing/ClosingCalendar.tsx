@@ -13,12 +13,13 @@ interface CalendarDataPoint {
 interface ClosingCalendarProps {
   data: CalendarDataPoint[];
   monthLabel: string;
+  selectedMonth?: string; // "YYYY-MM"
   onDateClick?: (date: string) => void;
 }
 
 const DAY_HEADERS = ["월", "화", "수", "목", "금", "토", "일"];
 
-export function ClosingCalendar({ data, monthLabel, onDateClick }: ClosingCalendarProps) {
+export function ClosingCalendar({ data, monthLabel, selectedMonth, onDateClick }: ClosingCalendarProps) {
   const { weeks, maxSales } = useMemo(() => {
     if (data.length === 0) return { weeks: [], maxSales: 0 };
 
@@ -29,10 +30,10 @@ export function ClosingCalendar({ data, monthLabel, onDateClick }: ClosingCalend
       if (d.sales > max) max = d.sales;
     }
 
-    // 이번 달 날짜 그리드 생성
+    // 선택된 월 또는 이번 달 날짜 그리드 생성
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
+    const year = selectedMonth ? parseInt(selectedMonth.slice(0, 4)) : now.getFullYear();
+    const month = selectedMonth ? parseInt(selectedMonth.slice(5, 7)) - 1 : now.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0).getDate();
 

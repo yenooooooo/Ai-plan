@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, CalendarDays, FileBarChart } from "lucide-react";
+import { BarChart3, CalendarDays, ChevronLeft, ChevronRight, FileBarChart } from "lucide-react";
 import { SalesChart } from "@/components/closing/SalesChart";
 import { WeekdayHeatmap } from "@/components/closing/WeekdayHeatmap";
 import { MonthlyGoal } from "@/components/closing/MonthlyGoal";
@@ -27,6 +27,11 @@ interface ClosingAnalyticsTabProps {
     lastMonthSamePeriodSales: number | null;
     calendarData: { date: string; sales: number }[];
     profitTrendData: { date: string; sales: number; fees: number; expenses: number }[];
+    fullMonthLabel: string;
+    selectedMonthKey: string;
+    monthOffset: number;
+    goToPrevMonth: () => void;
+    goToNextMonth: () => void;
   };
   todaySales: number;
   monthlyGoal: number;
@@ -48,6 +53,26 @@ export function ClosingAnalyticsTab({ analytics, todaySales, monthlyGoal, onGoal
 
   return (
     <>
+      {/* 월 선택 네비게이션 */}
+      <div className="flex items-center justify-center gap-4">
+        <button
+          onClick={analytics.goToPrevMonth}
+          className="p-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <span className="text-heading-md text-[var(--text-primary)] min-w-[120px] text-center">
+          {analytics.fullMonthLabel}
+        </span>
+        <button
+          onClick={analytics.goToNextMonth}
+          disabled={analytics.monthOffset >= 0}
+          className="p-2 rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors disabled:opacity-30"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
       <GoalAlertBanner
         currentSales={analytics.monthlyCurrent}
         goal={monthlyGoal}
@@ -92,7 +117,7 @@ export function ClosingAnalyticsTab({ analytics, todaySales, monthlyGoal, onGoal
         lastMonthSales={analytics.lastMonthSamePeriodSales}
       />
 
-      <ClosingCalendar data={analytics.calendarData} monthLabel={analytics.monthLabel} onDateClick={onDateClick} />
+      <ClosingCalendar data={analytics.calendarData} monthLabel={analytics.monthLabel} selectedMonth={analytics.selectedMonthKey} onDateClick={onDateClick} />
 
       <ProfitTrend
         data={analytics.profitTrendData}
