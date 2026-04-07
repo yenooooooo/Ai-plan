@@ -61,22 +61,22 @@ export function SalesCard({ data }: SalesCardProps) {
       {/* 요일별 막대그래프 */}
       <div>
         <p className="text-caption text-[var(--text-tertiary)] mb-2">요일별 매출</p>
-        <div className="flex items-end gap-1.5 h-20">
+        <div className="flex items-end gap-1.5" style={{ height: 80 }}>
           {data.dailySales.map((d, i) => {
-            const height = (d.amount / maxDaily) * 100;
+            const barHeight = Math.max((d.amount / maxDaily) * 64, 3);
             const isBest = d.amount === data.bestDay.amount && d.amount > 0;
             const isWorst = d.amount === data.worstDay.amount && d.amount > 0 && data.dailySales.length > 1;
             return (
-              <div key={d.date || i} className="flex-1 flex flex-col items-center gap-1">
+              <div key={d.date || i} className="flex-1 flex flex-col items-center justify-end" style={{ height: 80 }}>
                 <motion.div
                   initial={{ height: 0 }}
-                  animate={{ height: `${Math.max(height, 4)}%` }}
+                  animate={{ height: barHeight }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
                   className={`w-full rounded-t-md ${
                     isBest ? "bg-primary-500" : isWorst ? "bg-danger/60" : "bg-primary-500/30"
                   }`}
                 />
-                <span className="text-[11px] text-[var(--text-tertiary)]">{d.day}</span>
+                <span className="text-[11px] text-[var(--text-tertiary)] mt-1">{d.day}</span>
               </div>
             );
           })}
